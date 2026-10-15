@@ -32,6 +32,7 @@ python Tu-dan-trang/tu_dan_trang.py "bai-giang.docx" -m gradient -a nhap-chuot
 | `index.html` | Trang bộ sưu tập, đã nhúng sẵn tính năng tự dàn trang |
 | `Tu-dan-trang/web/` | Mã nguồn bản trình duyệt: `engine.js` (đọc file, dàn trang), `pptx.js` (ghi .pptx), `preview.js` (xem trước), `ui.*` (giao diện) |
 | `Tu-dan-trang/web/gan-vao-bo-suu-tap.py` | Nhúng lại mã nguồn vào `index.html` sau khi sửa (chạy lại nhiều lần không sao) |
+| `Sua-chu-giao-dien/` | Công cụ sửa chữ trên trang: mở trang với `#sua`, bấm vào chữ để sửa, lưu thẳng vào file ([hướng dẫn](Sua-chu-giao-dien/HUONG-DAN.md)) |
 | `Tu-dan-trang/dantrang/` | Bộ máy bản Python |
 | `Tu-dan-trang/vi-du/` | File mẫu để thử (.md, .docx, .txt) |
 
