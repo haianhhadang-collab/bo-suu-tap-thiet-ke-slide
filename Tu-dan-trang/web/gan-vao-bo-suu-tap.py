@@ -29,10 +29,9 @@ def main(paths):
             '<script>window.JSZip||document.write(\'<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\\/script>\')</script>\n')
     cta = ('\n    <div class="tdt-cta">\n'
            '      <button class="btn-main" id="tdt-open">✦ Tự dàn trang file của bạn</button>\n'
-           '      <p><b>Mới:</b> thả file .pptx, .docx, .md hoặc .txt, chọn một mẫu (12 mẫu dựng sẵn hoặc bấm '
-           '<b>“Áp dụng mẫu này”</b> trên bất kỳ thẻ nào để lấy bảng màu của thẻ), thêm <b>họa tiết theo chủ đề</b> '
-           '(36 họa tiết trong 6 gói: lịch sử – cách mạng, văn hóa truyền thống, lễ hội, thiên nhiên, giáo dục, anime – comic – manga) — xem trước tức thì và tải về '
-           'PowerPoint có sẵn animation. Chạy ngay trong trình duyệt, file không gửi đi đâu.</p>\n    </div>\n    ')
+           '      <p><b>Up file lên:</b> File chấp nhận: .pptx, .docx, .md hoặc .txt<br>'
+           '<b>Các chức năng tự động:</b> dàn trang, chọn màu chữ, màu nền theo chủ đề<br>'
+           '<b>Các chức năng tùy chọn:</b> họa tiết theo chủ đề; tạo chuyển động</p>\n    </div>\n    ')
     script = f'\n<script>\nwindow.TU_DAN_TRANG_KHUNG="{khung}";\n{js}\n</script>\n'
 
     for p in paths:

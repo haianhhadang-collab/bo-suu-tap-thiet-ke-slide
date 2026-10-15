@@ -135,20 +135,9 @@ section.topic p.desc{margin:0 0 18px;color:var(--muted);font-size:15px}
 .pv.thien-nhien .t{left:10%;top:36%;font-family:"Playfair Display",Georgia,serif;font-size:20px;width:62%}
 .pv.thien-nhien .s{left:10%;top:64%}
 
-/* sections below */
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;margin:36px 0 0;box-shadow:var(--shadow)}
-.panel h2{margin:0 0 6px;font-size:22px}
-.panel > p{margin:0 0 16px;color:var(--muted)}
-.trends{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-.trend{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg)}
-.trend b{display:block;margin-bottom:4px}
-.trend span{font-size:14px;color:var(--muted)}
 table{width:100%;border-collapse:collapse;font-size:14.5px}
 th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.tbl{overflow-x:auto}
-ol.tips{margin:0;padding-left:20px}
-ol.tips li{margin:6px 0}
 footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 .empty{display:none;padding:40px 0;text-align:center;color:var(--muted)}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
@@ -285,10 +274,6 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
   .pal small{font-size:12px}
   .go{font-size:14.5px}
   .apply{font-size:13.5px;padding:6px 11px}
-  .panel{padding:30px;margin-top:48px}
-  .panel h2{font-size:26px}
-  .trends{grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
-  .trend span{font-size:15px}
   table{font-size:15.5px}
   footer{font-size:14px}
 }
@@ -314,7 +299,7 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
     <!--TDT-CTA-->
     <div class="tdt-cta">
       <button class="btn-main" id="tdt-open">✦ Tự dàn trang file của bạn</button>
-      <p><b>Mới:</b> thả file .pptx, .docx, .md hoặc .txt, chọn một mẫu (12 mẫu dựng sẵn hoặc bấm <b>“Áp dụng mẫu này”</b> trên bất kỳ thẻ nào để lấy bảng màu của thẻ), thêm <b>họa tiết theo chủ đề</b> (36 họa tiết trong 6 gói: lịch sử – cách mạng, văn hóa truyền thống, lễ hội, thiên nhiên, giáo dục, anime – comic – manga) — xem trước tức thì và tải về PowerPoint có sẵn animation. Chạy ngay trong trình duyệt, file không gửi đi đâu.</p>
+      <p><b>Up file lên:</b> File chấp nhận: .pptx, .docx, .md hoặc .txt<br><b>Các chức năng tự động:</b> dàn trang, chọn màu chữ, màu nền theo chủ đề<br><b>Các chức năng tùy chọn:</b> họa tiết theo chủ đề; tạo chuyển động</p>
     </div>
     <!--/TDT-CTA-->
   </div>
@@ -350,50 +335,6 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 <main class="wrap">
   <div id="sections"></div>
   <div class="empty" id="empty">Không có mẫu nào khớp bộ lọc. Hãy bỏ bớt điều kiện.</div>
-
-  <div class="panel" id="xu-huong">
-    <h2>Xu hướng thiết kế slide 2026</h2>
-    <p>Tóm tắt từ trang <a href="https://slidesgo.com/presentation-trends" target="_blank" rel="noopener">Presentation Trends 2026</a> của Slidesgo, có kèm cách áp dụng.</p>
-    <div class="trends">
-      <div class="trend"><b>Hình khối đơn giản, góc bo mềm</b><span>Thẻ bo tròn, hình học nhẹ nhàng giúp người xem dễ tập trung.</span></div>
-      <div class="trend"><b>Dễ đọc trước tiên</b><span>Phân cấp rõ, tương phản mạnh. Nội dung 24–32 pt, tiêu đề 44–64 pt.</span></div>
-      <div class="trend"><b>Chi tiết vui nhộn</b><span>Sticker, nét vẽ tay, icon thân thiện. Mỗi slide chỉ một điểm nhấn.</span></div>
-      <div class="trend"><b>Kể chuyện bằng video</b><span>Clip ngắn, có lời dẫn, bố cục ba phần.</span></div>
-      <div class="trend"><b>Dữ liệu tối giản</b><span>Mỗi slide một biểu đồ, một thông điệp. Tiêu đề nói luôn kết luận.</span></div>
-      <div class="trend"><b>Ảnh chân thực, hoài cổ</b><span>Ảnh hạt (grain), xử lý màu đồng nhất, ảnh toàn cảnh để mở chương.</span></div>
-      <div class="trend"><b>Chữ lớn, hình học</b><span>Tiêu đề đậm, cỡ lớn đi với chữ sans-serif dịu. Không quá hai họ phông.</span></div>
-      <div class="trend"><b>Bố cục bất đối xứng</b><span>Lưới thoáng, xếp lớp, đổ bóng. Xen kẽ cột hẹp với slide tràn ảnh.</span></div>
-      <div class="trend"><b>Bảng màu “chữa lành”</b><span>Trung tính ấm, xanh rêu, tím đậm. Dành màu teal cho số liệu chính và nút hành động.</span></div>
-      <div class="trend"><b>Minh họa: tối giản hoặc tối đa</b><span>Chọn một phong cách minh họa cho cả bộ slide, không pha trộn.</span></div>
-    </div>
-  </div>
-
-  <div class="panel" id="nguon">
-    <h2>Nguồn tải mẫu</h2>
-    <p>Các trang có mẫu trong bộ sưu tập này, kèm vài trang lớn khác.</p>
-    <div class="tbl"><table>
-      <thead><tr><th>Trang</th><th>Mạnh về</th><th>Ghi chú</th></tr></thead>
-      <tbody>
-        <tr><td><a href="https://www.slidescarnival.com/" target="_blank" rel="noopener">SlidesCarnival</a></td><td>Nhiều mẫu thanh lịch, tối giản, giáo dục; lọc theo màu và phong cách</td><td>Miễn phí, không cần tài khoản. Tải PowerPoint hoặc chọn “Make a copy” trên Google Slides. Xem điều khoản ghi công trên trang.</td></tr>
-        <tr><td><a href="https://slidesgo.com/" target="_blank" rel="noopener">Slidesgo</a></td><td>Kho rất lớn: luận văn, bài giảng theo môn và cấp học, infographic</td><td>Có mẫu miễn phí và mẫu Premium (có nhãn). Bản miễn phí yêu cầu giữ slide ghi nguồn. Mẫu Premium được gắn nhãn riêng; các mẫu còn lại miễn phí ở thời điểm sưu tập.</td></tr>
-        <tr><td><a href="https://www.presentationgo.com/" target="_blank" rel="noopener">PresentationGO</a></td><td>Sơ đồ, biểu đồ, timeline, bản đồ, đồ họa ẩn dụ</td><td>Miễn phí. Rất hợp để chèn thêm sơ đồ vào bộ slide sẵn có.</td></tr>
-        <tr><td><a href="https://create.microsoft.com/" target="_blank" rel="noopener">Microsoft Create</a></td><td>Mẫu chính chủ của PowerPoint</td><td>Mở thẳng trong PowerPoint, ít lỗi phông chữ.</td></tr>
-        <tr><td><a href="https://www.canva.com/presentations/templates/" target="_blank" rel="noopener">Canva</a></td><td>Mẫu thời thượng, chỉnh nhanh</td><td>Xuất sang .pptx có thể lệch định dạng. Kiểm tra lại trước khi trình chiếu.</td></tr>
-      </tbody>
-    </table></div>
-  </div>
-
-  <div class="panel" id="meo">
-    <h2>Mẹo chọn và dùng mẫu</h2>
-    <ol class="tips">
-      <li><b>Chọn theo người nghe.</b> Hội đồng khoa học, cơ quan: Tối giản, Chuyên nghiệp, Thanh lịch. Học sinh: Dễ thương, Nghệ thuật. Nhà đầu tư: Gradient hoặc Nền tối.</li>
-      <li><b>Kiểm tra phông tiếng Việt.</b> Nhiều mẫu dùng phông không có dấu. Nếu chữ bị vỡ, đổi sang Be Vietnam Pro, Inter, Montserrat, Roboto, Playfair Display hoặc Lora (có tại Google Fonts).</li>
-      <li><b>Đổi màu một lần cho cả bộ.</b> Trong PowerPoint, vào Design → Variants → Colors để đổi bảng màu, không tô từng hình. Bấm ô màu trên thẻ mẫu để chép mã hex.</li>
-      <li><b>Xóa slide thừa.</b> Mẫu thường có 20–35 slide. Chỉ giữ bố cục cần dùng để file nhẹ và thống nhất.</li>
-      <li><b>Bảo vệ luận văn, luận án:</b> theo quy định của cơ sở đào tạo về logo, màu và phông chữ trước, rồi mới chọn mẫu.</li>
-      <li><b>Giữ ghi nguồn.</b> Đọc điều khoản của từng trang, nhất là khi dùng cho mục đích thương mại.</li>
-    </ol>
-  </div>
 </main>
 
 <footer><div class="wrap">Thông tin sưu tập ngày 15/10/2026. Trạng thái miễn phí/Premium và nội dung mẫu có thể đổi theo thời gian. Bảng màu trên thẻ là ước lượng dựa vào tên và mô tả của mẫu. Nhãn “Mới” đánh dấu mẫu bổ sung đợt 15/10/2026.</div></footer>
