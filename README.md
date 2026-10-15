@@ -4,8 +4,8 @@
 
 Trang web gồm hai phần:
 
-1. **Bộ sưu tập 339 mẫu slide** (SlidesCarnival, Slidesgo, PresentationGO). Lọc theo chủ đề, phong cách, mẫu ấn tượng, mẫu miễn phí; bấm ô màu để chép mã màu.
-2. **✦ Tự dàn trang**: thả một file **.pptx, .docx, .md hoặc .txt** vào trang, chọn một trong 10 mẫu dựng sẵn hoặc bấm **“Áp dụng mẫu này”** trên bất kỳ thẻ nào để dùng bảng màu của thẻ đó. Bạn xem trước tức thì rồi tải về file PowerPoint đã có sẵn **animation** và **chuyển trang (Morph)**.
+1. **Bộ sưu tập 463 mẫu slide** (SlidesCarnival, Slidesgo, PresentationGO). Lọc theo chủ đề, phong cách, mẫu ấn tượng, mẫu miễn phí; bấm ô màu để chép mã màu.
+2. **✦ Tự dàn trang**: thả một file **.pptx, .docx, .md hoặc .txt** vào trang, chọn một trong 12 mẫu dựng sẵn hoặc bấm **“Áp dụng mẫu này”** trên bất kỳ thẻ nào để dùng bảng màu của thẻ đó, rồi thêm nếu muốn một trong **61 họa tiết theo chủ đề** (12 gói: lịch sử, văn hóa, lễ hội, thiên nhiên, giáo dục, anime, trường học, di sản, y tế, vũ trụ, thể thao, đối ngoại). Bạn xem trước tức thì rồi tải về file PowerPoint đã có sẵn **animation** và **chuyển trang (Morph)**.
    - Mọi xử lý chạy ngay trong trình duyệt, file không gửi đi đâu.
    - Chữ, ảnh, bảng và ghi chú thuyết trình được giữ nguyên.
    - Bố cục tự chọn theo nội dung: danh sách, thẻ, số liệu lớn, quy trình, trích dẫn, bảng, ảnh. Nội dung quá dài tự sang trang.

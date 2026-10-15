@@ -1,4 +1,5 @@
-/* Tự dàn trang — họa tiết theo chủ đề (cách mạng, Hồ Chí Minh, trống đồng Đông Sơn, hồi văn, hoa mai Tết).
+/* Tự dàn trang — họa tiết theo chủ đề: 61 họa tiết chia 12 gói (lịch sử, văn hóa, lễ hội, thiên nhiên, giáo dục, anime,
+   trường học, di sản, y tế, vũ trụ, thể thao, đối ngoại) — xem PACKS.
    Vẽ chồng lên bất kỳ mẫu nào bằng hình vector của PowerPoint (sửa được trong PowerPoint, không dùng ảnh). */
 (function (G) {
 'use strict';
@@ -213,14 +214,16 @@ const NARROW = PETAL.map(([x, y]) => [x, y * 0.45]);       // lá hẹp (tre)
 const LEAFLET = PETAL.map(([x, y]) => [x, y * 0.28]);      // lá chét dừa
 
 /** Họa tiết dạng “biểu tượng”: to ở bên phải trang bìa/chương, chìm giữa trang kết, chìm ở góc trang nội dung.
-    emblem(ctx, cx, cy, s, màu, độ đậm, màu phụ, th, tag) vẽ gọn trong hình vuông tâm (cx, cy), nửa cạnh s. */
+    emblem(ctx, cx, cy, s, màu, độ đậm, màu phụ, th, tag) vẽ gọn trong hình vuông tâm (cx, cy), nửa cạnh s;
+    độ đậm < 0.3 nghĩa là đang vẽ chìm (chỉ dùng một màu). Tùy chọn: k (phóng to/thu nhỏ), under, inv, closing, page. */
 function emblemDraw(emblem, o = {}) {
   return function (ctx, th, inv, idx, kind, info) {
     if (inv) {
       const col = th.inv_accent, c2 = th.inv_ink;
-      if (kind === 'closing') emblem(ctx, SW / 2, SH / 2, 3.0, col, o.wm || 0.13, c2, th, 'em-');
+      if (o.under) o.under(ctx, th, kind, info);           // vẽ trước biểu tượng: nền sao, Trái Đất…
+      if (kind === 'closing') { if (o.closing) o.closing(ctx, th, info); else emblem(ctx, SW / 2, SH / 2, 3.0, col, o.wm || 0.13, c2, th, 'em-'); }
       else {
-        const big = kind === 'cover', cx = SW - (big ? 3.0 : 2.5), s = big ? 2.5 : 1.95;
+        const big = kind === 'cover', cx = SW - (big ? 3.0 : 2.5), s = (big ? 2.5 : 1.95) * (o.k || 1);
         if (o.halo !== false) ctx.box(cx - s * 1.3, SH / 2 - s * 1.3, s * 2.6, s * 2.6, { kind: 'ellipse', radial: true, gradient: [col, col], galphas: [0.2, 0], name: '!!em-hao' });
         emblem(ctx, cx, SH / 2, s, col, o.alpha || 0.92, c2, th, 'em-');
         info.x1 = Math.min(info.x1, cx - s - 0.45);
@@ -917,9 +920,826 @@ Object.assign(MOTIFS, {
     } },
 });
 
+// ============================================================ 6 gói mở rộng: trường học, di sản, y tế, vũ trụ, thể thao, đối ngoại
+const ellArc = (cx, cy, rx, ry, rot, a0, a1, n = 30) => Array.from({ length: n + 1 }, (_, i) => { const t = a0 + (a1 - a0) * i / n, x = rx * Math.cos(t), y = ry * Math.sin(t); return [cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]; });
+const rect = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+const SMALL = Array.from({ length: 8 }, (_, i) => { const t = TAU * i / 8; return [0.5 + 0.5 * Math.cos(t), 0.2 * Math.sin(t)]; });   // lá chét nhỏ, ít điểm cho file nhẹ
+const WIDE = PETAL.map(([x, y]) => [x, y * 1.45]);
+const glow = (ctx, cx, cy, r, color, a, name) => ctx.box(cx - r, cy - r, 2 * r, 2 * r, { kind: 'ellipse', radial: true, gradient: [color, color], galphas: [a, 0], name });
+const palW = o => Object.assign({ card: 'FFFFFF' }, o);
+function confetti(ctx, x0, y0, w, h, n, seed, cols, tag, a = 0.9) {
+  const r = seeded(seed), by = cols.map(() => []);
+  for (let i = 0; i < n; i++) by[i % cols.length].push(rotRect(x0 + w * r(), y0 + h * r(), 0.08 + 0.08 * r(), 0.035 + 0.03 * r(), TAU * r()));
+  by.forEach((g, k) => ctx.poly(g, { color: cols[k], alpha: a, name: '!!' + tag + 'giay' + k }));
+}
+function starfield(ctx, x0, y0, w, h, n, seed, col, a, tag) {
+  const r = seeded(seed), dots = [];
+  for (let i = 0; i < n; i++) dots.push(circle(x0 + w * r(), y0 + h * r(), 0.008 + 0.022 * Math.pow(r(), 2), 8));
+  ctx.poly(dots, { color: col, alpha: a, name: '!!' + tag + 'sao' });
+}
+const sparkle = (cx, cy, r) => star(cx, cy, r, 4, 0.2);
+
+// ============================================================ Gói 1. Trường học · Lễ nghi học đường
+PACKS.push({ id: 'truong-hoc', name: 'Trường học · Lễ nghi học đường', desc: 'Trống trường, hoa phượng, mũ cử nhân, vở ô ly, bảng đen phấn trắng' });
+
+function schoolDrum(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, C = k => mono ? col : k;
+  const yt = -0.36, yb = 0.6, rx = 0.66, ry = 0.19, bul = 0.07, body = [];
+  for (let i = 0; i <= 12; i++) { const t = i / 12; body.push([-(rx + bul * Math.sin(Math.PI * t)), yt + (yb - yt) * t]); }
+  for (let i = 0; i <= 20; i++) { const q = Math.PI - Math.PI * i / 20; body.push([rx * Math.cos(q), yb + ry * Math.sin(q)]); }
+  for (let i = 12; i >= 0; i--) { const t = i / 12; body.push([rx + bul * Math.sin(Math.PI * t), yt + (yb - yt) * t]); }
+  for (let i = 0; i <= 20; i++) { const q = Math.PI * i / 20; body.push([rx * Math.cos(q), yt + ry * Math.sin(q)]); }
+  ctx.poly(mapR([[[-0.42, 0.72], [-0.64, 0.98]], [[0.42, 0.72], [0.64, 0.98]]], P), { closed: false, lineColor: C('5D4037'), lineW: Math.max(1.5, 5 * s), lineAlpha: a, name: '!!' + tag + 'chan' });
+  ctx.poly(body.map(P), { color: C('C62828'), alpha: a, name: '!!' + tag + 'than' });
+  const band = yy => Array.from({ length: 21 }, (_, i) => { const q = Math.PI * i / 20; return [(rx + 0.035) * Math.cos(q), yy + ry * Math.sin(q)]; });
+  ctx.poly([band(-0.22), band(0.44)].map(r => r.map(P)), { closed: false, lineColor: C('F2B705'), lineW: Math.max(1.2, 4.5 * s), lineAlpha: a, name: '!!' + tag + 'dai' });
+  if (!mono) {
+    const studs = [];
+    [-0.22, 0.44].forEach(yy => { for (let i = 0; i < 9; i++) { const q = Math.PI * (i + 0.5) / 9; studs.push(circle(rx * Math.cos(q), yy + ry * Math.sin(q), 0.022, 8)); } });
+    ctx.poly(mapR(studs, P), { color: '7A4B00', alpha: a, name: '!!' + tag + 'dinh' });
+    ctx.poly(star(...P([0, 0.12]), 0.15 * s), { color: 'F2B705', alpha: a, name: '!!' + tag + 'sao' });
+  }
+  ctx.poly(ell(0, yt, rx, ry, 0, 48).map(P), { color: C('F3E2C0'), alpha: mono ? a * 0.5 : a, lineColor: C('8D2A1E'), lineW: 1, lineAlpha: a, name: '!!' + tag + 'mat' });
+  ctx.poly(ell(0, yt, rx * 0.68, ry * 0.68, 0, 40).map(P), { closed: true, lineColor: C('C9A66B'), lineW: 1, lineAlpha: a * 0.6, name: '!!' + tag + 'mat2' });
+  const sticks = [rotRect(-0.16, -0.7, 1.2, 0.065, D(28)), rotRect(0.16, -0.7, 1.2, 0.065, D(-28))];
+  const knobs = [circle(0.37, -0.42, 0.06, 14), circle(-0.37, -0.42, 0.06, 14)];
+  ctx.poly(mapR(sticks.concat(knobs), P), { color: C('6D4C41'), alpha: a, name: '!!' + tag + 'dui' });
+}
+function balloon(ctx, x, y, r, color, tag, sway = 0.15) {
+  ctx.poly(quad([x, y + r * 1.12], [x + sway, y + r * 2.2], [x - sway * 0.5, y + r * 3.3], 16), { closed: false, lineColor: '8A8A8A', lineW: 0.9, name: '!!' + tag + 'day' });
+  ctx.poly(ell(x, y, r * 0.84, r, 0, 40), { color, name: '!!' + tag + 'bong' });
+  ctx.poly([[x, y + r * 0.98], [x - r * 0.13, y + r * 1.14], [x + r * 0.13, y + r * 1.14]], { color, name: '!!' + tag + 'nut' });
+  ctx.poly(ell(x - r * 0.32, y - r * 0.38, r * 0.12, r * 0.24, D(30), 20), { color: 'FFFFFF', alpha: 0.5, name: '!!' + tag + 'bong-sang' });
+}
+const BALLOON_COLS = ['E53935', 'FFC107', '1E88E5', '43A047', 'EC407A'];
+
+// hoa phượng: chùm hoa đỏ cam năm cánh (một cánh nhạt), lá kép lông chim
+function fern(x, y, len, ang, bend) {
+  const c = Math.cos(ang), d = Math.sin(ang), tip = [x + len * c, y + len * d], ctrl = [x + len * 0.5 * c - bend * len * d, y + len * 0.5 * d + bend * len * c];
+  const rib = quad([x, y], ctrl, tip, 16), lf = [];
+  for (let i = 2; i < rib.length; i++) {
+    const t = i / 16, [px, py] = rib[i], [qx, qy] = rib[i - 1], dir = Math.atan2(py - qy, px - qx), L = len * 0.15 * (1 - 0.5 * t);
+    lf.push(place(SMALL, px, py, L, dir + 1.2), place(SMALL, px, py, L, dir - 1.2));
+  }
+  return [rib, lf];
+}
+function phuongBranch(ctx, ox, oy, s, dir, tag, mono, col, a = 1, rot = 0) {
+  const cr = Math.cos(rot), sr = Math.sin(rot), P = ([x, y]) => [ox + dir * (x * cr - y * sr) * s, oy + (x * sr + y * cr) * s], C = k => mono ? col : k;
+  const main = quad([0, -0.1], [1.6, 0.2], [3.7, 1.3]);
+  const subs = [quad([1.3, 0.22], [1.6, 0.85], [2.15, 1.4]), quad([2.6, 0.7], [3.0, 0.35], [3.15, -0.05]), quad([3.1, 1.05], [3.45, 1.6], [3.3, 2.05])];
+  const ribs = [], leaves = [];
+  [[0.5, 0.0, 1.35, -58, 0.12], [0.85, 0.1, 1.45, 80, -0.12], [1.6, 0.4, 1.3, -35, 0.1], [1.9, 1.15, 1.2, 125, 0.1], [2.9, 0.3, 1.15, -100, -0.1],
+    [3.45, 1.15, 1.2, 15, 0.1], [3.3, 1.6, 1.05, 150, -0.1], [2.35, 0.65, 1.1, 68, 0.12], [1.3, 0.25, 1.1, 105, 0.1], [3.2, 2.0, 0.9, 85, -0.1]].forEach(([x, y, l, g, b]) => { const [r, lf] = fern(x, y, l, D(g), b); ribs.push(r); leaves.push(...lf); });
+  ctx.poly(main.map(P), { closed: false, lineColor: C('4E342E'), lineW: Math.max(1.5, 5 * s), lineAlpha: a, name: '!!' + tag + 'canh' });
+  ctx.poly(subs.map(r => r.map(P)), { closed: false, lineColor: C('5D4037'), lineW: Math.max(1, 3 * s), lineAlpha: a, name: '!!' + tag + 'canh2' });
+  ctx.poly(ribs.map(r => r.map(P)), { closed: false, lineColor: C('558B2F'), lineW: Math.max(0.75, 1.2 * s), lineAlpha: a, name: '!!' + tag + 'gan' });
+  ctx.poly(leaves.map(r => r.map(P)), { color: C('43A047'), alpha: mono ? a * 0.8 : a * 0.92, name: '!!' + tag + 'la' });
+  const petals = [[], [], []], flags = [], stamens = [], hearts = [];
+  [[1.95, 1.4], [3.15, -0.05], [3.7, 1.3], [3.3, 2.05], [1.1, 0.18], [2.6, 0.72]].forEach(([fx, fy], k) => {
+    [[0, 0], [0.28, 0.16], [-0.16, 0.28], [0.12, -0.26]].slice(0, 3 + (k % 2)).forEach(([dx, dy], j) => {
+      const cx = fx + dx, cy = fy + dy, pr = 0.135, rot = (k * 1.3 + j * 0.9);
+      for (let m = 0; m < 5; m++) { const t = rot + TAU * m / 5, p = circle(cx + pr * 0.95 * Math.cos(t), cy + pr * 0.95 * Math.sin(t), pr, 12); (m === 0 ? flags : petals[(k + j + m) % 3]).push(p); }
+      for (let m = 0; m < 6; m++) { const t = rot + 0.5 + TAU * m / 6; stamens.push(quad([cx, cy], [cx + pr * 1.3 * Math.cos(t + 0.3), cy + pr * 1.3 * Math.sin(t + 0.3)], [cx + pr * 2.0 * Math.cos(t), cy + pr * 2.0 * Math.sin(t)], 4)); }
+      hearts.push(circle(cx, cy, pr * 0.35, 8));
+    });
+  });
+  ['E53935', 'F4511E', 'D84315'].forEach((c, k) => ctx.poly(petals[k].map(r => r.map(P)), { color: C(c), alpha: a, name: '!!' + tag + 'hoa' + k }));
+  ctx.poly(flags.map(r => r.map(P)), { color: C('FFB74D'), alpha: a, name: '!!' + tag + 'hoaco' });
+  ctx.poly(stamens.map(r => r.map(P)), { closed: false, lineColor: C('B71C1C'), lineW: 0.8, lineAlpha: a, name: '!!' + tag + 'nhuy' });
+  ctx.poly(hearts.map(r => r.map(P)), { color: C('B71C1C'), alpha: a, name: '!!' + tag + 'tam' });
+}
+function fallingPetals(ctx, x0, y0, w, h, n, seed, tag) {
+  const r = seeded(seed), ps = [];
+  for (let i = 0; i < n; i++) ps.push(ell(x0 + w * r(), y0 + h * r(), 0.11 + 0.05 * r(), 0.075, TAU * r(), 20));
+  ctx.poly(ps, { color: 'FF7043', alpha: 0.9, name: '!!' + tag + 'roi' });
+}
+
+function gradCap(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, C = k => mono ? col : k, ang = D(-14);
+  const c = Math.cos(ang), d = Math.sin(ang), at = t => [-0.1 + t * c, 0.66 + t * d];
+  ctx.poly(rotRect(-0.1, 0.66, 1.3, 0.22, ang).map(P), { color: C('FFF8E7'), alpha: a, lineColor: C('C9A227'), lineW: 1.2, lineAlpha: a, name: '!!' + tag + 'bang' });
+  ctx.poly([ell(...at(0.65), 0.045, 0.11, ang, 20), ell(...at(-0.65), 0.045, 0.11, ang, 20)].map(r => r.map(P)), { color: C('EFE2C0'), alpha: a, lineColor: C('C9A227'), lineW: 1, lineAlpha: a, name: '!!' + tag + 'bang2' });
+  const [rx, ry] = at(0.05);
+  ctx.poly([rotRect(rx, ry, 0.13, 0.26, ang), [[rx - 0.03, ry + 0.1], [rx - 0.12, ry + 0.38], [rx - 0.02, ry + 0.33], [rx + 0.03, ry + 0.4], [rx + 0.04, ry + 0.1]]].map(r => r.map(P)), { color: C('C62828'), alpha: a, name: '!!' + tag + 'no' });
+  const skull = [[-0.5, -0.12], [-0.5, 0.26]].concat(quad([-0.5, 0.26], [0, 0.48], [0.5, 0.26], 14)).concat([[0.5, -0.12]]);
+  ctx.poly(skull.map(P), { color: C('141B33'), alpha: a, name: '!!' + tag + 'mu' });
+  ctx.poly([[-1.0, -0.3], [0, 0.08], [1.0, -0.3], [1.0, -0.23], [0, 0.15], [-1.0, -0.23]].map(P), { color: C('0B1022'), alpha: a, name: '!!' + tag + 'day' });
+  ctx.poly([[-1.0, -0.3], [0, -0.68], [1.0, -0.3], [0, 0.08]].map(P), { color: C('263159'), alpha: a, lineColor: C('3B4A80'), lineW: 1, lineAlpha: a, name: '!!' + tag + 'mat' });
+  ctx.poly(circle(0, -0.3, 0.05, 14).map(P), { color: C('F2B705'), alpha: a, name: '!!' + tag + 'nut' });
+  ctx.poly([[0, -0.3], [0.7, -0.33], [0.72, 0.12]].map(P), { closed: false, lineColor: C('F2B705'), lineW: Math.max(1, 2.4 * s), lineAlpha: a, name: '!!' + tag + 'day-tua' });
+  ctx.poly([[[0.67, 0.1], [0.77, 0.1], [0.83, 0.52], [0.61, 0.52]], rect(0.65, 0.08, 0.14, 0.07)].map(r => r.map(P)), { color: C('F2B705'), alpha: a, name: '!!' + tag + 'tua' });
+}
+
+function pencil(ctx, x, y, len, w, ang, tag) {           // đầu chì ở (x, y), thân hướng theo ang
+  const c = Math.cos(ang), d = Math.sin(ang), at = t => [x + t * c, y + t * d], nx = -d, ny = c;
+  const side = (p, k) => [p[0] + nx * k, p[1] + ny * k], tipL = w * 1.7, h = w / 2;
+  ctx.poly([at(0), side(at(tipL), h), side(at(tipL), -h)], { color: 'F3D2A2', name: '!!' + tag + 'go' });
+  ctx.poly([at(0), side(at(tipL * 0.38), h * 0.38), side(at(tipL * 0.38), -h * 0.38)], { color: '37474F', name: '!!' + tag + 'chi' });
+  ctx.poly([side(at(tipL), h), side(at(len - w * 1.3), h), side(at(len - w * 1.3), -h), side(at(tipL), -h)], { color: 'F9C80E', name: '!!' + tag + 'than' });
+  ctx.poly([side(at(tipL), h * 0.33), side(at(len - w * 1.3), h * 0.33), side(at(len - w * 1.3), -h * 0.33), side(at(tipL), -h * 0.33)], { color: 'E0A800', alpha: 0.6, name: '!!' + tag + 'canh' });
+  ctx.poly([side(at(len - w * 1.3), h), side(at(len - w * 0.75), h), side(at(len - w * 0.75), -h), side(at(len - w * 1.3), -h)], { color: 'B0BEC5', name: '!!' + tag + 'dai' });
+  ctx.poly([side(at(len - w * 0.75), h), side(at(len), h * 0.9), side(at(len), -h * 0.9), side(at(len - w * 0.75), -h)], { color: 'F48FB1', name: '!!' + tag + 'tay' });
+}
+function notebookGrid(ctx, a, xm, tag) {               // vở ô ly: ô vuông 0,4 inch, mỗi ô chia 4 dòng ly
+  const thin = [], thick = [];
+  for (let k = 1; k * 0.1 < SH; k++) (k % 4 ? thin : thick).push([[0, k * 0.1], [SW, k * 0.1]]);
+  for (let x = xm + 0.4; x < SW; x += 0.4) thick.push([[x, 0], [x, SH]]);
+  ctx.poly(thin, { closed: false, lineColor: '8E7CC3', lineW: 0.5, lineAlpha: a * 0.55, name: '!!' + tag + 'ly' });
+  ctx.poly(thick, { closed: false, lineColor: '7E57C2', lineW: 0.9, lineAlpha: a, name: '!!' + tag + 'o' });
+  ctx.poly([[[xm, 0], [xm, SH]]], { closed: false, lineColor: 'E53935', lineW: 1.4, lineAlpha: 0.8, name: '!!' + tag + 'le' });
+}
+function boardFrame(ctx, w, tag) {
+  ctx.box(w / 2, w / 2, SW - w, SH - w, { lineColor: '8B5A2B', lineW: w * 72, name: '!!' + tag + 'khung' });
+  ctx.box(w, w, SW - 2 * w, SH - 2 * w, { lineColor: '5D3A1A', lineW: 1.5, lineAlpha: 0.8, name: '!!' + tag + 'khung2' });
+  ctx.box(w * 0.25, w * 0.25, SW - w * 0.5, SH - w * 0.5, { lineColor: 'B07A45', lineW: 1, lineAlpha: 0.7, name: '!!' + tag + 'khung3' });
+}
+const CHALK = { font: 'Segoe Print', align: 'l', anchor: 'm' };
+
+Object.assign(MOTIFS, {
+  'khai-giang': { pack: 'truong-hoc', name: 'Khai giảng · Trống trường', short: 'Trống trường',
+    desc: 'Chiếc trống trường đỏ đai vàng, dùi trống bắt chéo và chùm bóng bay trên nền trời xanh — lễ khai giảng, ngày hội đến trường, sự kiện đầu năm học.',
+    sw: ['0F3D6E', '1E88E5', 'C62828', 'FFD54F'], ownInv: true,
+    palette: palW({ bg: 'FFF9F0', bg2: 'FDF2E3', ink: '2A1A12', body: '4D3426', muted: '7C6455', accent: 'C62828', accent2: '1E88E5', accent3: 'F2B705',
+      card_line: 'F1D9C4', inv: ['0F3D6E', '1565A8', '1E88E5'], inv_ink: 'FFFFFF', inv_body: 'DCEBFA', inv_accent: 'FFD54F' }),
+    draw: emblemDraw(schoolDrum, {
+      inv: (ctx, th, kind) => {
+        if (kind === 'closing') { balloon(ctx, 1.2, 1.1, 0.42, BALLOON_COLS[0], 'kg1-'); balloon(ctx, 1.9, 1.6, 0.34, BALLOON_COLS[1], 'kg2-'); balloon(ctx, SW - 1.3, 1.2, 0.42, BALLOON_COLS[2], 'kg3-'); balloon(ctx, SW - 2.0, 1.7, 0.32, BALLOON_COLS[3], 'kg4-'); }
+        else if (kind === 'cover') { balloon(ctx, SW - 0.8, 1.05, 0.45, BALLOON_COLS[0], 'kg1-'); balloon(ctx, SW - 1.55, 0.75, 0.36, BALLOON_COLS[1], 'kg2-', -0.12); balloon(ctx, SW - 5.35, 0.95, 0.38, BALLOON_COLS[3], 'kg3-'); balloon(ctx, SW - 4.8, 0.6, 0.3, BALLOON_COLS[4], 'kg4-', -0.1); }
+        else balloon(ctx, SW - 0.75, 1.0, 0.36, BALLOON_COLS[0], 'kg1-');
+      },
+      page: ctx => { balloon(ctx, SW - 0.55, 0.42, 0.17, BALLOON_COLS[0], 'kg1-', 0.05); balloon(ctx, SW - 0.95, 0.5, 0.14, BALLOON_COLS[1], 'kg2-', -0.04); } }) },
+  'hoa-phuong': { pack: 'truong-hoc', name: 'Hoa phượng · Mùa chia tay', short: 'Hoa phượng',
+    desc: 'Cành phượng đỏ rực với lá kép lông chim và cánh hoa rơi trên nền xanh ngọc — lễ tổng kết, chia tay cuối cấp, kỷ niệm tuổi học trò, mùa hè.',
+    sw: ['0E3B3A', '1F6360', 'E53935', 'FFE0B2'], ownInv: true,
+    palette: palW({ bg: 'FFF8F2', bg2: 'FCEFE6', ink: '2B1A14', body: '4E3329', muted: '7E6257', accent: 'D32F2F', accent2: '2E7D32', accent3: 'F57C00',
+      card_line: 'F2D6C8', inv: ['0E3B3A', '17504D', '1F6360'], inv_ink: 'FFF8F0', inv_body: 'D5E8E2', inv_accent: 'FF8A65' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        if (kind === 'closing') { phuongBranch(ctx, SW + 0.05, -0.1, 1.0, -1, 'ph1-'); phuongBranch(ctx, -0.05, SH - 2.6, 0.85, 1, 'ph2-'); fallingPetals(ctx, SW / 2 - 2, SH - 1.4, 4, 1.0, 8, 5, 'ph-'); }
+        else {
+          const big = kind === 'cover';
+          phuongBranch(ctx, SW + 0.1, -0.15, big ? 1.45 : 1.15, -1, 'ph1-', false, null, 1, D(32));
+          fallingPetals(ctx, SW - 4.4, SH - 1.9, 3.9, 1.5, big ? 10 : 7, 3 + idx, 'ph-');
+          info.x1 = Math.min(info.x1, SW - (big ? 4.6 : 3.7));
+        }
+      } else phuongBranch(ctx, SW + 0.05, 0.02, 0.42, -1, 'ph-');
+    } },
+  'tot-nghiep': { pack: 'truong-hoc', name: 'Tốt nghiệp · Mũ cử nhân', short: 'Mũ cử nhân',
+    desc: 'Mũ cử nhân tua vàng, cuộn bằng thắt nơ đỏ và giấy kim tuyến trên nền xanh than — lễ tốt nghiệp, trao bằng, bảo vệ khóa luận, vinh danh.',
+    sw: ['10162E', '24305E', 'F2C94C', 'C62828'], ownInv: true,
+    palette: palW({ bg: 'F7F6F1', bg2: 'EFEEE6', ink: '141B33', body: '363E5C', muted: '676E88', accent: '1F3A93', accent2: 'B8860B', accent3: 'C62828',
+      card_line: 'DEDCD0', inv: ['10162E', '1A2340', '24305E'], inv_ink: 'FFFDF5', inv_body: 'D9DDEB', inv_accent: 'F2C94C' }),
+    draw: emblemDraw(gradCap, {
+      inv: (ctx, th, kind) => confetti(ctx, kind === 'closing' ? 0.6 : SW - 6.2, 0.3, kind === 'closing' ? SW - 1.2 : 5.9, kind === 'closing' ? 1.6 : 2.0, kind === 'closing' ? 40 : 26, 9, ['F2C94C', 'FFFFFF', 'E57373'], 'tn-', 0.85),
+      page: ctx => confetti(ctx, SW - 1.6, 0.15, 1.4, 0.45, 9, 4, ['C9A227', '1F3A93', 'C62828'], 'tn-', 0.8) }) },
+  'vo-o-ly': { pack: 'truong-hoc', name: 'Vở ô ly · Tiểu học', short: 'Vở ô ly',
+    desc: 'Trang vở ô ly kẻ tím có lề đỏ, gáy lò xo và cây bút chì, chữ xanh như mực học trò — tiểu học, luyện chữ, bài giảng lớp 1 đến lớp 5, phụ huynh.',
+    sw: ['FFFDF6', '8E7CC3', 'E53935', '1E2A78'], ownInv: true,
+    palette: palW({ bg: 'FFFEF8', bg2: 'FFFDF4', ink: '1E2A78', body: '2F3A80', muted: '6870A8', accent: 'D32F2F', accent2: '7E57C2', accent3: 'F9A825',
+      card_line: 'D9D2F0', inv: ['FFFDF6', 'FBF7EB'], inv_ink: '1E2A78', inv_body: '3A4590', inv_accent: 'D32F2F' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      const xm = 1.05;
+      notebookGrid(ctx, inv ? 0.45 : 0.3, xm, 'ol-');
+      info.x0 = Math.max(info.x0, xm + 0.35);
+      if (inv) {
+        const rings = [], holes = [];
+        for (let y = 0.4; y < SH - 0.2; y += 0.48) { holes.push(circle(0.42, y, 0.075, 16)); rings.push(quad([0.06, y + 0.04], [0.2, y - 0.16], [0.44, y - 0.02], 10)); }
+        ctx.poly(holes, { color: 'CFC8B8', name: '!!ol-lo' });
+        ctx.poly(rings, { closed: false, lineColor: '6B6B6B', lineW: 3, name: '!!ol-xoan' });
+        if (kind !== 'closing') { pencil(ctx, SW - 3.6, SH - 0.75, 3.1, 0.26, D(-12), 'ol-but-'); info.y1 = Math.min(info.y1, SH - 1.4); }
+      }
+    } },
+  'bang-den': { pack: 'truong-hoc', name: 'Bảng đen · Phấn trắng', short: 'Bảng đen',
+    desc: 'Cả bộ slide như tấm bảng xanh khung gỗ, chữ phấn trắng, phấn màu và công thức viết tay — lớp học, ôn tập, toán, khoa học tự nhiên.',
+    sw: ['1F3B2D', '264D3B', 'F4F4EC', 'F6E58D'], ownInv: true,
+    palette: palW({ bg: '264D3B', bg2: '23473A', ink: 'F4F4EC', body: 'DCE3D6', muted: 'A9B8AA', accent: 'F6E58D', accent2: 'F8A5C2', accent3: '9AD0EC',
+      card: '2F5A47', card_line: '4A7462', inv: ['1F3B2D', '24443A'], inv_ink: 'F5F5EE', inv_body: 'D8E0D5', inv_accent: 'F6E58D' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      const w = inv ? 0.26 : 0.16;
+      ctx.poly([ell(SW * 0.3, SH * 0.35, 2.6, 0.9, D(-8), 40), ell(SW * 0.72, SH * 0.7, 2.2, 0.7, D(6), 40)], { color: 'FFFFFF', alpha: 0.035, name: '!!bd-vet' });
+      boardFrame(ctx, w, 'bd-');
+      ctx.box(SW * 0.55, SH - w - 0.16, SW * 0.4, 0.16, { color: '6D4422', name: '!!bd-mang' });
+      ctx.poly([rotRect(SW * 0.62, SH - w - 0.21, 0.42, 0.09, D(-4)), rotRect(SW * 0.69, SH - w - 0.2, 0.3, 0.09, D(3))], { color: 'FFFFFF', alpha: 0.9, name: '!!bd-phan' });
+      ctx.poly([rotRect(SW * 0.74, SH - w - 0.2, 0.34, 0.09, D(-2))], { color: 'F6E58D', name: '!!bd-phan2' });
+      ctx.poly([rotRect(SW * 0.79, SH - w - 0.2, 0.26, 0.09, D(5))], { color: 'F8A5C2', name: '!!bd-phan3' });
+      ctx.box(SW * 0.84, SH - w - 0.3, 0.62, 0.2, { color: 'C8B89A', name: '!!bd-lau' });
+      ctx.box(SW * 0.84, SH - w - 0.14, 0.62, 0.05, { color: '3E3E3E', name: '!!bd-lau2' });
+      Object.assign(info, { x0: Math.max(info.x0, w + 0.55), y0: Math.max(info.y0, w + 0.4), x1: Math.min(info.x1, SW - w - 0.55), y1: Math.min(info.y1, SH - w - 0.55) });
+      if (inv && kind !== 'closing') {
+        const x = SW - 4.4;
+        ctx.text(x, 0.75, 3.8, 0.8, 'a² + b² = c²', Object.assign({ size: 30, color: 'E8EEE4', name: '!!bd-ct1' }, CHALK));
+        ctx.text(x + 0.4, 1.7, 3.4, 0.7, 'S = π · r²', Object.assign({ size: 24, color: 'F6E58D', name: '!!bd-ct2' }, CHALK));
+        ctx.text(x + 0.1, 2.55, 3.6, 0.7, 'H₂O  →  H₂ + O₂', Object.assign({ size: 22, color: '9AD0EC', name: '!!bd-ct3' }, CHALK));
+        ctx.poly(quad([x + 0.1, 1.48], [x + 1.8, 1.62], [x + 3.4, 1.45], 16), { closed: false, lineColor: 'E8EEE4', lineW: 2, lineAlpha: 0.7, name: '!!bd-gach' });
+        ctx.poly(star(SW - 1.4, 4.3, 0.5, 5, 0.42), { closed: true, lineColor: 'F8A5C2', lineW: 2.5, lineAlpha: 0.85, name: '!!bd-sao' });
+        const sun = [circle(SW - 3.3, 4.6, 0.32, 24)]; for (let i = 0; i < 10; i++) { const t = TAU * i / 10; sun.push([[SW - 3.3 + 0.45 * Math.cos(t), 4.6 + 0.45 * Math.sin(t)], [SW - 3.3 + 0.65 * Math.cos(t), 4.6 + 0.65 * Math.sin(t)]]); }
+        ctx.poly(sun, { closed: false, lineColor: 'F6E58D', lineW: 2, lineAlpha: 0.75, name: '!!bd-mattroi' });
+        info.x1 = Math.min(info.x1, x - 0.4);
+      }
+    } },
+});
+
+// ============================================================ Gói 2. Di sản · Kiến trúc Việt
+PACKS.push({ id: 'di-san', name: 'Di sản · Kiến trúc Việt', desc: 'Khuê Văn Các, chùa Một Cột, mái đình ngói vảy cá, nón lá' });
+
+// mái cong kiểu đình chùa: đáy mái ở y, nửa rộng w, cao h, đầu đao vểnh lên k
+function curvedRoof(cx, y, w, h, k) {
+  return quad([cx - w - k * 0.6, y - k], [cx - w * 0.78, y + h * 0.1], [cx - w * 0.45, y], 10)
+    .concat(quad([cx + w * 0.45, y], [cx + w * 0.78, y + h * 0.1], [cx + w + k * 0.6, y - k], 10))
+    .concat(quad([cx + w + k * 0.6, y - k], [cx + w * 0.62, y - h * 0.5], [cx + w * 0.5, y - h], 10))
+    .concat(quad([cx - w * 0.5, y - h], [cx - w * 0.62, y - h * 0.5], [cx - w - k * 0.6, y - k], 10));
+}
+function ridgeCurls(cx, y, w, h) { return [spiral(cx - w * 0.5 - 0.02, y - h - 0.05, 0.06, 1.1, -1, 0, 16), spiral(cx + w * 0.5 + 0.02, y - h - 0.05, 0.06, 1.1, 1, Math.PI, 16)]; }
+function khueVanCac(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), lw = Math.max(1, 1.8 * s), F = { color: col, alpha: a * 0.16, lineColor: col, lineW: lw, lineAlpha: a }, R = { color: col, alpha: a * 0.5, lineColor: col, lineW: lw, lineAlpha: a };
+  ctx.poly(mapR([rect(-0.84, 0.86, 1.68, 0.08), rect(-0.66, 0.22, 0.26, 0.64), rect(0.4, 0.22, 0.26, 0.64), rect(-0.7, 0.16, 0.34, 0.07), rect(0.36, 0.16, 0.34, 0.07)], P), Object.assign({ name: '!!' + tag + 'tru' }, F));
+  ctx.poly(mapR([[[-0.6, 0.4], [-0.46, 0.4]], [[0.46, 0.4], [0.6, 0.4]], [[-0.6, 0.62], [-0.46, 0.62]], [[0.46, 0.62], [0.6, 0.62]]], P), { closed: false, lineColor: col, lineW: 1, lineAlpha: a * 0.7, name: '!!' + tag + 'gach' });
+  ctx.poly(curvedRoof(0, 0.17, 0.8, 0.19, 0.12).map(P), Object.assign({ name: '!!' + tag + 'mai1' }, R));
+  ctx.poly(rect(-0.42, -0.45, 0.84, 0.47).map(P), Object.assign({ name: '!!' + tag + 'gac' }, F));
+  const lat = [[[-0.3, -0.45], [-0.3, -0.02]], [[0.3, -0.45], [0.3, -0.02]], [[-0.42, -0.09], [0.42, -0.09]]];
+  for (let x = -0.38; x <= 0.39; x += 0.08) lat.push([[x, -0.09], [x, -0.02]]);
+  ctx.poly(mapR(lat, P), { closed: false, lineColor: col, lineW: 1, lineAlpha: a * 0.8, name: '!!' + tag + 'lan' });
+  const win = [circle(0, -0.27, 0.15, 36)]; for (let i = 0; i < 16; i++) { const t = TAU * i / 16; win.push([[0.045 * Math.cos(t), -0.27 + 0.045 * Math.sin(t)], [0.14 * Math.cos(t), -0.27 + 0.14 * Math.sin(t)]]); }
+  ctx.poly(mapR(win, P), { closed: false, lineColor: col, lineW: Math.max(1, 1.3 * s), lineAlpha: a, name: '!!' + tag + 'cuaso' });
+  ctx.poly(circle(0, -0.27, 0.04, 14).map(P), { color: col, alpha: a, name: '!!' + tag + 'tam' });
+  ctx.poly(curvedRoof(0, -0.43, 0.64, 0.25, 0.13).map(P), Object.assign({ name: '!!' + tag + 'mai2' }, R));
+  ctx.poly(mapR(ridgeCurls(0, -0.43, 0.64, 0.25), P), { closed: false, lineColor: col, lineW: lw, lineAlpha: a, name: '!!' + tag + 'dau' });
+  ctx.poly(circle(0, -0.74, 0.04, 14).map(P), { color: col, alpha: a, name: '!!' + tag + 'ngoc' });
+}
+function chuaMotCot(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), lw = Math.max(1, 1.8 * s), F = { color: col, alpha: a * 0.16, lineColor: col, lineW: lw, lineAlpha: a }, R = { color: col, alpha: a * 0.5, lineColor: col, lineW: lw, lineAlpha: a };
+  ctx.poly(rect(-0.98, 0.74, 1.96, 0.2).map(P), { color: col, alpha: a * 0.14, name: '!!' + tag + 'ho' });
+  const waves = [];
+  [[-0.7, 0.82], [-0.2, 0.88], [0.35, 0.81], [0.7, 0.89]].forEach(([x, y]) => { const p = []; for (let i = 0; i <= 12; i++) { const u = i / 12; p.push([x + 0.28 * u, y + 0.015 * Math.sin(u * TAU * 1.5)]); } waves.push(p); });
+  ctx.poly(mapR(waves, P), { closed: false, lineColor: col, lineW: 1, lineAlpha: a * 0.7, name: '!!' + tag + 'song' });
+  ctx.poly(mapR([ell(-0.62, 0.79, 0.15, 0.04, 0, 24), ell(0.6, 0.85, 0.12, 0.035, 0, 24)], P), { color: col, alpha: a * 0.55, name: '!!' + tag + 'lasen' });
+  ctx.poly(rect(-0.085, 0.13, 0.17, 0.64).map(P), Object.assign({ name: '!!' + tag + 'cot' }, F));
+  ctx.poly(mapR([[[0, 0.44], [-0.5, 0.15]], [[0, 0.44], [0.5, 0.15]], [[0, 0.3], [-0.3, 0.15]], [[0, 0.3], [0.3, 0.15]]], P), { closed: false, lineColor: col, lineW: lw, lineAlpha: a, name: '!!' + tag + 'xa' });
+  ctx.poly(rect(-0.56, 0.09, 1.12, 0.07).map(P), Object.assign({ name: '!!' + tag + 'san' }, F));
+  ctx.poly(rect(-0.36, -0.22, 0.72, 0.31).map(P), Object.assign({ name: '!!' + tag + 'tuong' }, F));
+  const rail = [[[-0.5, 0.0], [0.5, 0.0]]]; for (let x = -0.48; x <= 0.49; x += 0.12) rail.push([[x, 0.0], [x, 0.09]]);
+  for (let x = -0.27; x <= 0.28; x += 0.09) rail.push([[x, -0.2], [x, -0.03]]);
+  ctx.poly(mapR(rail, P), { closed: false, lineColor: col, lineW: 1, lineAlpha: a * 0.85, name: '!!' + tag + 'lan' });
+  ctx.poly(curvedRoof(0, -0.2, 0.62, 0.3, 0.17).map(P), Object.assign({ name: '!!' + tag + 'mai' }, R));
+  ctx.poly(mapR([quad([-0.33, -0.52], [-0.22, -0.7], [-0.08, -0.6], 10), quad([0.33, -0.52], [0.22, -0.7], [0.08, -0.6], 10)], P), { closed: false, lineColor: col, lineW: lw, lineAlpha: a, name: '!!' + tag + 'rong' });
+  ctx.poly(circle(0, -0.62, 0.05, 16).map(P), { color: col, alpha: a, name: '!!' + tag + 'trang' });
+}
+// dải mái đình ngói vảy cá, hai đầu đao vểnh, cao H ở giữa
+function roofBand(ctx, H, col, a, tag) {
+  const edge = 1.7 * H / 1.2, eave = x => { const d = Math.max(0, Math.abs(x - SW / 2) - (SW / 2 - edge)) / edge; return H - H * 0.5 * d * d; };
+  const r = Math.max(0.07, H * 0.11), scales = [], bw = Math.max(0.05, H * 0.11);
+  for (let k = 0, y = -r * 0.4; y < H; k++, y += r * 0.82) for (let x = (k % 2 ? r : 0); x < SW + r; x += 2 * r) if (y + r * 0.85 < eave(x)) scales.push(arc(x, y, r, 0, Math.PI, 7));
+  ctx.poly(scales, { color: col, alpha: a * 0.28, lineColor: col, lineW: 0.75, lineAlpha: a * 0.8, name: '!!' + tag + 'ngoi' });
+  const top = [], bot = [];
+  for (let i = 0; i <= 60; i++) { const x = SW * i / 60; top.push([x, eave(x)]); bot.unshift([x, eave(x) + bw]); }
+  ctx.poly(top.concat(bot), { color: col, alpha: a, name: '!!' + tag + 'diem' });
+  const tri = [];
+  for (let x = 0.35; x < SW - 0.2; x += 0.3) { const y = eave(x) + bw; tri.push([[x - 0.07, y], [x + 0.07, y], [x, y + bw * 1.1]]); }
+  ctx.poly(tri, { color: col, alpha: a * 0.6, name: '!!' + tag + 'rua' });
+  const horns = [quad([edge * 0.9, eave(edge * 0.9) + bw * 0.5], [edge * 0.25, eave(edge * 0.25)], [H * 0.12, Math.max(0.05, eave(0) - H * 0.55)], 14),
+    quad([SW - edge * 0.9, eave(SW - edge * 0.9) + bw * 0.5], [SW - edge * 0.25, eave(SW - edge * 0.25)], [SW - H * 0.12, Math.max(0.05, eave(SW) - H * 0.55)], 14)];
+  ctx.poly(horns, { closed: false, lineColor: col, lineW: Math.max(2, H * 9), lineAlpha: a, name: '!!' + tag + 'dao' });
+  const ty = Math.max(0.05, eave(0) - H * 0.55), rr = Math.max(0.06, H * 0.17);
+  ctx.poly([spiral(H * 0.12 + rr * 0.9, ty + rr * 0.2, rr, 1.2, 1, Math.PI, 18), spiral(SW - H * 0.12 - rr * 0.9, ty + rr * 0.2, rr, 1.2, -1, 0, 18)], { closed: false, lineColor: col, lineW: Math.max(1.5, H * 5), lineAlpha: a, name: '!!' + tag + 'cuon' });
+  return H + bw * 2.2;
+}
+function nonLa(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const mono = a < 0.3, C = k => mono ? col : k, rot = D(-9), c = Math.cos(rot), d = Math.sin(rot);
+  const P = ([x, y]) => [cx + (x * c - y * d) * s, cy + (x * d + y * c) * s];
+  const w = 1.0, base = 0.22, apex = -0.72, ry = 0.17;
+  const lower = Array.from({ length: 25 }, (_, i) => { const q = Math.PI - Math.PI * i / 24; return [w * Math.cos(q), base + ry * Math.sin(q)]; });
+  const hat = [[0, apex]].concat(quad([0, apex], [-w * 0.56, apex + 0.42], [-w, base], 12).slice(1), lower, quad([w, base], [w * 0.56, apex + 0.42], [0, apex], 12).slice(1));
+  ctx.poly(quad([-0.52, base + 0.1], [-0.05, 1.12], [0.5, base + 0.1], 18).map(P), { closed: false, lineColor: C('D81B60'), lineW: Math.max(1.5, 4 * s), lineAlpha: a, name: '!!' + tag + 'quai' });
+  ctx.poly(hat.map(P), { color: C('EAD49B'), alpha: mono ? a * 0.6 : a, lineColor: C('8A6A2F'), lineW: 1.2, lineAlpha: a, name: '!!' + tag + 'non' });
+  if (!mono) {
+    const shade = [[0, apex]].concat(lower.slice(12), quad([w, base], [w * 0.56, apex + 0.42], [0, apex], 12).slice(1));
+    ctx.poly(shade.map(P), { color: 'B8934A', alpha: a * 0.45, name: '!!' + tag + 'bong' });
+  }
+  const ribs = [];
+  [0.2, 0.32, 0.44, 0.56, 0.68, 0.8, 0.92].forEach(f => { const y = apex + (base - apex) * f; ribs.push(Array.from({ length: 17 }, (_, i) => { const q = Math.PI * i / 16; return [w * f * Math.cos(q), y + ry * f * Math.sin(q)]; })); });
+  ctx.poly(mapR(ribs, P), { closed: false, lineColor: C('8A6A2F'), lineW: 0.9, lineAlpha: a * 0.75, name: '!!' + tag + 'vanh' });
+  ctx.poly(lower.map(P), { closed: false, lineColor: C('7A5A22'), lineW: Math.max(1.2, 3 * s), lineAlpha: a, name: '!!' + tag + 'vien' });
+}
+
+Object.assign(MOTIFS, {
+  'khue-van-cac': { pack: 'di-san', name: 'Văn Miếu · Khuê Văn Các', short: 'Khuê Văn Các',
+    desc: 'Khuê Văn Các nét vàng kim với cửa sổ tròn tỏa tia, hai tầng mái cong trên nền đỏ son — khuyến học, ngày Nhà giáo, truyền thống hiếu học, Hà Nội.',
+    sw: ['4A0E0E', '7A1F1F', 'E8C26A', 'FBF4E4'], ownInv: true,
+    palette: palW({ bg: 'FBF6EA', bg2: 'F6EEDC', ink: '3A1D10', body: '5A3A2A', muted: '84685A', accent: '8E2A1F', accent2: 'B8892E', accent3: '2F5D50',
+      card: 'FFFCF5', card_line: 'EAD8B4', inv: ['4A0E0E', '6B1717', '7A1F1F'], inv_ink: 'FFF6E0', inv_body: 'F1DCB2', inv_accent: 'E8C26A' }),
+    draw: emblemDraw(khueVanCac, { inv: (ctx, th) => ctx.box(0.45, 0.45, SW - 0.9, SH - 0.9, { lineColor: th.inv_accent, lineW: 0.75, lineAlpha: 0.4, name: '!!kvc-khung' }),
+      page: (ctx, th) => ctx.box(0, 0, SW, 0.07, { color: th.accent, name: '!!kvc-bang' }) }) },
+  'chua-mot-cot': { pack: 'di-san', name: 'Chùa Một Cột · Hà Nội', short: 'Chùa Một Cột',
+    desc: 'Chùa Một Cột nét mảnh trên hồ sen vuông, mái cong đầu đao, lưỡng long chầu nguyệt; tông chàm và vàng nhạt — Hà Nội, văn hóa, di tích, du lịch.',
+    sw: ['16243F', '24406B', 'E9D8A6', 'F6F2E8'], ownInv: true,
+    palette: palW({ bg: 'F6F3EA', bg2: 'EEEADF', ink: '16243F', body: '364763', muted: '67748C', accent: '24406B', accent2: 'B08D3C', accent3: '9C3D27',
+      card: 'FFFDF7', card_line: 'DDD7C6', inv: ['121D33', '1C3254', '24406B'], inv_ink: 'F8F4E8', inv_body: 'D5DCE8', inv_accent: 'E9D8A6' }),
+    draw: emblemDraw(chuaMotCot, { page: (ctx, th) => ctx.box(0, SH - 0.07, SW, 0.07, { color: th.accent, name: '!!cmc-bang' }) }) },
+  'mai-dinh': { pack: 'di-san', name: 'Mái đình · Ngói vảy cá', short: 'Mái đình',
+    desc: 'Dải mái đình lợp ngói vảy cá, diềm mái và hai đầu đao cong vút chạy ngang đầu trang — đình làng, lễ hội, văn hóa làng xã, kiến trúc cổ.',
+    sw: ['3B1D12', '6E3520', 'B5543A', 'E6B85C'], ownInv: true,
+    palette: palW({ bg: 'F8F1E5', bg2: 'F2E9DA', ink: '3B2416', body: '5A3F2C', muted: '86705C', accent: '9C3D27', accent2: 'C9A227', accent3: '4E6B3A',
+      card: 'FFFBF3', card_line: 'E7D5BC', inv: ['3B1D12', '5A2A18', '6E3520'], inv_ink: 'FFF4E2', inv_body: 'EBD3B5', inv_accent: 'E6B85C' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        const h = roofBand(ctx, kind === 'closing' ? 1.0 : 1.25, th.inv_accent, 0.75, 'md-');
+        ctx.box(0.6, SH - 0.42, SW - 1.2, 0.035, { color: th.inv_accent, alpha: 0.6, name: '!!md-nen' });
+        info.y0 = Math.max(info.y0, h + 0.3); info.y1 = Math.min(info.y1, SH - 0.65);
+      } else { const h = roofBand(ctx, 0.42, th.accent, 0.55, 'md-'); info.y0 = Math.max(info.y0, h + 0.15); }
+    } },
+  'non-la': { pack: 'di-san', name: 'Nón lá · Hồn Việt', short: 'Nón lá',
+    desc: 'Chiếc nón lá màu rơm với các vành nan và quai hồng trên nền xanh lúa non — văn hóa Việt Nam, phụ nữ Việt Nam, du lịch, giới thiệu quê hương.',
+    sw: ['1F3D2B', '3B6F4C', 'EAD49B', 'D81B60'], ownInv: true,
+    palette: palW({ bg: 'FBF7EE', bg2: 'F5EFE1', ink: '2E2416', body: '4F4330', muted: '7D705B', accent: 'B23A48', accent2: 'B8892E', accent3: '3B6F4C',
+      card: 'FFFDF7', card_line: 'E8DCC2', inv: ['1F3D2B', '2E5A3E', '3B6F4C'], inv_ink: 'FFFBEF', inv_body: 'DCE8D2', inv_accent: 'F2D27A' }),
+    draw: emblemDraw(nonLa, { ca: 0.14 }) },
+});
+
+// ============================================================ Gói 3. Y tế · Sức khỏe
+PACKS.push({ id: 'y-te', name: 'Y tế · Sức khỏe', desc: 'Nhịp tim, chuỗi ADN, tế bào, chữ thập y tế xanh' });
+
+function heartPts(cx, cy, s, n = 64) { return Array.from({ length: n }, (_, i) => { const t = TAU * i / n, x = 16 * Math.pow(Math.sin(t), 3), y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t); return [cx + x / 17 * s, cy - (y + 2) / 17 * s]; }); }
+const BEAT = [[0, 0], [0.16, 0], [0.2, -0.12], [0.24, 0], [0.31, 0], [0.34, 0.16], [0.39, -1], [0.44, 0.42], [0.48, 0], [0.6, 0], [0.68, -0.22], [0.76, 0], [1, 0]];
+function ecg(x0, x1, y, amp, period) { const pts = []; for (let x = x0; x < x1; x += period) BEAT.forEach(([u, v]) => { const xx = x + u * period; if (xx <= x1 + 1e-6) pts.push([xx, y + v * amp]); }); return pts; }
+function heartBeat(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, C = k => mono ? col : k;
+  ctx.poly(heartPts(0, 0, 0.85).map(P), { color: C('E63950'), alpha: mono ? a * 0.6 : a, lineColor: C('B0173A'), lineW: Math.max(1, 2 * s), lineAlpha: a, name: '!!' + tag + 'tim' });
+  if (!mono) ctx.poly(ell(-0.38, -0.32, 0.12, 0.22, D(35), 24).map(P), { color: 'FFFFFF', alpha: 0.35, name: '!!' + tag + 'sang' });
+  ctx.poly(ecg(-1.15, 1.15, 0.02, 0.5, 1.15).map(P), { closed: false, lineColor: C('FFFFFF'), lineW: Math.max(1.5, 3.5 * s), lineAlpha: a, name: '!!' + tag + 'nhip' });
+}
+function helix(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const rot = D(22), c = Math.cos(rot), d = Math.sin(rot), P = ([x, y]) => [cx + (x * c - y * d) * s, cy + (x * d + y * c) * s];
+  const mono = a < 0.3, k = 3.3, amp = 0.42, front = [[], []], back = [[], []], rungs = [[], [], [], []];
+  const sx = (y, ph) => amp * Math.sin(k * y + ph), dz = (y, ph) => Math.cos(k * y + ph);
+  [0, Math.PI].forEach((ph, j) => {
+    let cur = null, curF = null;
+    for (let i = 0; i <= 120; i++) {
+      const y = -1 + 2 * i / 120, f = dz(y, ph) > 0;
+      if (curF !== f) { cur = []; (f ? front : back)[j].push(cur); if (i) cur.push([sx(y - 2 / 120, ph), y - 2 / 120]); curF = f; }
+      cur.push([sx(y, ph), y]);
+    }
+  });
+  for (let i = 0; i < 18; i++) { const y = -0.94 + i * 0.11; rungs[i % 4].push([[sx(y, 0), y], [sx(y, Math.PI), y]]); }
+  const cols = mono ? [col, col, col, col] : ['EF476F', 'FFD166', '06D6A0', '4CC9F0'];
+  const lw = Math.max(2, 7 * s), strand = mono ? col : (th.inv_ink || 'FFFFFF');
+  [0, 1].forEach(j => ctx.poly(back[j].map(r => r.map(P)), { closed: false, lineColor: strand, lineW: lw, lineAlpha: a * 0.45, name: '!!' + tag + 'sau' + j }));
+  rungs.forEach((g, i) => ctx.poly(g.map(r => r.map(P)), { closed: false, lineColor: cols[i], lineW: Math.max(1.5, 4 * s), lineAlpha: a * 0.9, name: '!!' + tag + 'bac' + i }));
+  [0, 1].forEach(j => ctx.poly(front[j].map(r => r.map(P)), { closed: false, lineColor: j ? strand : (mono ? col : '7FDBFF'), lineW: lw, lineAlpha: a, name: '!!' + tag + 'truoc' + j }));
+}
+function blob(cx, cy, r, seed, n = 40, wob = 0.08) { const rr = seeded(seed), k = [rr(), rr(), rr()].map(v => (v - 0.5) * 2 * wob); return Array.from({ length: n }, (_, i) => { const t = TAU * i / n, q = r * (1 + k[0] * Math.sin(2 * t) + k[1] * Math.cos(3 * t + 1) + k[2] * Math.sin(5 * t)); return [cx + q * Math.cos(t), cy + q * Math.sin(t)]; }); }
+function cells(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, C = k => mono ? col : k;
+  const small = [[0.66, -0.62, 0.2, 3], [0.74, 0.58, 0.16, 5], [-0.78, -0.72, 0.12, 8], [-0.8, 0.72, 0.1, 2]];
+  ctx.poly(small.map(([x, y, r, sd]) => blob(x, y, r, sd).map(P)), { color: C('80CBC4'), alpha: a * 0.45, lineColor: C('26A69A'), lineW: Math.max(1, 1.6 * s), lineAlpha: a, name: '!!' + tag + 'nho' });
+  ctx.poly(small.map(([x, y, r]) => circle(x + r * 0.15, y - r * 0.1, r * 0.33, 16).map(P)), { color: C('7E57C2'), alpha: a * 0.8, name: '!!' + tag + 'nho-nhan' });
+  ctx.poly(blob(-0.08, 0.05, 0.66, 11, 56).map(P), { color: C('B2DFDB'), alpha: a * 0.55, lineColor: C('26A69A'), lineW: Math.max(1.5, 4 * s), lineAlpha: a, name: '!!' + tag + 'mang' });
+  const er = []; [0.3, 0.38, 0.46].forEach(r => er.push(arc(-0.02, 0.0, r, D(110), D(250), 20).map(([x, y], i) => [x + 0.012 * Math.sin(i * 1.4), y])));
+  ctx.poly(mapR(er, P), { closed: false, lineColor: C('4DB6AC'), lineW: 1.2, lineAlpha: a * 0.8, name: '!!' + tag + 'luoi' });
+  ctx.poly(circle(0.02, -0.02, 0.24, 40).map(P), { color: C('9575CD'), alpha: a * 0.85, lineColor: C('5E35B1'), lineW: 1.2, lineAlpha: a, name: '!!' + tag + 'nhan' });
+  ctx.poly(circle(0.08, -0.07, 0.08, 20).map(P), { color: C('4527A0'), alpha: a, name: '!!' + tag + 'hachnhan' });
+  const mito = [[0.36, 0.3, D(30)], [-0.42, 0.25, D(-50)], [0.3, -0.38, D(70)]];
+  ctx.poly(mito.map(([x, y, g]) => ell(x, y, 0.12, 0.055, g, 24).map(P)), { color: C('FF8A65'), alpha: a, lineColor: C('E64A19'), lineW: 1, lineAlpha: a, name: '!!' + tag + 'ti' });
+  ctx.poly(mito.map(([x, y, g]) => Array.from({ length: 7 }, (_, i) => { const u = -0.09 + 0.03 * i, v = (i % 2 ? 0.03 : -0.03); return [x + u * Math.cos(g) - v * Math.sin(g), y + u * Math.sin(g) + v * Math.cos(g)]; }).map(P)), { closed: false, lineColor: C('BF360C'), lineW: 0.8, lineAlpha: a, name: '!!' + tag + 'ti2' });
+  const ves = []; [[-0.35, -0.32, 0.04], [0.48, -0.05, 0.035], [-0.2, 0.48, 0.045], [0.12, 0.5, 0.03], [-0.52, -0.05, 0.03]].forEach(([x, y, r]) => ves.push(circle(x, y, r, 12)));
+  ctx.poly(mapR(ves, P), { color: C('FFD54F'), alpha: a, name: '!!' + tag + 'bong' });
+}
+function capsule(cx, cy, len, w, ang) {
+  const r = w / 2, L = len / 2 - r, half1 = arc(-L, 0, r, D(90), D(270), 12).concat([[0, -r], [0, r]]), half2 = arc(L, 0, r, D(-90), D(90), 12).concat([[0, r], [0, -r]]);
+  return [half1, half2].map(h => place(h, cx, cy, 1, ang));
+}
+function plusShape(cx, cy, L, W) { return [[cx - W, cy - L], [cx + W, cy - L], [cx + W, cy - W], [cx + L, cy - W], [cx + L, cy + W], [cx + W, cy + W], [cx + W, cy + L], [cx - W, cy + L], [cx - W, cy + W], [cx - L, cy + W], [cx - L, cy - W], [cx - W, cy - W]]; }
+function medCross(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, C = k => mono ? col : k;
+  ctx.poly(circle(0, 0, 0.9, 64).map(P), { color: C('FFFFFF'), alpha: mono ? a * 0.3 : a * 0.12, lineColor: C('0FA3A3'), lineW: Math.max(1.5, 4 * s), lineAlpha: a, name: '!!' + tag + 'vong' });
+  ctx.poly(circle(0, 0, 0.78, 64).map(P), { closed: true, lineColor: C('7FE0D5'), lineW: 1, lineAlpha: a * 0.6, name: '!!' + tag + 'vong2' });
+  ctx.poly(plusShape(0, 0, 0.42, 0.15).map(P), { color: C('12B886'), alpha: a, name: '!!' + tag + 'chuthap' });
+  const caps = capsule(0.5, -0.5, 0.36, 0.13, D(-45));
+  ctx.poly(caps[0].map(P), { color: C('FF6B6B'), alpha: a, name: '!!' + tag + 'thuoc1' });
+  ctx.poly(caps[1].map(P), { color: C('FFFFFF'), alpha: a, lineColor: C('FF6B6B'), lineW: 1, lineAlpha: a, name: '!!' + tag + 'thuoc2' });
+  ctx.poly(circle(-0.5, 0.5, 0.11, 24).map(P), { color: C('FFD166'), alpha: a, name: '!!' + tag + 'vien' });
+  ctx.poly([[-0.58, 0.5], [-0.42, 0.5]].map(P), { closed: false, lineColor: C('E0A100'), lineW: 1.2, lineAlpha: a, name: '!!' + tag + 'vien2' });
+  ctx.poly(quad([-0.5, -0.66], [-0.66, -0.4], [-0.5, -0.36], 10).concat(quad([-0.5, -0.36], [-0.34, -0.4], [-0.5, -0.66], 10)).map(P), { color: C('4CC9F0'), alpha: a, name: '!!' + tag + 'giot' });
+  ctx.poly(heartPts(0.5, 0.48, 0.12, 32).map(P), { color: C('E63950'), alpha: a, name: '!!' + tag + 'tim' });
+}
+function plusField(ctx, x, y, cols, rows, step, size, col, a, tag) {   // lưới dấu cộng nhỏ dần về bên trái-dưới, neo góc trên phải
+  const out = [];
+  for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) { const t = 1 - Math.hypot(i / cols, j / rows) / 1.1; if (t > 0.1) out.push(plusShape(x - i * step, y + j * step, size * t, size * t * 0.32)); }
+  ctx.poly(out, { color: col, alpha: a, name: '!!' + tag + 'cong' });
+}
+const MED = { bg: 'F4FAFA', bg2: 'ECF6F6', ink: '0F2D3A', body: '2E4A57', muted: '5E7885', card: 'FFFFFF', card_line: 'D2E8EA' };
+
+Object.assign(MOTIFS, {
+  'nhip-tim': { pack: 'y-te', name: 'Nhịp tim · Tim mạch', short: 'Nhịp tim',
+    desc: 'Trái tim đỏ có đường điện tim trắng, dải nhịp tim xanh ngọc chạy ngang chân trang — y khoa, tim mạch, sức khỏe cộng đồng, ngày Thầy thuốc 27/2.',
+    sw: ['0B3142', '11616F', 'E63950', '5EEAD4'], ownInv: true,
+    palette: palW(Object.assign({}, MED, { accent: 'D7263D', accent2: '0FA3A3', accent3: '3D7DD8', inv: ['0B3142', '0F4C5C', '11616F'], inv_ink: 'F2FBFB', inv_body: 'CDE6EA', inv_accent: '5EEAD4' })),
+    draw: emblemDraw(heartBeat, { k: 0.85, halo: false,
+      inv: (ctx, th, kind, info) => {
+        const y = kind === 'closing' ? SH - 1.2 : SH - 1.05, pts = ecg(-0.3, SW + 0.3, y, 0.55, 2.7);
+        ctx.poly(pts, { closed: false, lineColor: th.inv_accent, lineW: 9, lineAlpha: 0.15, name: '!!nt-sang' });
+        ctx.poly(pts, { closed: false, lineColor: th.inv_accent, lineW: 2.25, lineAlpha: 0.9, name: '!!nt-duong' });
+        info.y1 = Math.min(info.y1, y - 0.8);
+      },
+      page: (ctx, th) => ctx.poly(ecg(SW - 3.3, SW - 0.35, 0.45, 0.22, 1.5), { closed: false, lineColor: th.accent2, lineW: 1.5, lineAlpha: 0.75, name: '!!nt-duong' }) }) },
+  'adn': { pack: 'y-te', name: 'Chuỗi xoắn ADN · Sinh học', short: 'ADN',
+    desc: 'Chuỗi xoắn kép ADN nghiêng với các bậc nối bốn màu trên nền xanh đêm — sinh học, di truyền, y sinh, công nghệ sinh học, nghiên cứu khoa học.',
+    sw: ['0A1F3A', '133B66', '06D6A0', 'EF476F'], ownInv: true,
+    palette: palW(Object.assign({}, MED, { bg: 'F5F8FC', bg2: 'EDF2F9', ink: '0E2240', body: '33465F', muted: '62738A', card_line: 'D6E0EE', accent: '1565C0', accent2: '06A77D', accent3: 'EF476F', inv: ['0A1F3A', '102C52', '133B66'], inv_ink: 'F3F8FF', inv_body: 'CFDDF0', inv_accent: '7FDBFF' })),
+    draw: emblemDraw(helix, { halo: true, ca: 0.14 }) },
+  'te-bao': { pack: 'y-te', name: 'Tế bào · Vi sinh', short: 'Tế bào',
+    desc: 'Tế bào nhân tím, ti thể cam, lưới nội chất và vài tế bào nhỏ quanh đó, nét mềm như hình vẽ sách giáo khoa — sinh học, vi sinh, y học, phòng dịch.',
+    sw: ['0E3B3A', '1C5F5B', 'B2DFDB', '9575CD'], ownInv: true,
+    palette: palW(Object.assign({}, MED, { accent: '00897B', accent2: '7E57C2', accent3: 'FF7043', inv: ['0E3B3A', '154C49', '1C5F5B'], inv_ink: 'F2FBF9', inv_body: 'CFE7E2', inv_accent: 'B2DFDB' })),
+    draw: emblemDraw(cells, { ca: 0.14 }) },
+  'chu-thap': { pack: 'y-te', name: 'Chữ thập xanh · Y tế', short: 'Chữ thập',
+    desc: 'Chữ thập y tế xanh lá trong vòng tròn cùng viên thuốc, giọt nước, trái tim, lưới dấu cộng ở góc trang — bệnh viện, trạm y tế, y tế học đường, nhà thuốc.',
+    sw: ['0B2E59', '1565C0', '12B886', 'FF6B6B'], ownInv: true,
+    palette: palW(Object.assign({}, MED, { bg: 'F4F8FC', bg2: 'EBF2FA', card_line: 'D3E1EF', accent: '0B8A6A', accent2: '1565C0', accent3: 'FF6B6B', inv: ['0B2E59', '0F4C81', '1565C0'], inv_ink: 'F4F9FF', inv_body: 'D3E3F5', inv_accent: '8FE3CF' })),
+    draw: emblemDraw(medCross, { halo: true, page: (ctx, th) => plusField(ctx, SW - 0.35, 0.3, 7, 3, 0.26, 0.07, th.accent2, 0.45, 'ct-') }) },
+});
+
+// ============================================================ Gói 4. Vũ trụ · Khám phá
+PACKS.push({ id: 'vu-tru', name: 'Vũ trụ · Khám phá', desc: 'Hành tinh vành đai, chòm sao Bắc Đẩu, tên lửa, vệ tinh' });
+
+function planet(ctx, cx, cy, R, a, tag, mono, col) {
+  const rot = D(-16), rx = R * 2.05, ry = R * 0.48, lw = Math.max(1.2, R * 8);
+  const ringCol = mono ? col : 'FFE8B0';
+  ctx.poly(ellArc(cx, cy, rx, ry, rot, Math.PI, TAU, 36), { closed: false, lineColor: ringCol, lineW: lw, lineAlpha: a * 0.75, name: '!!' + tag + 'vanh-sau' });
+  ctx.poly(ellArc(cx, cy, rx * 1.12, ry * 1.12, rot, Math.PI, TAU, 36), { closed: false, lineColor: ringCol, lineW: lw * 0.3, lineAlpha: a * 0.5, name: '!!' + tag + 'vanh-sau2' });
+  if (mono) ctx.box(cx - R, cy - R, 2 * R, 2 * R, { kind: 'ellipse', color: col, alpha: a, name: '!!' + tag + 'cau' });
+  else ctx.box(cx - R, cy - R, 2 * R, 2 * R, { kind: 'ellipse', gradient: ['F6BD60', 'E76F51'], angle: 60, name: '!!' + tag + 'cau' });
+  const bands = [-0.45, -0.1, 0.3].map(k => ellArc(cx, cy + k * R, Math.sqrt(1 - k * k) * R * 0.98, R * 0.1, 0, 0, Math.PI, 20));
+  ctx.poly(bands, { closed: false, lineColor: mono ? col : 'B5513A', lineW: Math.max(1, R * 5), lineAlpha: mono ? a * 0.5 : 0.35, name: '!!' + tag + 'soc' });
+  ctx.poly(ellArc(cx, cy, rx, ry, rot, 0, Math.PI, 36), { closed: false, lineColor: ringCol, lineW: lw, lineAlpha: a * 0.9, name: '!!' + tag + 'vanh' });
+  ctx.poly(ellArc(cx, cy, rx * 1.12, ry * 1.12, rot, 0, Math.PI, 36), { closed: false, lineColor: ringCol, lineW: lw * 0.3, lineAlpha: a * 0.6, name: '!!' + tag + 'vanh2' });
+}
+function moon(ctx, x, y, r, tag) {
+  ctx.box(x - r, y - r, 2 * r, 2 * r, { kind: 'ellipse', color: 'D9DCE6', name: '!!' + tag + 'trang' });
+  ctx.poly([circle(x - r * 0.3, y - r * 0.2, r * 0.22, 14), circle(x + r * 0.35, y + r * 0.25, r * 0.16, 12), circle(x + r * 0.1, y - r * 0.5, r * 0.1, 10)], { color: 'AEB3C2', name: '!!' + tag + 'ho' });
+}
+const DIPPER = [[0.0, 0.3], [0.24, 0.18], [0.45, 0.2], [0.66, 0.28], [0.7, 0.52], [1.0, 0.55], [1.02, 0.25]];
+function dipper(ctx, ox, oy, s, col, a, tag, big) {
+  const P = ([x, y]) => [ox + x * s, oy + y * s], pts = DIPPER.map(P), polaris = P([1.09, -0.72]);
+  ctx.poly([pts.slice(0, 5).concat([pts[5], pts[6], pts[3]])], { closed: false, lineColor: col, lineW: big ? 1.5 : 1, lineAlpha: a * 0.6, name: '!!' + tag + 'net' });
+  const guide = []; for (let i = 0; i < 9; i++) { const t0 = i / 9, t1 = (i + 0.5) / 9; guide.push([[pts[6][0] + (polaris[0] - pts[6][0]) * t0, pts[6][1] + (polaris[1] - pts[6][1]) * t0], [pts[6][0] + (polaris[0] - pts[6][0]) * t1, pts[6][1] + (polaris[1] - pts[6][1]) * t1]]); }
+  ctx.poly(guide, { closed: false, lineColor: col, lineW: 0.9, lineAlpha: a * 0.35, name: '!!' + tag + 'dan' });
+  if (big) pts.concat([polaris]).forEach(([x, y], i) => glow(ctx, x, y, i === 7 ? 0.45 : 0.28, col, 0.35, '!!' + tag + 'hao' + i));
+  ctx.poly(pts.map(([x, y], i) => sparkle(x, y, (big ? 0.11 : 0.05) * (i === 5 || i === 6 ? 1.2 : 1))), { color: col, alpha: a, name: '!!' + tag + 'sao' });
+  ctx.poly(sparkle(...polaris, big ? 0.2 : 0.08), { color: big ? 'FFFFFF' : col, alpha: a, name: '!!' + tag + 'bacdau' });
+}
+function rocket(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const mono = a < 0.3, C = k => mono ? col : k, P = ([x, y]) => { const g = D(-45), c = Math.cos(g), d = Math.sin(g); return [cx + (x * c - y * d) * s, cy + (x * d + y * c) * s]; };
+  const puffs = [[-1.28, 0.06, 0.15], [-1.5, -0.06, 0.18], [-1.78, 0.08, 0.22]];
+  if (!mono) ctx.poly(puffs.map(([x, y, r]) => circle(x, y, r, 20).map(P)), { color: 'FFFFFF', alpha: a * 0.45, name: '!!' + tag + 'khoi' });
+  if (!mono) {
+    ctx.poly(quad([-0.58, -0.15], [-0.85, -0.12], [-1.2, 0], 10).concat(quad([-1.2, 0], [-0.85, 0.12], [-0.58, 0.15], 10)).map(P), { color: 'FB8500', alpha: a, name: '!!' + tag + 'lua' });
+    ctx.poly(quad([-0.58, -0.08], [-0.75, -0.06], [-0.95, 0], 8).concat(quad([-0.95, 0], [-0.75, 0.06], [-0.58, 0.08], 8)).map(P), { color: 'FFD166', alpha: a, name: '!!' + tag + 'lua2' });
+  }
+  const fins = [[[-0.3, -0.21], [-0.72, -0.5], [-0.62, -0.17]], [[-0.3, 0.21], [-0.72, 0.5], [-0.62, 0.17]]];
+  ctx.poly(fins.map(r => r.map(P)), { color: C('E63946'), alpha: a, name: '!!' + tag + 'canh' });
+  const body = [[-0.62, -0.17], [0.32, -0.22]].concat(quad([0.32, -0.22], [0.62, -0.16], [0.78, 0], 10), quad([0.78, 0], [0.62, 0.16], [0.32, 0.22], 10)).concat([[-0.62, 0.17]]);
+  ctx.poly(body.map(P), { color: C('F1F5F9'), alpha: mono ? a * 0.7 : a, lineColor: C('94A3B8'), lineW: 1, lineAlpha: a, name: '!!' + tag + 'than' });
+  const nose = [[0.42, -0.205]].concat(quad([0.42, -0.205], [0.64, -0.15], [0.78, 0], 8), quad([0.78, 0], [0.64, 0.15], [0.42, 0.205], 8));
+  ctx.poly(nose.map(P), { color: C('E63946'), alpha: a, name: '!!' + tag + 'mui' });
+  ctx.poly([rect(-0.62, -0.17, 0.08, 0.34)].map(r => r.map(P)), { color: C('94A3B8'), alpha: a, name: '!!' + tag + 'duoi' });
+  ctx.poly(circle(0.12, 0, 0.11, 24).map(P), { color: C('1D3557'), alpha: a, lineColor: C('A8DADC'), lineW: Math.max(1.5, 3 * s), lineAlpha: a, name: '!!' + tag + 'cuaso' });
+  if (!mono) ctx.poly(rotRect(-0.15, 0, 0.5, 0.07, 0).map(P), { color: 'E63946', alpha: a, name: '!!' + tag + 'soc' });
+}
+function satellite(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const mono = a < 0.3, C = k => mono ? col : k, g = D(-28), c = Math.cos(g), d = Math.sin(g), P = ([x, y]) => [cx + (x * c - y * d) * s, cy + (x * d + y * c) * s];
+  ctx.poly([[[-0.62, 0], [0.62, 0]]].map(r => r.map(P)), { closed: false, lineColor: C('9AA5B1'), lineW: Math.max(1.2, 3 * s), lineAlpha: a, name: '!!' + tag + 'truc' });
+  const panels = [rect(-1.0, -0.17, 0.52, 0.34), rect(0.48, -0.17, 0.52, 0.34)];
+  ctx.poly(panels.map(r => r.map(P)), { color: C('1E4FA3'), alpha: a, lineColor: C('A9C4F5'), lineW: 1, lineAlpha: a, name: '!!' + tag + 'pin' });
+  const grid = []; [-1.0, 0.48].forEach(x0 => { for (let i = 1; i < 4; i++) grid.push([[x0 + 0.13 * i, -0.17], [x0 + 0.13 * i, 0.17]]); grid.push([[x0, 0], [x0 + 0.52, 0]]); });
+  ctx.poly(grid.map(r => r.map(P)), { closed: false, lineColor: C('A9C4F5'), lineW: 0.8, lineAlpha: a * 0.8, name: '!!' + tag + 'luoi' });
+  ctx.poly(rect(-0.2, -0.24, 0.4, 0.48).map(P), { color: C('D4A017'), alpha: a, lineColor: C('8C6A0A'), lineW: 1, lineAlpha: a, name: '!!' + tag + 'than' });
+  if (!mono) ctx.poly([[[-0.2, -0.08], [0.2, -0.02]], [[-0.2, 0.1], [0.2, 0.14]]].map(r => r.map(P)), { closed: false, lineColor: 'FFE38A', lineW: 1, lineAlpha: a * 0.8, name: '!!' + tag + 'giay' });
+  ctx.poly(ellArc(0, 0.42, 0.2, 0.09, 0, 0, Math.PI, 16).concat([[0.2, 0.42]]).map(P), { color: C('E5E7EB'), alpha: a, lineColor: C('9AA5B1'), lineW: 1, lineAlpha: a, name: '!!' + tag + 'chao' });
+  ctx.poly([[[0, 0.24], [0, 0.42]], [[0, 0.42], [0, 0.58]]].map(r => r.map(P)), { closed: false, lineColor: C('9AA5B1'), lineW: 1.2, lineAlpha: a, name: '!!' + tag + 'anten' });
+  ctx.poly([0.18, 0.3, 0.42].map(r => arc(0, 0.62, r, D(55), D(125), 12)).map(r => r.map(P)), { closed: false, lineColor: C('7DF9FF'), lineW: Math.max(1, 2.2 * s), lineAlpha: a * 0.8, name: '!!' + tag + 'song' });
+}
+const SPACE = { bg: 'F6F7FC', bg2: 'EEF0F9', ink: '141A3A', body: '363D63', muted: '666C8E', card: 'FFFFFF', card_line: 'DDE0EF' };
+
+Object.assign(MOTIFS, {
+  'hanh-tinh': { pack: 'vu-tru', name: 'Hành tinh · Vũ trụ', short: 'Hành tinh',
+    desc: 'Hành tinh cam có vành đai, mặt trăng nhỏ và bầu trời đầy sao trên nền xanh tím thẫm — thiên văn, khoa học tự nhiên, khám phá, ngoại khóa STEM.',
+    sw: ['070B1F', '1C1F4A', 'F6BD60', 'FFE8B0'], ownInv: true,
+    palette: palW(Object.assign({}, SPACE, { accent: 'E76F51', accent2: '3D5A80', accent3: 'F4A261', inv: ['070B1F', '111A3E', '1C1F4A'], inv_ink: 'F5F6FF', inv_body: 'D3D7F0', inv_accent: 'FFE8B0' })),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        starfield(ctx, 0, 0, SW, SH, kind === 'closing' ? 140 : 110, 7 + idx, 'FFFFFF', 0.7, 'ht-');
+        ctx.poly([sparkle(SW - 5.6, 2.3, 0.12), sparkle(SW - 0.7, 5.9, 0.1), sparkle(1.2, 6.6, 0.08), sparkle(SW - 2.0, 0.6, 0.09)], { color: 'FFFFFF', alpha: 0.9, name: '!!ht-lap' });
+        if (kind === 'closing') { planet(ctx, SW / 2, SH / 2, 1.6, 0.14, 'ht-', true, th.inv_accent); return; }
+        const big = kind === 'cover', R = big ? 1.25 : 0.95, cx = SW - (big ? 2.9 : 2.6), cy = big ? 3.4 : SH / 2;
+        glow(ctx, cx, cy, R * 2.2, 'F6BD60', 0.18, '!!ht-hao');
+        planet(ctx, cx, cy, R, 1, 'ht-', false);
+        if (big) moon(ctx, SW - 5.0, 1.35, 0.28, 'ht-'); else moon(ctx, SW - 1.0, 1.0, 0.2, 'ht-');
+        info.x1 = Math.min(info.x1, SW - (big ? 5.6 : 4.8));
+      } else {
+        planet(ctx, SW - 0.95, 0.48, 0.17, 1, 'ht-', false);
+        ctx.poly([sparkle(SW - 1.6, 0.32, 0.06), sparkle(SW - 0.4, 0.95, 0.05)], { color: th.accent3, name: '!!ht-lap' });
+      }
+    } },
+  'chom-sao': { pack: 'vu-tru', name: 'Chòm sao · Bắc Đẩu', short: 'Chòm sao',
+    desc: 'Chòm sao Bắc Đẩu nối nét sáng, đường dẫn tới sao Bắc Cực giữa trời sao xanh đêm — thiên văn, định hướng, mục tiêu, lớp học khoa học.',
+    sw: ['060B1A', '13234A', 'BFD7FF', 'FFFFFF'], ownInv: true,
+    palette: palW(Object.assign({}, SPACE, { accent: '2B59C3', accent2: '6C8CD5', accent3: 'F2C14E', inv: ['060B1A', '0C1631', '13234A'], inv_ink: 'F4F7FF', inv_body: 'CCD7EE', inv_accent: 'BFD7FF' })),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        starfield(ctx, 0, 0, SW, SH, 170, 3 + idx, 'FFFFFF', 0.65, 'cs-');
+        if (kind === 'closing') { dipper(ctx, SW / 2 - 1.7, 1.6, 3.4, th.inv_accent, 0.5, 'cs-', false); return; }
+        const big = kind === 'cover';
+        dipper(ctx, SW - (big ? 4.65 : 4.0), big ? 3.45 : 3.6, big ? 3.4 : 2.8, th.inv_accent, 0.95, 'cs-', true);
+        info.x1 = Math.min(info.x1, SW - (big ? 5.2 : 4.5));
+      } else dipper(ctx, SW - 1.75, 0.2, 1.25, th.accent, 0.6, 'cs-', false);
+    } },
+  'ten-lua': { pack: 'vu-tru', name: 'Tên lửa · Khởi hành', short: 'Tên lửa',
+    desc: 'Tên lửa trắng mũi đỏ phóng chéo lên trời, lửa cam và vệt khói giữa trời tím có sao — khởi động dự án, khởi nghiệp, STEM, mục tiêu năm học.',
+    sw: ['1B1446', '3C2A8F', 'FFB703', 'E63946'], ownInv: true,
+    palette: palW(Object.assign({}, SPACE, { bg: 'F7F6FF', bg2: 'EFEDFB', accent: '5B3FD1', accent2: 'E63946', accent3: 'FFB703', inv: ['1B1446', '2B1B6B', '3C2A8F'], inv_ink: 'FFFFFF', inv_body: 'DCD6F7', inv_accent: 'FFB703' })),
+    draw: emblemDraw(rocket, { halo: false, k: 0.9,
+      closing: (ctx, th, info) => { rocket(ctx, SW - 1.6, 1.5, 0.95, th.inv_accent, 1, th.inv_ink, th, 'em-'); rocket(ctx, 1.4, SH - 1.2, 0.5, th.inv_accent, 1, th.inv_ink, th, 'em2-'); },
+      under: (ctx, th, kind) => { starfield(ctx, 0, 0, SW, SH, 70, 11, 'FFFFFF', 0.55, 'tl-'); ctx.poly([sparkle(SW - 1.0, 1.0, 0.12), sparkle(SW - 5.2, 0.8, 0.09), sparkle(SW - 0.8, 4.8, 0.08)], { color: 'FFFFFF', alpha: 0.9, name: '!!tl-lap' }); },
+      page: (ctx, th) => ctx.poly([sparkle(SW - 0.6, 0.42, 0.08), sparkle(SW - 1.1, 0.25, 0.05)], { color: th.accent3, name: '!!tl-lap' }) }) },
+  've-tinh': { pack: 'vu-tru', name: 'Vệ tinh · Viễn thông', short: 'Vệ tinh',
+    desc: 'Vệ tinh cánh pin xanh, thân vàng phát sóng xuống vầng Trái Đất xanh ở chân trang — viễn thông, chuyển đổi số, công nghệ, địa lý, bản đồ số.',
+    sw: ['06121F', '0D2740', '1E88E5', 'D4A017'], ownInv: true,
+    palette: palW(Object.assign({}, SPACE, { bg: 'F4F8FB', bg2: 'EAF1F7', ink: '0D2233', body: '304759', muted: '5F7686', card_line: 'D3E1EC', accent: '1565C0', accent2: '00A6C8', accent3: 'D4A017', inv: ['06121F', '0A1C30', '0D2740'], inv_ink: 'F2F8FF', inv_body: 'CADCEC', inv_accent: '7DF9FF' })),
+    draw: emblemDraw(satellite, { halo: false, k: 0.95,
+      under: (ctx, th, kind, info) => {
+        starfield(ctx, 0, 0, SW, SH, 90, 21, 'FFFFFF', 0.55, 'vt-');
+        if (kind === 'closing') return;
+        const cx = SW - 2.2, cy = SH + 3.3, R = 4.55;
+        ctx.box(cx - R - 0.3, cy - R - 0.3, 2 * R + 0.6, 2 * R + 0.6, { kind: 'ellipse', radial: true, gradient: ['7EC8FF', '7EC8FF'], galphas: [0.55, 0], name: '!!vt-khiquyen' });
+        ctx.box(cx - R, cy - R, 2 * R, 2 * R, { kind: 'ellipse', gradient: ['1E88E5', '0D47A1'], angle: 90, name: '!!vt-traidat' });
+        ctx.poly([blob(cx - 0.5, SH - 0.75, 0.42, 4), blob(cx + 1.1, SH - 0.5, 0.3, 9), blob(cx - 1.9, SH - 0.3, 0.28, 6)], { color: '66BB6A', alpha: 0.75, name: '!!vt-dat' });
+        info.y1 = Math.min(info.y1, SH - 1.2);
+      } }) },
+});
+
+// ============================================================ Gói 5. Thể thao · Thi đua
+PACKS.push({ id: 'the-thao', name: 'Thể thao · Thi đua', desc: 'Cúp vàng, sân bóng, đường chạy, cờ vua' });
+
+function trophy(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, C = k => mono ? col : k;
+  const lw = Math.max(1.5, 6 * s), leaves = [], stems = [];
+  [-1, 1].forEach(sg => {
+    const path = quad([sg * 0.12, 0.86], [sg * 0.95, 0.6], [sg * 0.82, -0.32], 16); stems.push(path);
+    for (let i = 3; i < 16; i += 2) { const [x, y] = path[i], [qx, qy] = path[i - 1], dir = Math.atan2(y - qy, x - qx); leaves.push(place(PETAL, x, y, 0.22, dir + sg * 0.7), place(PETAL, x, y, 0.2, dir - sg * 0.6)); }
+  });
+  ctx.poly(mapR(stems, P), { closed: false, lineColor: C('C98A00'), lineW: Math.max(1, 2 * s), lineAlpha: a, name: '!!' + tag + 'cong' });
+  ctx.poly(mapR(leaves, P), { color: C('E6B422'), alpha: a * 0.9, name: '!!' + tag + 'la' });
+  ctx.poly(mapR([quad([-0.42, -0.6], [-0.88, -0.6], [-0.3, -0.12], 14), quad([0.42, -0.6], [0.88, -0.6], [0.3, -0.12], 14)], P), { closed: false, lineColor: C('C98A00'), lineW: lw, lineAlpha: a, name: '!!' + tag + 'quai' });
+  const bowl = quad([-0.5, -0.72], [-0.52, -0.05], [-0.1, 0.08], 14).concat(quad([0.1, 0.08], [0.52, -0.05], [0.5, -0.72], 14));
+  ctx.poly(bowl.map(P), { color: C('F2B705'), alpha: a, name: '!!' + tag + 'cup' });
+  if (!mono) ctx.poly(quad([-0.36, -0.62], [-0.38, -0.2], [-0.12, -0.02], 10).concat(quad([-0.18, -0.06], [-0.3, -0.24], [-0.27, -0.62], 10)).map(P), { color: 'FFE27A', alpha: a * 0.8, name: '!!' + tag + 'sang' });
+  ctx.poly(ell(0, -0.72, 0.5, 0.08, 0, 40).map(P), { color: C('C98A00'), alpha: a, name: '!!' + tag + 'mieng' });
+  ctx.poly([rect(-0.07, 0.06, 0.14, 0.3), ell(0, 0.2, 0.13, 0.05, 0, 20), [[-0.32, 0.36], [0.32, 0.36], [0.4, 0.52], [-0.4, 0.52]]].map(r => r.map(P)), { color: C('E0A100'), alpha: a, name: '!!' + tag + 'chan' });
+  ctx.poly(rect(-0.47, 0.52, 0.94, 0.2).map(P), { color: C('6D4C41'), alpha: a, name: '!!' + tag + 'de' });
+  ctx.poly(rect(-0.25, 0.57, 0.5, 0.1).map(P), { color: C('F2B705'), alpha: a, name: '!!' + tag + 'bien' });
+  ctx.poly(star(...P([0, -0.4]), 0.15 * s), { color: C('FFFFFF'), alpha: mono ? a * 0.6 : a, name: '!!' + tag + 'sao' });
+}
+function medal(ctx, x, y, r, col, rib, tag) {
+  ctx.poly([[[x - r * 0.9, y - r * 2.6], [x - r * 0.25, y - r * 2.6], [x + r * 0.15, y - r * 0.8], [x - r * 0.45, y - r * 0.8]], [[x + r * 0.9, y - r * 2.6], [x + r * 0.25, y - r * 2.6], [x - r * 0.15, y - r * 0.8], [x + r * 0.45, y - r * 0.8]]], { color: rib, name: '!!' + tag + 'day' });
+  ctx.poly(circle(x, y, r, 36), { color: col, lineColor: 'FFFFFF', lineW: 1, lineAlpha: 0.5, name: '!!' + tag + 'mat' });
+  ctx.poly(star(x, y, r * 0.5), { color: 'FFFFFF', alpha: 0.85, name: '!!' + tag + 'sao' });
+}
+function football(ctx, x, y, r, tag) {
+  ctx.box(x - r, y - r, 2 * r, 2 * r, { kind: 'ellipse', color: 'FFFFFF', lineColor: '222222', lineW: 1, name: '!!' + tag + 'bong' });
+  const pent = (cx, cy, rr, g) => star(cx, cy, rr, 5, 0.81, g), seams = [], patches = [pent(x, y, r * 0.3, -Math.PI / 2)];
+  for (let i = 0; i < 5; i++) { const t = -Math.PI / 2 + TAU * i / 5; const vx = x + r * 0.3 * Math.cos(t), vy = y + r * 0.3 * Math.sin(t); seams.push([[vx, vy], [x + r * 0.62 * Math.cos(t), y + r * 0.62 * Math.sin(t)]]); patches.push(pent(x + r * 0.86 * Math.cos(t + D(36)), y + r * 0.86 * Math.sin(t + D(36)), r * 0.2, t + D(36) + Math.PI / 2)); }
+  ctx.poly(seams, { closed: false, lineColor: '222222', lineW: 1, name: '!!' + tag + 'duong' });
+  ctx.poly(patches, { color: '222222', name: '!!' + tag + 'mieng' });
+}
+function pitch(ctx, cx, col, a, tag, small) {          // vạch sân: đường giữa sân ở x = cx, khung thành bên phải
+  const m = 0.25, lw = small ? 1.2 : 2, L = { closed: false, lineColor: col, lineW: lw, lineAlpha: a };
+  const lines = [rect(m, m, SW - 2 * m, SH - 2 * m).concat([[m, m]]), [[cx, m], [cx, SH - m]], circle(cx, SH / 2, 1.45, 60).concat([[cx + 1.45, SH / 2]])];
+  const px = SW - m - 1.9, gx = SW - m - 0.65, sp = SW - m - 1.3;
+  lines.push([[SW - m, SH / 2 - 2.0], [px, SH / 2 - 2.0], [px, SH / 2 + 2.0], [SW - m, SH / 2 + 2.0]], [[SW - m, SH / 2 - 0.9], [gx, SH / 2 - 0.9], [gx, SH / 2 + 0.9], [SW - m, SH / 2 + 0.9]]);
+  lines.push(arc(sp, SH / 2, 1.0, D(127), D(233), 16), arc(m, m, 0.3, 0, D(90), 8), arc(m, SH - m, 0.3, D(-90), 0, 8), arc(SW - m, m, 0.3, D(90), D(180), 8), arc(SW - m, SH - m, 0.3, D(180), D(270), 8));
+  ctx.poly(lines, Object.assign({ name: '!!' + tag + 'vach' }, L));
+  ctx.poly([circle(cx, SH / 2, 0.06, 10), circle(sp, SH / 2, 0.05, 10)], { color: col, alpha: a, name: '!!' + tag + 'cham' });
+}
+function track(ctx, cx, cy, r0, lanes, lw, xL, xT, surf, line, tag, nums) {
+  const rO = r0 + lanes * lw, path = r => [[xL, cy + r]].concat(arc(cx, cy, r, D(90), D(-90), 40), [[xT, cy - r]]);
+  ctx.poly(path(rO).concat(path(r0).reverse()), { color: surf, name: '!!' + tag + 'mat' });
+  const ls = []; for (let k = 0; k <= lanes; k++) ls.push(path(r0 + k * lw));
+  ctx.poly(ls, { closed: false, lineColor: line, lineW: 1.25, name: '!!' + tag + 'lan' });
+  const fx = Math.max(xL + 1.5, SW * 0.42), sq = lw / 2, chk = [];
+  for (let k = 0; k < lanes * 2; k++) for (let c = 0; c < 2; c++) if ((k + c) % 2 === 0) chk.push(rect(fx + c * sq, cy + r0 + k * sq, sq, sq));
+  ctx.poly(chk, { color: line, name: '!!' + tag + 'dich' });
+  if (nums) for (let k = 0; k < lanes; k++) ctx.text(xL + 0.55, cy + r0 + k * lw, 0.4, lw, String(k + 1), { size: Math.round(lw * 40), bold: true, color: line, align: 'c', anchor: 'm', name: '!!' + tag + 'so' + k });
+}
+const KNIGHT = [[-0.38, 0.6], [-0.3, 0.12], [-0.46, -0.02], [-0.62, -0.12], [-0.6, -0.3], [-0.38, -0.5], [-0.2, -0.62], [-0.06, -0.86], [0.04, -0.66], [0.22, -0.62], [0.4, -0.38], [0.48, -0.04], [0.42, 0.36], [0.36, 0.6]];
+function knight(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, C = k => mono ? col : k;
+  ctx.poly([rect(-0.56, 0.74, 1.12, 0.16), rect(-0.44, 0.6, 0.88, 0.14)].map(r => r.map(P)), { color: C(col), alpha: a, name: '!!' + tag + 'de' });
+  ctx.poly(KNIGHT.map(P), { color: C(col), alpha: a, name: '!!' + tag + 'ma' });
+  ctx.poly(mapR([circle(-0.18, -0.36, 0.05, 12)], P), { color: C(th.inv ? th.inv[0] : '111111'), alpha: mono ? 0 : a, name: '!!' + tag + 'mat' });
+  const mane = []; for (let i = 0; i < 5; i++) { const t = i / 5; mane.push([[0.06 + 0.36 * t, -0.6 + 0.5 * t], [0.0 + 0.36 * t, -0.52 + 0.5 * t]]); }
+  ctx.poly(mapR(mane, P), { closed: false, lineColor: C(th.inv ? th.inv[0] : '111111'), lineW: Math.max(1, 2 * s), lineAlpha: mono ? 0 : a * 0.6, name: '!!' + tag + 'bom' });
+}
+function checker(ctx, x, y, cols, rows, sq, col, a, tag) { const out = []; for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) if ((i + j) % 2 === 0) out.push(rect(x + i * sq, y + j * sq, sq, sq)); ctx.poly(out, { color: col, alpha: a, name: '!!' + tag + 'o' }); }
+
+Object.assign(MOTIFS, {
+  'cup-vang': { pack: 'the-thao', name: 'Cúp vàng · Vinh danh', short: 'Cúp vàng',
+    desc: 'Cúp vàng giữa cành nguyệt quế, huy chương và giấy kim tuyến trên nền xanh hoàng gia — tổng kết thi đua, khen thưởng, vinh danh, giải thưởng.',
+    sw: ['0E1C3D', '1B3A7A', 'F2B705', 'FFFFFF'], ownInv: true,
+    palette: palW({ bg: 'F7F5EE', bg2: 'F0EDE2', ink: '142347', body: '35436A', muted: '666F8D', accent: '1B3A7A', accent2: 'C99700', accent3: 'C62828',
+      card_line: 'E1DCCB', inv: ['0E1C3D', '14295A', '1B3A7A'], inv_ink: 'FFFFFF', inv_body: 'D6DEF0', inv_accent: 'F5C542' }),
+    draw: emblemDraw(trophy, {
+      inv: (ctx, th, kind) => {
+        if (kind === 'closing') { confetti(ctx, 0.5, 0.3, SW - 1, 1.5, 36, 3, ['F5C542', 'FFFFFF', 'E57373'], 'cv-', 0.8); return; }
+        confetti(ctx, SW - 6.0, 0.25, 5.7, 1.6, 24, 5, ['F5C542', 'FFFFFF', 'E57373'], 'cv-', 0.8);
+        if (kind === 'cover') { medal(ctx, SW - 5.15, SH - 1.0, 0.32, 'C0C0C0', 'C62828', 'cv-m1-'); medal(ctx, SW - 0.85, SH - 1.0, 0.32, 'CD7F32', '1E88E5', 'cv-m2-'); }
+      },
+      page: (ctx, th) => ctx.poly([star(SW - 0.55, 0.42, 0.14), star(SW - 0.95, 0.42, 0.1), star(SW - 1.28, 0.42, 0.07)], { color: th.accent2, name: '!!cv-sao' }) }) },
+  'san-bong': { pack: 'the-thao', name: 'Sân bóng · Hội khỏe', short: 'Sân bóng',
+    desc: 'Mặt sân cỏ kẻ sọc với vạch giữa sân, vòng tròn trung tâm, vòng cấm và quả bóng — hội khỏe Phù Đổng, giải bóng đá, thể dục thể thao, tinh thần đồng đội.',
+    sw: ['1E6B34', '2A8C45', 'FFFFFF', 'FFE66D'], ownInv: true,
+    palette: palW({ bg: 'F4F8F2', bg2: 'EBF3E8', ink: '15301F', body: '35503E', muted: '637A69', accent: '1E8E3E', accent2: 'E0A100', accent3: 'E53935',
+      card_line: 'D5E5D3', inv: ['1E6B34', '23803D'], inv_ink: 'FFFFFF', inv_body: 'E3F2E3', inv_accent: 'FFE66D' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        const st = []; for (let x = 0; x < SW; x += 1.8) st.push(rect(x, 0, 0.9, SH));
+        ctx.poly(st, { color: 'FFFFFF', alpha: 0.06, name: '!!sb-soc' });
+        if (kind === 'closing') { pitch(ctx, SW / 2, 'FFFFFF', 0.45, 'sb-'); return; }
+        const cx = SW - 3.6;
+        pitch(ctx, cx, 'FFFFFF', 0.75, 'sb-');
+        football(ctx, cx, SH / 2, kind === 'cover' ? 0.55 : 0.45, 'sb-');
+        info.x1 = Math.min(info.x1, cx - 1.9);
+        Object.assign(info, { x0: Math.max(info.x0, 0.75), y0: Math.max(info.y0, 0.7), y1: Math.min(info.y1, SH - 0.7) });
+      } else {
+        ctx.poly([arc(SW, 0, 0.55, D(90), D(180), 12)], { closed: false, lineColor: th.accent, lineW: 1.5, lineAlpha: 0.7, name: '!!sb-goc' });
+        ctx.poly([[[SW - 0.25, 0.25], [SW - 0.25, 0.95]]], { closed: false, lineColor: '6B6B6B', lineW: 1.5, name: '!!sb-cot' });
+        ctx.poly([[SW - 0.25, 0.25], [SW - 0.65, 0.38], [SW - 0.25, 0.52]], { color: th.accent3, name: '!!sb-co' });
+        football(ctx, SW - 1.1, 0.42, 0.16, 'sb-');
+      }
+    } },
+  'duong-chay': { pack: 'the-thao', name: 'Đường chạy · Về đích', short: 'Đường chạy',
+    desc: 'Đường chạy điền kinh màu gạch với sáu làn đánh số, khúc cua và vạch đích ca-rô trên nền xanh sân vận động — điền kinh, lộ trình, mục tiêu, nước rút cuối năm.',
+    sw: ['13294B', '23497F', 'C8553D', 'FFFFFF'], ownInv: true,
+    palette: palW({ bg: 'F7F4EF', bg2: 'F1ECE4', ink: '1A2433', body: '3A4656', muted: '6A7482', accent: 'C8553D', accent2: '1D4E89', accent3: 'E9A23B',
+      card_line: 'E4DACB', inv: ['13294B', '1D3C6E', '23497F'], inv_ink: 'FFFFFF', inv_body: 'D6E0EE', inv_accent: 'FFB37A' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        if (kind === 'closing') {
+          const y0 = SH - 1.6, lw = 0.24, ls = [];
+          ctx.box(-0.1, y0, SW + 0.2, lw * 6, { color: 'C8553D', name: '!!dc-mat' });
+          for (let k = 0; k <= 6; k++) ls.push([[-0.1, y0 + k * lw], [SW + 0.1, y0 + k * lw]]);
+          ctx.poly(ls, { closed: false, lineColor: 'FFFFFF', lineW: 1.25, name: '!!dc-lan' });
+          checker(ctx, SW / 2 - 0.12, y0, 2, 12, lw / 2, 'FFFFFF', 1, 'dc-');
+          info.y1 = Math.min(info.y1, y0 - 0.4); return;
+        }
+        const cy = 3.75, r0 = 2.0;
+        track(ctx, SW - 2.6, cy, r0, 6, 0.24, -0.2, SW - 5.2, 'C8553D', 'FFFFFF', 'dc-', true);
+        info.y1 = Math.min(info.y1, cy + r0 - 0.3); info.x1 = Math.min(info.x1, SW - 2.6 - r0 - 0.4);
+      } else {
+        const ls = []; [0.36, 0.25, 0.14].forEach(d => ls.push([[SW * 0.55, SH - d], [SW, SH - d]]));
+        ctx.box(SW * 0.55, SH - 0.36, SW * 0.45, 0.33, { color: th.accent, alpha: 0.15, name: '!!dc-mat' });
+        ctx.poly(ls, { closed: false, lineColor: th.accent, lineW: 1, lineAlpha: 0.7, name: '!!dc-lan' });
+        checker(ctx, SW - 0.9, SH - 0.36, 2, 6, 0.055, th.ink, 0.7, 'dc-');
+      }
+    } },
+  'co-vua': { pack: 'the-thao', name: 'Cờ vua · Chiến lược', short: 'Cờ vua',
+    desc: 'Quân mã vàng đồng trên nền đen than, dải bàn cờ ca-rô ở chân trang — chiến lược, tư duy, ra quyết định, câu lạc bộ cờ vua.',
+    sw: ['141414', '262626', 'D4A85A', 'F5F0E6'], ownInv: true,
+    palette: palW({ bg: 'F6F3EE', bg2: 'EFEBE4', ink: '1C1C1C', body: '3D3D3D', muted: '6E6E6E', accent: '9A6B2F', accent2: '1C1C1C', accent3: 'B23A48',
+      card_line: 'DED8CE', inv: ['141414', '262626'], inv_ink: 'F5F0E6', inv_body: 'D6D0C4', inv_accent: 'D4A85A' }),
+    draw: emblemDraw(knight, { halo: true, k: 0.92,
+      inv: (ctx, th, kind, info) => { checker(ctx, 0, SH - 0.7, Math.ceil(SW / 0.35), 2, 0.35, th.inv_accent, 0.22, 'cv-'); if (kind === 'closing') checker(ctx, 0, 0, Math.ceil(SW / 0.35), 2, 0.35, th.inv_accent, 0.22, 'cv2-'); info.y1 = Math.min(info.y1, SH - 1.0); if (kind === 'closing') info.y0 = Math.max(info.y0, 1.0); },
+      page: (ctx, th) => checker(ctx, SW - 1.9, 0.2, 10, 2, 0.16, th.ink, 0.5, 'cv-') }) },
+});
+
+// ============================================================ Gói 6. Hữu nghị · Đối ngoại
+PACKS.push({ id: 'doi-ngoai', name: 'Hữu nghị · Đối ngoại', desc: 'Bồ câu hòa bình, hữu nghị Việt Nam – Lào, mạng lưới kết nối, nhịp cầu' });
+
+function dove(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, C = k => mono ? col : k, edge = { lineColor: C('9DB7D5'), lineW: 1, lineAlpha: a };
+  const wingB = [[-0.05, 0.02], [-0.45, -0.52], [-0.3, -0.5], [-0.32, -0.72], [-0.15, -0.6], [-0.08, -0.8], [0.04, -0.58], [0.12, -0.7], [0.18, -0.35], [0.18, 0.02]];
+  ctx.poly(wingB.map(([x, y]) => P([x + 0.12, y + 0.04])), Object.assign({ color: C('DCE8F5'), alpha: a, name: '!!' + tag + 'canh2' }, edge));
+  const tail = [[-0.42, 0.18], [-0.95, 0.06], [-0.9, 0.2], [-1.0, 0.3], [-0.88, 0.36], [-0.92, 0.48], [-0.4, 0.34]];
+  ctx.poly(tail.map(P), Object.assign({ color: C('F4F8FC'), alpha: a, name: '!!' + tag + 'duoi' }, edge));
+  ctx.poly(ell(0.02, 0.18, 0.55, 0.2, D(-12), 48).map(P), Object.assign({ color: C('FFFFFF'), alpha: a, name: '!!' + tag + 'than' }, edge));
+  ctx.poly(circle(0.52, -0.06, 0.16, 32).map(P), Object.assign({ color: C('FFFFFF'), alpha: a, name: '!!' + tag + 'dau' }, edge));
+  ctx.poly([[0.66, -0.1], [0.84, -0.04], [0.66, 0.0]].map(P), { color: C('F2A541'), alpha: a, name: '!!' + tag + 'mo' });
+  ctx.poly(circle(0.56, -0.1, 0.025, 10).map(P), { color: C('1D3557'), alpha: a, name: '!!' + tag + 'mat' });
+  const wing = [[-0.2, 0.08], [-0.62, -0.62], [-0.42, -0.56], [-0.46, -0.84], [-0.24, -0.66], [-0.18, -0.94], [-0.02, -0.66], [0.06, -0.82], [0.16, -0.5], [0.22, -0.56], [0.24, -0.2], [0.14, 0.06]];
+  ctx.poly(wing.map(P), Object.assign({ color: C('FFFFFF'), alpha: a, name: '!!' + tag + 'canh' }, edge));
+  const twig = quad([0.76, -0.03], [0.92, 0.14], [0.98, 0.42], 12), lv = [];
+  [[3, 0.9], [5, -0.9], [7, 0.9], [9, -0.9], [11, 0.5]].forEach(([i, g]) => { const [x, y] = twig[i], [qx, qy] = twig[i - 1], dir = Math.atan2(y - qy, x - qx); lv.push(place(NARROW, x, y, 0.24, dir + g)); });
+  ctx.poly(twig.map(P), { closed: false, lineColor: C('5B7F3A'), lineW: Math.max(1, 1.6 * s), lineAlpha: a, name: '!!' + tag + 'canh-la' });
+  ctx.poly(mapR(lv, P), { color: C('7CB342'), alpha: a, name: '!!' + tag + 'la' });
+}
+// cờ bay: cán ở (px, py), cờ bay sang trái (dir = -1) hoặc phải (dir = 1); kiểu 'vn' hoặc 'lao'
+function flag(ctx, px, py, w, h, dir, kind, a, tag, mono, col) {
+  const yT = x => 0.06 * h * Math.sin(5.5 * Math.abs(x - px) / w + 0.4) * Math.min(1, Math.abs(x - px) / (w * 0.3));
+  const xs = Array.from({ length: 21 }, (_, i) => px + dir * w * i / 20), band = (f0, f1) => xs.map(x => [x, py + yT(x) + h * f0]).concat(xs.slice().reverse().map(x => [x, py + yT(x) + h * f1]));
+  const mid = px + dir * w / 2, cy = py + yT(mid) + h / 2;
+  if (mono) { ctx.poly(band(0, 1), { color: col, alpha: a, name: '!!' + tag + 'co' }); return; }
+  if (kind === 'vn') {
+    ctx.poly(band(0, 1), { color: 'DA251D', alpha: a, name: '!!' + tag + 'nen' });
+    ctx.poly(star(mid, cy, h * 0.3), { color: 'FFDD00', alpha: a, name: '!!' + tag + 'sao' });
+  } else {
+    ctx.poly([band(0, 0.25), band(0.75, 1)], { color: 'CE1126', alpha: a, name: '!!' + tag + 'do' });
+    ctx.poly(band(0.25, 0.75), { color: '002868', alpha: a, name: '!!' + tag + 'xanh' });
+    ctx.poly(circle(mid, cy, h * 0.2, 32), { color: 'FFFFFF', alpha: a, name: '!!' + tag + 'trang' });
+  }
+}
+function champa(ctx, x, y, r, rot, tag, mono, col, a = 1) {      // hoa chăm pa (sứ, đại): năm cánh xoắn chong chóng, tâm vàng
+  const ps = []; for (let i = 0; i < 5; i++) { const t = rot + TAU * i / 5; ps.push(place(WIDE, x + r * 0.12 * Math.cos(t + 1.4), y + r * 0.12 * Math.sin(t + 1.4), r, t)); }
+  ctx.poly(ps, { color: mono ? col : 'FFFFFF', alpha: a, lineColor: mono ? col : 'E8D9A8', lineW: 0.75, lineAlpha: a, name: '!!' + tag + 'canh' });
+  if (!mono) { ctx.box(x - r * 0.45, y - r * 0.45, r * 0.9, r * 0.9, { kind: 'ellipse', radial: true, gradient: ['FFC93C', 'FFC93C'], galphas: [1, 0], name: '!!' + tag + 'tam' }); }
+}
+function vietLao(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, C = k => mono ? col : k;
+  const poles = [[[0.32, 0.95], [-0.42, -0.8]], [[-0.32, 0.95], [0.42, -0.8]]];
+  ctx.poly(mapR(poles, P), { closed: false, lineColor: C('C9A227'), lineW: Math.max(1.5, 4 * s), lineAlpha: a, name: '!!' + tag + 'can' });
+  const [vx, vy] = P([-0.42, -0.8]), [lx, ly] = P([0.42, -0.8]);
+  flag(ctx, vx, vy, 0.66 * s, 0.44 * s, -1, 'vn', a, tag + 'vn-', mono, col);
+  flag(ctx, lx, ly, 0.66 * s, 0.44 * s, 1, 'lao', a, tag + 'lao-', mono, col);
+  ctx.poly([circle(-0.42, -0.82, 0.045, 12), circle(0.42, -0.82, 0.045, 12)].map(r => r.map(P)), { color: C('F2C200'), alpha: a, name: '!!' + tag + 'dauc' });
+  champa(ctx, ...P([-0.16, 0.62]), 0.27 * s, 0.3, tag + 'h1-', mono, col, a);
+  champa(ctx, ...P([0.2, 0.74]), 0.22 * s, 1.1, tag + 'h2-', mono, col, a);
+  champa(ctx, ...P([0.02, 0.38]), 0.17 * s, 2.0, tag + 'h3-', mono, col, a);
+}
+function netGlobe(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), mono = a < 0.3, R = 0.86, tilt = D(18), dots = [];
+  ctx.poly(circle(0, 0, R, 72).map(P), { color: col, alpha: a * 0.1, lineColor: col, lineW: Math.max(1, 1.8 * s), lineAlpha: a, name: '!!' + tag + 'cau' });
+  const proj = (lat, lon) => { const x = Math.cos(lat) * Math.sin(lon), y0 = -Math.sin(lat), z0 = Math.cos(lat) * Math.cos(lon), y = y0 * Math.cos(tilt) - z0 * Math.sin(tilt), z = y0 * Math.sin(tilt) + z0 * Math.cos(tilt); return [x * R, y * R, z]; };
+  for (let la = -75; la <= 75; la += 12.5) for (let lo = -180; lo < 180; lo += 12) { const [x, y, z] = proj(D(la), D(lo)); if (z > 0.05) dots.push(circle(x, y, 0.012 + 0.016 * z, 8)); }
+  ctx.poly(mapR(dots, P), { color: col, alpha: a * 0.75, name: '!!' + tag + 'cham' });
+  const nodes = [[20, -40], [35, 25], [-10, 60], [-30, -10], [5, 10], [50, -5], [-15, -65]].map(([la, lo]) => proj(D(la), D(lo)));
+  const pairs = [[0, 4], [4, 1], [4, 2], [4, 3], [1, 5], [3, 6], [0, 5], [2, 3]], arcs = [];
+  pairs.forEach(([i, j]) => { const A = nodes[i], B = nodes[j], m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], k = 1.12 + 0.22 * Math.hypot(A[0] - B[0], A[1] - B[1]) / R; arcs.push(quad([A[0], A[1]], [m[0] * k, m[1] * k - 0.06], [B[0], B[1]], 18)); });
+  const ac = mono ? col : (th.inv_ink || 'FFFFFF');
+  ctx.poly(mapR(arcs, P), { closed: false, lineColor: ac, lineW: Math.max(1, 1.6 * s), lineAlpha: a * 0.85, name: '!!' + tag + 'cung' });
+  if (!mono) nodes.forEach(([x, y], i) => glow(ctx, ...P([x, y]), 0.1 * s, col, 0.6, '!!' + tag + 'hao' + i));
+  ctx.poly(nodes.map(([x, y]) => circle(x, y, 0.035, 12)).map(r => r.map(P)), { color: ac, alpha: a, name: '!!' + tag + 'nut' });
+}
+function bridge(ctx, x0, x1, deck, rise, col, a, tag, sun) {
+  const mid = (x0 + x1) / 2, half = (x1 - x0) / 2, archY = x => deck - rise * (1 - Math.pow((x - mid) / half, 2));
+  if (sun) {
+    ctx.box(mid - 1.4, deck - 1.4, 2.8, 2.8, { kind: 'ellipse', radial: true, gradient: [sun, sun], galphas: [0.45, 0], name: '!!' + tag + 'hao' });
+    ctx.poly(arc(mid, deck, 0.85, Math.PI, TAU, 30), { color: sun, alpha: 0.9, name: '!!' + tag + 'mattroi' });
+  }
+  const a1 = [], a2 = [], hang = [];
+  for (let i = 0; i <= 50; i++) { const x = x0 + (x1 - x0) * i / 50; a1.push([x, archY(x)]); a2.push([x, archY(x) + 0.09]); }
+  for (let x = x0 + 0.35; x < x1 - 0.2; x += 0.35) hang.push([[x, archY(x) + 0.09], [x, deck]]);
+  ctx.poly(a1.concat(a2.reverse()), { color: col, alpha: a, name: '!!' + tag + 'vom' });
+  ctx.poly(hang, { closed: false, lineColor: col, lineW: 1, lineAlpha: a * 0.8, name: '!!' + tag + 'day' });
+  ctx.box(-0.1, deck, SW + 0.2, 0.1, { color: col, alpha: a, name: '!!' + tag + 'mat' });
+  ctx.poly([rect(x0 - 0.12, deck, 0.24, SH - deck), rect(x1 - 0.12, deck, 0.24, SH - deck)], { color: col, alpha: a * 0.85, name: '!!' + tag + 'tru' });
+  const r = seeded(5), wv = [];
+  for (let i = 0; i < 26; i++) { const y = deck + 0.25 + (SH - deck - 0.3) * r(), x = SW * r(), L = 0.25 + 0.6 * r(); wv.push([[x, y], [x + L, y]]); }
+  ctx.poly(wv, { closed: false, lineColor: col, lineW: 1, lineAlpha: a * 0.45, name: '!!' + tag + 'nuoc' });
+}
+
+Object.assign(MOTIFS, {
+  'bo-cau': { pack: 'doi-ngoai', name: 'Bồ câu · Hòa bình', short: 'Bồ câu',
+    desc: 'Chim bồ câu trắng ngậm cành ô liu bay trên nền xanh dương — hòa bình, hữu nghị, đối ngoại, hợp tác quốc tế, Ngày Quốc tế Hòa bình 21/9.',
+    sw: ['0B3C6E', '1E7CC8', 'FFFFFF', '7CB342'], ownInv: true,
+    palette: palW({ bg: 'F3F8FC', bg2: 'EAF2FA', ink: '0F2747', body: '2F4766', muted: '5F7590', accent: '1565A8', accent2: '5B9E3A', accent3: 'F2A541',
+      card_line: 'D3E2F0', inv: ['0B3C6E', '1565A8', '1E7CC8'], inv_ink: 'FFFFFF', inv_body: 'DCEBF8', inv_accent: 'BFE3FF' }),
+    draw: emblemDraw(dove, { ca: 0.16 }) },
+  'viet-lao': { pack: 'doi-ngoai', name: 'Hữu nghị Việt Nam – Lào', short: 'Việt – Lào',
+    desc: 'Cờ Việt Nam và cờ Lào bắt chéo, dưới là chùm hoa chăm pa trắng nhụy vàng trên nền xanh thẫm — quan hệ đặc biệt Việt Nam – Lào, kỷ niệm 5/9 và 18/7, giao lưu hữu nghị.',
+    sw: ['0E1F4D', '1B3A86', 'DA251D', 'FFFFFF'], ownInv: true,
+    palette: palW({ bg: 'FBF8F2', bg2: 'F4F0E6', ink: '1D2240', body: '3D4262', muted: '6B6F8A', accent: 'C8102E', accent2: '1B3A86', accent3: 'D4A017',
+      card_line: 'E4DFD2', inv: ['0E1F4D', '15306E', '1B3A86'], inv_ink: 'FFFFFF', inv_body: 'D8E0F2', inv_accent: 'FFD54F' }),
+    draw: emblemDraw(vietLao, { halo: true, wm: 0.12,
+      page: (ctx, th) => { flag(ctx, SW - 1.05, 0.22, 0.42, 0.28, -1, 'vn', 1, 'vl-vn-', false); flag(ctx, SW - 0.95, 0.22, 0.42, 0.28, 1, 'lao', 1, 'vl-lao-', false); ctx.poly([[[SW - 1.0, 0.18], [SW - 1.0, 0.68]]], { closed: false, lineColor: 'C9A227', lineW: 1.5, name: '!!vl-can' }); } }) },
+  'ket-noi': { pack: 'doi-ngoai', name: 'Kết nối toàn cầu · Hội nhập', short: 'Kết nối',
+    desc: 'Quả cầu chấm điểm với các cung nối sáng giữa nhiều nút mạng trên nền xanh đêm — hội nhập quốc tế, hợp tác đa phương, chuyển đổi số, chuỗi cung ứng.',
+    sw: ['0A1A3A', '143A73', '4FD1C5', 'FFFFFF'], ownInv: true,
+    palette: palW({ bg: 'F3F7FB', bg2: 'EAF1F8', ink: '0E2240', body: '2F4664', muted: '5F7490', accent: '0F6CBD', accent2: '0FA3A3', accent3: 'F2A541',
+      card_line: 'D2DFEC', inv: ['0A1A3A', '0F2A5A', '143A73'], inv_ink: 'FFFFFF', inv_body: 'D0DDF0', inv_accent: '4FD1C5' }),
+    draw: emblemDraw(netGlobe, { halo: true, ca: 0.16 }) },
+  'nhip-cau': { pack: 'doi-ngoai', name: 'Nhịp cầu · Hợp tác', short: 'Nhịp cầu',
+    desc: 'Cây cầu vòm thép vươn qua mặt nước, mặt trời hoàng hôn phía sau trên nền xanh thép — hợp tác, kết nối, hữu nghị, giao thông, hạ tầng, phát triển vùng.',
+    sw: ['12263F', '25507F', 'F4A261', 'FFFFFF'], ownInv: true,
+    palette: palW({ bg: 'F5F7FA', bg2: 'ECF0F5', ink: '15233A', body: '36465E', muted: '66748A', accent: '25507F', accent2: 'E07A3F', accent3: '2A9D8F',
+      card_line: 'D7DEE8', inv: ['12263F', '1C3A5E', '25507F'], inv_ink: 'FFFFFF', inv_body: 'D6E0EE', inv_accent: 'F4A261' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        const deck = SH - 1.35;
+        bridge(ctx, kind === 'closing' ? 1.2 : SW * 0.36, kind === 'closing' ? SW - 1.2 : SW - 0.6, deck, kind === 'closing' ? 1.7 : 2.2, th.inv_ink, kind === 'closing' ? 0.35 : 0.8, 'nc-', kind === 'closing' ? null : th.inv_accent);
+        info.y1 = Math.min(info.y1, deck - (kind === 'closing' ? 1.9 : 0.3));
+        if (kind !== 'closing') info.x1 = Math.min(info.x1, SW - 2.2);
+      } else {
+        const x0 = SW - 3.2, x1 = SW - 0.4, deck = SH - 0.35, mid = (x0 + x1) / 2, half = (x1 - x0) / 2, pts = [], hang = [];
+        for (let i = 0; i <= 30; i++) { const x = x0 + (x1 - x0) * i / 30; pts.push([x, deck - 0.75 * (1 - Math.pow((x - mid) / half, 2))]); }
+        for (let i = 2; i < 30; i += 3) hang.push([pts[i], [pts[i][0], deck]]);
+        ctx.poly([pts, [[x0 - 0.3, deck], [x1 + 0.3, deck]]].concat(hang), { closed: false, lineColor: th.accent, lineW: 1.2, lineAlpha: 0.45, name: '!!nc-cau' });
+      }
+    } },
+});
+
 // ============================================================ ký hiệu đầu dòng theo chủ đề
 const BULLET = { 'cach-mang': '★', 'bua-liem': '★', 'vong-lua': '★', 'co-bay': '★', 'sieu-anh-hung': '★', 'ho-chi-minh': '❀', 'tet': '✿', 'hoa-dao': '✿', 'dam-sen': '❀',
-  'dong-son': '◆', 'hoi-van': '◆', 'tho-cam': '◆', 'gach-bong': '❖', 'phao-hoa': '✦', 'trung-thu': '✦', 'nang-luong': '✦', 'hai-tac': '✦', 'toc-do': '▶', 'khung-truyen': '▶', 'mach-dien': '▶', 'bum': '★' };
+  'dong-son': '◆', 'hoi-van': '◆', 'tho-cam': '◆', 'gach-bong': '❖', 'phao-hoa': '✦', 'trung-thu': '✦', 'nang-luong': '✦', 'hai-tac': '✦', 'toc-do': '▶', 'khung-truyen': '▶', 'mach-dien': '▶', 'bum': '★',
+  'hoa-phuong': '✿', 'tot-nghiep': '★', 'cup-vang': '★', 'viet-lao': '★', 'khue-van-cac': '◆', 'chua-mot-cot': '◆', 'mai-dinh': '◆', 'non-la': '◆',
+  'hanh-tinh': '✦', 'chom-sao': '✦', 'ten-lua': '▶', 've-tinh': '▶', 'nhip-tim': '♥', 'co-vua': '♞', 'bo-cau': '❖', 'vo-o-ly': '✎', 'bang-den': '✎' };
 for (const k in BULLET) if (MOTIFS[k]) MOTIFS[k].bullet = BULLET[k];
 
 for (const k in MOTIFS) MOTIFS[k].id = k;

@@ -41,7 +41,7 @@ Mọi mẫu chỉ dùng phông có sẵn trên Windows và **đủ dấu tiếng
 
 ## Họa tiết theo chủ đề
 
-Có **36 họa tiết chia 6 gói**. Họa tiết vẽ chồng lên **bất kỳ mẫu nào** bằng hình vector của PowerPoint, nên sửa màu, kéo, xóa được như hình thường (không dùng ảnh). Hình và màu giống hệt họa tiết của bản web.
+Có **61 họa tiết chia 12 gói**. Họa tiết vẽ chồng lên **bất kỳ mẫu nào** bằng hình vector của PowerPoint, nên sửa màu, kéo, xóa được như hình thường (không dùng ảnh). Hình và màu giống hệt họa tiết của bản web.
 
 Cột "Màu": **riêng** = có bảng màu riêng (bỏ được, xem dưới); **theo mẫu** = luôn dùng màu của mẫu.
 
@@ -111,9 +111,64 @@ Cột "Màu": **riêng** = có bảng màu riêng (bỏ được, xem dưới); 
 | `giap-hud` | Giáp công nghệ · HUD | Vòng HUD vàng quanh lõi sáng xanh | riêng | Công nghệ, robot, khoa học viễn tưởng |
 | `khung-truyen` | Manga · Khung truyện | Ba ô khung truyện, chấm tram, vệt tốc độ | riêng | Kể chuyện bằng tranh, câu lạc bộ manga |
 
-- **Trang bìa, trang chương, trang kết**: họa tiết lớn thay cho trang trí của mẫu. Riêng `hoi-van`, `may-cuon`, `sach-but`, `nguyen-tu`, `hinh-hoc` giữ trang trí của mẫu và vẽ thêm lên trên. Họa tiết dạng biểu tượng (búa liềm, vòng lúa, cờ, đầm sen, Trái Đất, sách bút, nguyên tử) nằm to bên phải trang bìa, trang chương và chìm mờ giữa trang kết. Chữ tự lùi vào để không đè lên họa tiết; tên bài dài quá thì cỡ chữ tự nhỏ lại.
+**Gói Trường học · Lễ nghi học đường**
+
+| Mã | Tên | Hình vẽ | Màu | Hợp với |
+|---|---|---|---|---|
+| `khai-giang` | Khai giảng · Trống trường | Trống trường đỏ đai vàng, dùi bắt chéo, chùm bóng bay trên nền trời xanh | riêng | Lễ khai giảng, ngày hội đến trường, sự kiện đầu năm học |
+| `hoa-phuong` | Hoa phượng · Mùa chia tay | Cành phượng đỏ, lá kép lông chim, cánh hoa rơi trên nền xanh ngọc | riêng | Tổng kết, chia tay cuối cấp, tuổi học trò, mùa hè |
+| `tot-nghiep` | Tốt nghiệp · Mũ cử nhân | Mũ cử nhân tua vàng, cuộn bằng thắt nơ đỏ, giấy kim tuyến | riêng | Lễ tốt nghiệp, trao bằng, bảo vệ khóa luận |
+| `vo-o-ly` | Vở ô ly · Tiểu học | Trang vở ô ly kẻ tím, lề đỏ, gáy lò xo, bút chì; trang bìa cũng là trang vở sáng màu | riêng | Tiểu học, luyện chữ, bài giảng lớp 1 đến lớp 5, họp phụ huynh |
+| `bang-den` | Bảng đen · Phấn trắng | Cả bộ slide thành bảng xanh khung gỗ, chữ phấn, máng phấn và công thức viết tay | riêng | Lớp học, ôn tập, toán, khoa học tự nhiên |
+
+**Gói Di sản · Kiến trúc Việt**
+
+| Mã | Tên | Hình vẽ | Màu | Hợp với |
+|---|---|---|---|---|
+| `khue-van-cac` | Văn Miếu · Khuê Văn Các | Khuê Văn Các nét vàng kim, cửa sổ tròn tỏa tia, hai tầng mái cong, nền đỏ son | riêng | Khuyến học, 20/11, truyền thống hiếu học, Hà Nội |
+| `chua-mot-cot` | Chùa Một Cột · Hà Nội | Chùa Một Cột trên hồ sen vuông, mái cong, lưỡng long chầu nguyệt, tông chàm | riêng | Hà Nội, văn hóa, di tích, du lịch |
+| `mai-dinh` | Mái đình · Ngói vảy cá | Dải mái ngói vảy cá, diềm mái, hai đầu đao cong vút ở đầu trang | riêng | Đình làng, lễ hội, văn hóa làng xã, kiến trúc cổ |
+| `non-la` | Nón lá · Hồn Việt | Nón lá màu rơm với vành nan, quai hồng, nền xanh lúa non | riêng | Văn hóa Việt Nam, phụ nữ Việt Nam, giới thiệu quê hương |
+
+**Gói Y tế · Sức khỏe**
+
+| Mã | Tên | Hình vẽ | Màu | Hợp với |
+|---|---|---|---|---|
+| `nhip-tim` | Nhịp tim · Tim mạch | Trái tim đỏ có đường điện tim, dải nhịp tim chạy ngang chân trang | riêng | Y khoa, tim mạch, sức khỏe cộng đồng, 27/2 |
+| `adn` | Chuỗi xoắn ADN · Sinh học | Chuỗi xoắn kép nghiêng, bậc nối bốn màu, nền xanh đêm | riêng | Sinh học, di truyền, y sinh, nghiên cứu |
+| `te-bao` | Tế bào · Vi sinh | Tế bào nhân tím, ti thể, lưới nội chất và vài tế bào nhỏ | riêng | Sinh học, vi sinh, y học, phòng dịch |
+| `chu-thap` | Chữ thập xanh · Y tế | Chữ thập xanh lá trong vòng tròn, viên thuốc, giọt nước, trái tim | riêng | Bệnh viện, trạm y tế, y tế học đường, nhà thuốc |
+
+**Gói Vũ trụ · Khám phá**
+
+| Mã | Tên | Hình vẽ | Màu | Hợp với |
+|---|---|---|---|---|
+| `hanh-tinh` | Hành tinh · Vũ trụ | Hành tinh có vành đai, mặt trăng, bầu trời đầy sao | riêng | Thiên văn, khoa học tự nhiên, ngoại khóa STEM |
+| `chom-sao` | Chòm sao · Bắc Đẩu | Chòm sao Bắc Đẩu nối nét sáng, đường dẫn tới sao Bắc Cực | riêng | Thiên văn, định hướng, mục tiêu |
+| `ten-lua` | Tên lửa · Khởi hành | Tên lửa phóng chéo, lửa cam, vệt khói, trời tím có sao | riêng | Khởi động dự án, khởi nghiệp, STEM |
+| `ve-tinh` | Vệ tinh · Viễn thông | Vệ tinh cánh pin xanh phát sóng xuống vầng Trái Đất | riêng | Viễn thông, chuyển đổi số, công nghệ, địa lý |
+
+**Gói Thể thao · Thi đua**
+
+| Mã | Tên | Hình vẽ | Màu | Hợp với |
+|---|---|---|---|---|
+| `cup-vang` | Cúp vàng · Vinh danh | Cúp vàng giữa cành nguyệt quế, huy chương, giấy kim tuyến | riêng | Tổng kết thi đua, khen thưởng, vinh danh |
+| `san-bong` | Sân bóng · Hội khỏe | Sân cỏ kẻ sọc, vạch giữa sân, vòng cấm, quả bóng | riêng | Hội khỏe Phù Đổng, giải bóng đá, thể dục thể thao |
+| `duong-chay` | Đường chạy · Về đích | Đường chạy sáu làn đánh số, khúc cua, vạch đích ca-rô | riêng | Điền kinh, lộ trình, mục tiêu, nước rút cuối năm |
+| `co-vua` | Cờ vua · Chiến lược | Quân mã vàng đồng trên nền đen than, dải bàn cờ | riêng | Chiến lược, tư duy, ra quyết định, câu lạc bộ cờ vua |
+
+**Gói Hữu nghị · Đối ngoại**
+
+| Mã | Tên | Hình vẽ | Màu | Hợp với |
+|---|---|---|---|---|
+| `bo-cau` | Bồ câu · Hòa bình | Bồ câu trắng ngậm cành ô liu trên nền xanh dương | riêng | Hòa bình, hữu nghị, đối ngoại, 21/9 |
+| `viet-lao` | Hữu nghị Việt Nam – Lào | Cờ Việt Nam và cờ Lào bắt chéo, chùm hoa chăm pa | riêng | Quan hệ đặc biệt Việt Nam – Lào, kỷ niệm 5/9 và 18/7 |
+| `ket-noi` | Kết nối toàn cầu · Hội nhập | Quả cầu chấm điểm, cung nối sáng giữa các nút mạng | riêng | Hội nhập quốc tế, hợp tác đa phương, chuyển đổi số |
+| `nhip-cau` | Nhịp cầu · Hợp tác | Cầu vòm thép qua mặt nước, mặt trời hoàng hôn phía sau | riêng | Hợp tác, kết nối, giao thông, phát triển vùng |
+
+- **Trang bìa, trang chương, trang kết**: họa tiết lớn thay cho trang trí của mẫu. Riêng `hoi-van`, `may-cuon`, `sach-but`, `nguyen-tu`, `hinh-hoc` giữ trang trí của mẫu và vẽ thêm lên trên. Họa tiết dạng biểu tượng (búa liềm, vòng lúa, cờ, đầm sen, Trái Đất, sách bút, nguyên tử, trống trường, mũ cử nhân, Khuê Văn Các, chùa Một Cột, nón lá, trái tim, ADN, tế bào, chữ thập, tên lửa, vệ tinh, cúp vàng, quân mã, bồ câu, cờ Việt – Lào, quả cầu kết nối) nằm to bên phải trang bìa, trang chương và chìm mờ giữa trang kết. Riêng `vo-o-ly` và `bang-den` đổi cả nền mọi trang thành trang vở hoặc bảng đen. Chữ tự lùi vào để không đè lên họa tiết; tên bài dài quá thì cỡ chữ tự nhỏ lại.
 - **Trang nội dung**: chỉ thêm dải màu, họa tiết nhỏ hoặc hình chìm rất nhạt ở góc, trang trí của mẫu vẫn giữ.
-- **Ký hiệu đầu dòng theo chủ đề**: nhiều họa tiết đổi dấu đầu dòng cho hợp (★ cách mạng, siêu anh hùng; ✿ hoa mai, hoa đào; ❀ sen; ◆ trống đồng, hồi văn, thổ cẩm; ✦ pháo hoa, Trung thu…; ▶ tốc độ, khung truyện, mạch điện), kể cả khi giữ màu của mẫu.
+- **Ký hiệu đầu dòng theo chủ đề**: nhiều họa tiết đổi dấu đầu dòng cho hợp (★ cách mạng, siêu anh hùng, cúp vàng, tốt nghiệp, Việt – Lào; ✿ hoa mai, hoa đào, hoa phượng; ❀ sen; ◆ trống đồng, hồi văn, thổ cẩm, di sản kiến trúc; ✦ pháo hoa, Trung thu, hành tinh, chòm sao…; ▶ tốc độ, khung truyện, mạch điện, tên lửa, vệ tinh; ♥ nhịp tim; ♞ cờ vua; ✎ vở ô ly, bảng đen), kể cả khi giữ màu của mẫu.
 - **Bảng màu của họa tiết**: với họa tiết có màu **riêng**, mặc định đổi cả màu nền, màu chữ, màu nhấn sang bảng màu của họa tiết (ví dụ trống đồng dùng tông đồng thau). Muốn giữ màu của mẫu thì bỏ chọn "Dùng bảng màu của họa tiết" trong cửa sổ, đặt `"dung_mau_hoa_van": false` trong `cau-hinh.json`, hoặc thêm `--giu-mau` ở dòng lệnh. Họa tiết **theo mẫu** luôn dùng màu của mẫu.
 - Tên file kết quả ghi cả họa tiết, ví dụ `bai-giang - Cổ điển · Vintage + Trống đồng.pptx`.
 
