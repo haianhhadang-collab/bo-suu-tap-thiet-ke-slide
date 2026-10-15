@@ -41,6 +41,16 @@ h1{font-size:clamp(30px,5vw,52px);line-height:1.08;margin:10px 0 14px;font-weigh
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .row + .row{margin-top:8px}
 .label{font-size:12px;font-weight:600;color:var(--muted);min-width:70px;text-transform:uppercase;letter-spacing:.05em}
+/* Nhóm lọc Chủ đề / Phong cách: trên máy tính là hàng chip, trên điện thoại gập lại được */
+.fgroup{display:flex;gap:8px;align-items:flex-start}
+.fgroup + .fgroup{margin-top:8px}
+.fhead{all:unset;flex:none;display:flex;align-items:center;min-height:30px}
+.fval,.caret{display:none}
+.fchips{flex:1}
+.search-row{margin-top:8px}
+.toggles{display:flex;gap:8px;flex-wrap:wrap}
+.reset{display:none;border:0;background:none;color:var(--accent);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:5px 4px}
+.reset.show{display:inline-block}
 .chip{border:1px solid var(--line);background:var(--chip);color:var(--text);font:inherit;font-size:13px;padding:5px 11px;border-radius:999px;cursor:pointer;white-space:nowrap}
 .chip:hover{border-color:var(--muted)}
 .chip.on{background:var(--chip-on);color:var(--chip-on-text);border-color:var(--chip-on)}
@@ -143,7 +153,30 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 .empty{display:none;padding:40px 0;text-align:center;color:var(--muted)}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
 .toast.show{opacity:1}
-@media (max-width:640px){.label{min-width:100%}.theme-btn{margin-left:0}}
+@media (max-width:640px){
+  .toolbar{padding:10px 0}
+  .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .fgroup{display:contents}
+  .fhead{all:revert;box-sizing:border-box;display:flex;align-items:center;gap:6px;min-width:0;width:100%;font:inherit;text-align:left;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 10px;cursor:pointer}
+  .fhead .label{min-width:0;font-size:10.5px;flex:none}
+  .fval{display:block;flex:1;min-width:0;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .caret{display:block;flex:none;color:var(--muted);font-size:12px;transition:transform .2s}
+  .fgroup.on .fhead{border-color:var(--chip-on);box-shadow:inset 0 0 0 1px var(--chip-on)}
+  .fgroup.open .fhead{background:var(--chip);border-color:var(--muted)}
+  .fgroup.open .caret{transform:rotate(180deg)}
+  .fchips{grid-column:1 / -1;display:none;max-height:46vh;overflow-y:auto;padding:4px 0 2px;overscroll-behavior:contain}
+  .fgroup.open .fchips{display:flex}
+  #g-topic .fhead{grid-column:1;grid-row:1}
+  #g-style .fhead{grid-column:2;grid-row:1}
+  .chip{padding:7px 12px}
+  .search-row{gap:6px}
+  .search-row > .label{display:none}
+  .search{max-width:none;min-width:0;flex:1 1 100%;order:-1}
+  .toggles{flex:1 1 100%;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:28px}
+  .toggles::-webkit-scrollbar{display:none}
+  .count{font-size:12.5px}
+  .theme-btn{margin-left:auto}
+}
 /*TDT-CSS*/
 /* ---------- Tự dàn trang ---------- */
 .tdt-cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:22px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
@@ -210,7 +243,7 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
   <div class="wrap">
     <div class="eyebrow">Sưu tập · cập nhật 15/10/2026</div>
     <h1>Bộ sưu tập thiết kế slide PowerPoint đẹp</h1>
-    <p class="lede">Các mẫu slide (chủ yếu miễn phí, mẫu Premium có nhãn riêng), tải được dưới dạng PowerPoint (.pptx) hoặc Google Slides, chọn từ SlidesCarnival, Slidesgo và PresentationGO. Mẫu được chia theo <b>chủ đề</b> và <b>phong cách</b>. Ảnh xem trước là <b>phác họa theo bảng màu</b> của từng mẫu, không phải ảnh chụp thật. Mẫu có nhãn <b>★ Ấn tượng</b> là những thiết kế nổi bật nhất. Bấm “Xem &amp; tải mẫu” để xem slide gốc.</p>
+    <p class="lede">Hải làm cái này vì lười; Nội dung có thể dùng AI xây dựng, tải lên rồi áp dụng mẫu</p>
     <div class="stats">
       <div class="stat"><b id="st-total">0</b><span>mẫu slide</span></div>
       <div class="stat"><b id="st-topics">0</b><span>chủ đề</span></div>
@@ -228,21 +261,26 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 
 <div class="toolbar">
   <div class="wrap">
-    <div class="row">
-      <span class="label">Chủ đề</span>
-      <div class="row" id="f-topic" style="margin:0"></div>
+    <div class="filters">
+      <div class="fgroup" id="g-topic">
+        <button class="fhead" type="button" aria-expanded="false" aria-controls="f-topic"><span class="label">Chủ đề</span><span class="fval">Tất cả</span><span class="caret" aria-hidden="true">▾</span></button>
+        <div class="row fchips" id="f-topic" role="group" aria-label="Chủ đề"></div>
+      </div>
+      <div class="fgroup" id="g-style">
+        <button class="fhead" type="button" aria-expanded="false" aria-controls="f-style"><span class="label">Phong cách</span><span class="fval">Tất cả</span><span class="caret" aria-hidden="true">▾</span></button>
+        <div class="row fchips" id="f-style" role="group" aria-label="Phong cách"></div>
+      </div>
     </div>
-    <div class="row">
-      <span class="label">Phong cách</span>
-      <div class="row" id="f-style" style="margin:0"></div>
-    </div>
-    <div class="row">
+    <div class="row search-row">
       <span class="label">Tìm</span>
       <input class="search" id="q" type="search" placeholder="Tên mẫu, màu, chủ đề… (vd: luận án, vàng, dark)">
-      <button class="chip" id="f-wow" aria-pressed="false">★ Chỉ mẫu ấn tượng</button>
-      <button class="chip" id="f-free" aria-pressed="false">Chỉ mẫu miễn phí</button>
-      <button class="chip" id="f-new" aria-pressed="false">Chỉ mẫu mới thêm</button>
+      <div class="toggles">
+        <button class="chip" id="f-wow" aria-pressed="false">★ Chỉ mẫu ấn tượng</button>
+        <button class="chip" id="f-free" aria-pressed="false">Chỉ mẫu miễn phí</button>
+        <button class="chip" id="f-new" aria-pressed="false">Chỉ mẫu mới thêm</button>
+      </div>
       <span class="count" id="count"></span>
+      <button class="reset" id="reset" type="button">Bỏ lọc</button>
       <button class="chip theme-btn" id="theme">◐ Sáng / tối</button>
     </div>
   </div>
@@ -772,21 +810,47 @@ document.getElementById("sections").innerHTML = TOPICS.map(tp=>{
   </section>`;
 }).join("");
 
+// Trên điện thoại, nhóm Chủ đề / Phong cách gập lại thành nút; mở nhóm này thì nhóm kia đóng
+const mobile = matchMedia("(max-width:640px)");
+const groups = [...document.querySelectorAll(".fgroup")];
+function openGroup(g){
+  groups.forEach(x=>{ const on = x===g && !x.classList.contains("open"); x.classList.toggle("open", on); x.querySelector(".fhead").setAttribute("aria-expanded", on); });
+}
+groups.forEach(g=>g.querySelector(".fhead").addEventListener("click", ()=>{ if(mobile.matches) openGroup(g); }));
+document.addEventListener("click", e=>{ if(!e.target.closest(".filters")) openGroup(null); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") openGroup(null); });
+mobile.addEventListener("change", ()=>openGroup(null));
+
+function setChip(el, key, v){
+  el.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", c.dataset.v===v));
+  const g = el.closest(".fgroup");
+  g.querySelector(".fval").textContent = el.querySelector(`.chip[data-v="${v}"]`).textContent;
+  g.classList.toggle("on", v!=="all");
+  state[key] = v;
+}
 function chips(el, list, key){
   el.innerHTML = `<button class="chip on" data-v="all">Tất cả</button>` +
     list.map(x=>`<button class="chip" data-v="${x.id}">${x.name.split(" · ")[0]}</button>`).join("");
   el.addEventListener("click", e=>{
     const b = e.target.closest(".chip"); if(!b) return;
-    el.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", c===b));
-    state[key] = b.dataset.v; apply();
+    setChip(el, key, b.dataset.v); apply();
+    if(mobile.matches) openGroup(null);
   });
 }
 chips(document.getElementById("f-topic"), TOPICS, "topic");
 chips(document.getElementById("f-style"), STYLES, "style");
-document.getElementById("q").addEventListener("input", e=>{ state.q = norm(e.target.value.trim()); apply(); });
-[["f-wow","wow"],["f-free","free"],["f-new","fresh"]].forEach(([id,key])=>{
-  const b = document.getElementById(id);
-  b.addEventListener("click", ()=>{ state[key] = !state[key]; b.classList.toggle("on", state[key]); b.setAttribute("aria-pressed", state[key]); apply(); });
+const qInput = document.getElementById("q");
+qInput.addEventListener("input", e=>{ state.q = norm(e.target.value.trim()); apply(); });
+const toggles = [["f-wow","wow"],["f-free","free"],["f-new","fresh"]];
+function setToggle(id, key, v){ const b = document.getElementById(id); state[key] = v; b.classList.toggle("on", v); b.setAttribute("aria-pressed", v); }
+toggles.forEach(([id,key])=>{
+  document.getElementById(id).addEventListener("click", ()=>{ setToggle(id, key, !state[key]); apply(); });
+});
+document.getElementById("reset").addEventListener("click", ()=>{
+  setChip(document.getElementById("f-topic"), "topic", "all");
+  setChip(document.getElementById("f-style"), "style", "all");
+  toggles.forEach(([id,key])=>setToggle(id, key, false));
+  qInput.value = ""; state.q = ""; apply();
 });
 
 function apply(){
@@ -805,6 +869,8 @@ function apply(){
     sec.style.display = n ? "" : "none"; shown += n;
   });
   document.getElementById("count").textContent = `Đang hiện ${shown}/${T.length} mẫu`;
+  const filtered = state.topic!=="all" || state.style!=="all" || state.q || state.wow || state.free || state.fresh;
+  document.getElementById("reset").classList.toggle("show", !!filtered);
   document.getElementById("empty").style.display = shown ? "none" : "block";
 }
 apply();
