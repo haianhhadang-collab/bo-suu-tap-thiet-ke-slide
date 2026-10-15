@@ -1,0 +1,48 @@
+<dialog id="tdt" aria-labelledby="tdt-title">
+  <div class="tdt-wrap">
+    <div class="tdt-head">
+      <h2 id="tdt-title">✦ Tự dàn trang theo mẫu</h2>
+      <button class="x" id="tdt-close" aria-label="Đóng">×</button>
+    </div>
+    <div class="tdt-body">
+      <div class="tdt-side">
+        <div>
+          <p class="tdt-step">1 · File của bạn</p>
+          <div class="tdt-drop" id="tdt-drop" tabindex="0" role="button" aria-label="Chọn file để dàn trang">
+            <b>Kéo thả file vào đây</b>
+            <span>hoặc bấm để chọn · .pptx, .docx, .md, .txt<br>(file .md có ảnh: chọn kèm các file ảnh)</span>
+          </div>
+          <input type="file" id="tdt-input" multiple accept=".pptx,.docx,.md,.markdown,.txt,image/*" hidden>
+          <div class="tdt-file" id="tdt-file"></div>
+        </div>
+        <div>
+          <p class="tdt-step">2 · Mẫu thiết kế</p>
+          <div id="tdt-from"></div>
+          <div class="tdt-themes" id="tdt-themes"></div>
+        </div>
+        <div class="tdt-opts">
+          <p class="tdt-step">3 · Animation</p>
+          <label><input type="radio" name="tdt-anim" value="auto" checked> Tự chạy khi vào trang</label>
+          <label><input type="radio" name="tdt-anim" value="click"> Hiện từng ý khi nhấp chuột</label>
+          <label><input type="radio" name="tdt-anim" value="none"> Không animation</label>
+          <select id="tdt-trans" aria-label="Hiệu ứng chuyển trang">
+            <option value="">Chuyển trang: theo mẫu</option>
+            <option value="morph">Morph (hình trang trí trôi mượt)</option>
+            <option value="fade">Mờ dần</option>
+            <option value="push">Đẩy lên</option>
+            <option value="wipe">Quét ngang</option>
+            <option value="none">Không chuyển trang</option>
+          </select>
+        </div>
+        <p class="tdt-note">Mọi xử lý diễn ra ngay trong trình duyệt, file không gửi đi đâu. Mẫu chỉ dùng phông có sẵn trên Windows, đủ dấu tiếng Việt. Morph cần PowerPoint 2019/365.</p>
+      </div>
+      <div class="tdt-main">
+        <div class="tdt-bar">
+          <span class="tdt-status" id="tdt-status">Chọn file để xem trước.</span>
+          <button class="btn-main" id="tdt-dl" disabled>⬇ Tải file PowerPoint</button>
+        </div>
+        <div id="tdt-preview"><div class="tdt-empty">Bản xem trước hiện ở đây ngay khi bạn chọn file.<br>Bấm sang mẫu khác để so sánh tức thì.</div></div>
+      </div>
+    </div>
+  </div>
+</dialog>

@@ -1,0 +1,20 @@
+{
+  "_ghi_chu": "Muốn dùng: đổi tên file thành vi-du-mau-rieng.json (bỏ .txt). Mẫu mới sẽ hiện trong danh sách với mã 'hong-sen'.",
+  "id": "hong-sen",
+  "base": "thanh-lich",
+  "name": "Hồng sen",
+  "desc": "Nền ngà hồng, điểm nhấn hồng sen và xanh lá sen — văn hóa, nghệ thuật Việt.",
+  "bg": "FFF8F6",
+  "bg2": "FBF1EE",
+  "ink": "4A1F2C",
+  "body": "5E3B44",
+  "accent": "B83B5E",
+  "accent2": "E8A0B4",
+  "accent3": "6A8D73",
+  "card_line": "F0D3DA",
+  "inv": ["4A1F2C", "7A2E46"],
+  "inv_accent": "F5B5C8",
+  "decor": "leaves",
+  "transition": "morph",
+  "effect": "float"
+}
