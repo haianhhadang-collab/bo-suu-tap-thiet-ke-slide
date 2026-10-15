@@ -69,6 +69,16 @@ const THEMES = {
     card: 'FFFFFF', card_line: 'DCE3EE', inv: ['0F2340', '163A6B'], inv_ink: 'F7F9FC', inv_body: 'CBD6E6', inv_accent: '5EEAD4',
     head: 'Segoe UI Semibold', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'sidebar', title_mark: 'bar', bullet: '■',
     card_style: 'border-left', radius: 0.04, transition: 'push', effect: 'wipe' },
+  'truyen-tranh': { name: 'Truyện tranh · Comic', desc: 'Viền mực đen dày, chấm tram, tia nắng đỏ vàng xanh, thẻ bóng đổ khối — sinh động, thiếu nhi, ngoại khóa.',
+    bg: 'FFF6DC', bg2: 'FFFBEF', ink: '111111', body: '2B2B2B', muted: '555555', accent: 'E63946', accent2: '1D4ED8', accent3: 'FFC300',
+    card: 'FFFFFF', card_line: '111111', inv: ['1D4ED8', '1E3A8A'], inv_ink: 'FFFFFF', inv_body: 'E3EBFF', inv_accent: 'FFC300',
+    head: 'Segoe UI Black', head_bold: false, body_font: 'Segoe UI', caps: true, decor: 'comic', title_mark: 'block', bullet: '■',
+    card_style: 'comic', radius: 0.0, transition: 'push', effect: 'zoom' },
+  'manga': { name: 'Manga đen trắng', desc: 'Trắng đen như trang truyện, đường tốc độ, chấm tram, một điểm đỏ — anime, manga, câu lạc bộ.',
+    bg: 'FFFFFF', bg2: 'F5F5F5', ink: '0D0D0D', body: '2A2A2A', muted: '5C5C5C', accent: 'D62828', accent2: '1A1A1A', accent3: '8C8C8C',
+    card: 'FFFFFF', card_line: '1A1A1A', inv: ['0D0D0D', '262626'], inv_ink: 'FFFFFF', inv_body: 'D9D9D9', inv_accent: 'FF4D4D',
+    head: 'Segoe UI Black', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'manga', title_mark: 'bar', bullet: '▶',
+    card_style: 'comic', radius: 0.0, transition: 'fade', effect: 'zoom' },
 };
 for (const k in THEMES) THEMES[k].id = k;
 
@@ -737,6 +747,19 @@ const wavePts = (top, amp, ph, freq) => { const p = [[-0.05, SH + 0.05]]; for (l
 function blobPts(cx, cy, rad, r, n = 28, wob = 0.18) { const k = [0, 1, 2, 3, 4].map(() => uni(r, -wob, wob)); const p = []; for (let i = 0; i < n; i++) { const t = 2 * Math.PI * i / n; const rr = rad * (1 + k[0] * Math.sin(2 * t + k[1] * 5) + k[2] * Math.cos(3 * t + k[3] * 5) + k[4] * Math.sin(t)); p.push([cx + rr * Math.cos(t), cy + rr * Math.sin(t)]); } return p; }
 function leafPts(cx, cy, len, wid, ang) { const p = [], n = 14; for (let i = 0; i <= n; i++) { const t = i / n; p.push([t * len, wid * Math.sin(Math.PI * t) * (1 - 0.25 * t)]); } for (let i = n; i >= 0; i--) { const t = i / n; p.push([t * len, -wid * Math.sin(Math.PI * t) * (1 - 0.25 * t) * 0.85]); } const c = Math.cos(ang), s = Math.sin(ang); return p.map(([x, y]) => [cx + x * c - y * s, cy + x * s + y * c]); }
 
+const TAU_ = Math.PI * 2;
+/** Chấm tram: lưới chấm to dần về một góc/cạnh. (x, y) là góc neo; dir: 'bl' | 'tr' | 'b' */
+function dotField(x, y, w, h, step, rmax, dir) {
+  const out = [];
+  for (let i = 0; i * step <= w + 0.01; i++) for (let j = 0; j * step <= h + 0.01; j++) {
+    const off = j % 2 ? step / 2 : 0, dx = i * step + off, dy = j * step;
+    const t = dir === 'b' ? 1 - dy / h : 1 - Math.hypot(dx / w, dy / h) / 1.15;
+    if (t <= 0.05) continue;
+    const rr = rmax * t, px = dir === 'tr' ? x - dx : x + dx, py = dir === 'tr' ? y + dy : y - dy;
+    out.push(Array.from({ length: 10 }, (_, k) => [px + rr * Math.cos(TAU_ * k / 10), py + rr * Math.sin(TAU_ * k / 10)]));
+  }
+  return out;
+}
 const DECOR = {
   waves(ctx, th, inv, idx, kind, r, info) {
     const big = kind === 'cover' || kind === 'closing';
@@ -831,6 +854,38 @@ const DECOR = {
     if (inv) specs = specs.slice(0, 3).concat(specs.slice(3).map(([x, y, l, w, a]) => [SW - x, y, l, w, Math.PI - a]));
     specs.forEach(([x, y, l, w, a], k) => ctx.poly(leafPts(x, y, l * s, w * s, a + sway), { color: cols[k % 3], alpha: inv ? 0.9 : 0.75, name: '!!leaf' + k }));
     if (!inv) info.x1 = SW - 1.0;
+  },
+  comic(ctx, th, inv, idx, kind, r, info) {
+    const ink = th.ink;
+    if (inv) {
+      const cx = kind === 'closing' ? SW / 2 : SW * 0.8, cy = kind === 'closing' ? SH / 2 : SH * 0.45, wedges = [];
+      for (let i = 0; i < 36; i += 2) { const a0 = TAU_ * i / 36, a1 = TAU_ * (i + 1) / 36; wedges.push([[cx, cy], [cx + 16 * Math.cos(a0), cy + 16 * Math.sin(a0)], [cx + 16 * Math.cos(a1), cy + 16 * Math.sin(a1)]]); }
+      ctx.poly(wedges, { color: th.inv_accent, alpha: 0.16, name: '!!cm-tia' });
+      ctx.poly(dotField(0, SH, 3.4, 2.4, 0.24, 0.1, 'bl'), { color: '000000', alpha: 0.25, name: '!!cm-tram' });
+      ctx.box(0.16, 0.16, SW - 0.32, SH - 0.32, { lineColor: '111111', lineW: 6, name: '!!cm-khung' });
+      Object.assign(info, { x0: 0.95, y0: 0.8, x1: SW - 0.95, y1: SH - 0.85 });
+    } else {
+      ctx.poly(dotField(SW, 0, 2.6, 1.6, 0.2, 0.08, 'tr'), { color: th.accent3, alpha: 0.9, name: '!!cm-tram' });
+      ctx.box(0.16, 0.16, SW - 0.32, SH - 0.32, { lineColor: ink, lineW: 4.5, name: '!!cm-khung' });
+      Object.assign(info, { x0: 0.9, y0: 0.72, x1: SW - 0.9, y1: SH - 0.85 });
+    }
+  },
+  manga(ctx, th, inv, idx, kind, r, info) {
+    if (inv) {
+      const cx = kind === 'closing' ? SW / 2 : SW * 0.36, cy = SH / 2, lines = [];
+      for (let i = 0; i < 90; i++) {
+        const a = TAU_ * i / 90 + uni(r, -0.02, 0.02), rin = uni(r, 3.6, 5.2), w = uni(r, 0.012, 0.035);
+        lines.push([[cx + rin * Math.cos(a), cy + rin * Math.sin(a) * 0.7], [cx + 12 * Math.cos(a - w), cy + 12 * Math.sin(a - w) * 0.7], [cx + 12 * Math.cos(a + w), cy + 12 * Math.sin(a + w) * 0.7]]);
+      }
+      ctx.poly(lines, { color: 'FFFFFF', alpha: 0.22, name: '!!mg-tocdo' });
+      ctx.box(0.22, 0.22, SW - 0.44, SH - 0.44, { lineColor: 'FFFFFF', lineW: 1.5, lineAlpha: 0.6, name: '!!mg-khung' });
+      Object.assign(info, { x0: 0.95, y0: 0.8, x1: SW - 0.95, y1: SH - 0.85 });
+    } else {
+      ctx.poly(dotField(0, SH, SW, 0.9, 0.16, 0.06, 'b'), { color: th.ink, alpha: 0.18, name: '!!mg-tram' });
+      ctx.box(0.22, 0.22, SW - 0.44, SH - 0.44, { lineColor: th.ink, lineW: 2.25, name: '!!mg-khung' });
+      ctx.box(0.22, 0.22, 0.22, SH - 0.44, { color: th.accent, name: '!!mg-gay' });
+      Object.assign(info, { x0: 0.95, y0: 0.72, x1: SW - 0.85, y1: SH - 1.0 });
+    }
   },
   sidebar(ctx, th, inv, idx, kind, r, info) {
     if (inv) {
@@ -1070,9 +1125,10 @@ function layCards(ctx, cards, x, y, w, h, numbered = false) {
     if (style === 'solid') bgc = ctx.inv ? mix(ctx.bg, 'FFFFFF', 0.12) : tint(col, ctx.bg, 0.8);
     const kind = th.radius > 0.03 ? 'round' : 'rect';
     const rad = Math.min(th.radius * (1.6 / Math.max(Math.min(cw, cardH), 0.8)), 0.3);
+    if (style === 'comic') shapes.push(ctx.box(cx + 0.09, cy + 0.09, cw, cardH, { color: ctx.inv ? '000000' : th.ink, alpha: ctx.inv ? 0.45 : null, kind, radius: rad }));
     shapes.push(ctx.box(cx, cy, cw, cardH, { color: style !== 'outline' ? bgc : (ctx.inv ? null : th.card), kind, radius: rad,
-      lineColor: ['strip-top', 'border-left', 'header'].includes(style) ? th.card_line : (style === 'outline' ? th.accent2 : null),
-      lineW: style !== 'outline' ? 1 : 1.25, shadow: ['strip-top', 'header', 'border-left'].includes(style) && !ctx.inv ? th.ink : null, name: 'card' + k }));
+      lineColor: ['strip-top', 'border-left', 'header'].includes(style) ? th.card_line : (style === 'outline' ? th.accent2 : (style === 'comic' ? th.ink : null)),
+      lineW: style === 'comic' ? 2.5 : (style !== 'outline' ? 1 : 1.25), shadow: ['strip-top', 'header', 'border-left'].includes(style) && !ctx.inv ? th.ink : null, name: 'card' + k }));
     let ty = cy + pad;
     if (style === 'strip-top') { shapes.push(ctx.box(cx + pad, cy + 0.16, 0.55, 0.07, { color: col, kind: 'round', radius: 0.5 })); ty += 0.2; }
     else if (style === 'border-left') { shapes.push(ctx.box(cx, cy, 0.08, cardH, { color: col })); ty += 0.05; }
@@ -1331,5 +1387,5 @@ function build(deckIn, th, opts = {}) {
   return { title: deck.title, fileName: deck.fileName, theme: th, slides: out };
 }
 
-G.TuDanTrang = Object.assign(G.TuDanTrang || {}, { THEMES, themeFromCard, readFiles, build, mix, contrast, readable, SW, SH });
+G.TuDanTrang = Object.assign(G.TuDanTrang || {}, { THEMES, themeFromCard, readFiles, build, mix, contrast, readable, dotField, SW, SH });
 })(window);

@@ -670,6 +670,253 @@ Object.assign(MOTIFS, {
     } },
 });
 
+// ============================================================ gói Anime · Comic · Manga
+// Hình tự vẽ theo ngôn ngữ của thể loại (đường tốc độ, chấm tram, tiếng nổ, bong bóng thoại…),
+// không dùng nhân vật, logo hay biểu tượng riêng của bộ truyện/phim nào.
+PACKS.push({ id: 'anime', name: 'Anime · Comic · Manga', desc: 'Đường tốc độ, chấm tram, BÙM!, bong bóng thoại, hào quang, hải tặc, mạng nhện, siêu anh hùng, HUD, khung truyện' });
+const COMIC = { bg: 'FFF6DC', bg2: 'FFFBEF', ink: '111111', body: '2B2B2B', muted: '555555', accent: 'E63946', accent2: '1D4ED8', accent3: 'FFC300', card: 'FFFFFF', card_line: '111111' };
+const MANGA = { bg: 'FFFFFF', bg2: 'F5F5F5', ink: '0D0D0D', body: '2A2A2A', muted: '5C5C5C', accent: 'D62828', accent2: '1A1A1A', accent3: '8C8C8C', card: 'FFFFFF', card_line: '1A1A1A',
+  inv: ['0D0D0D', '222222'], inv_ink: 'FFFFFF', inv_body: 'D9D9D9', inv_accent: 'FF4D4D' };
+const pal = (base, o) => Object.assign({}, base, o);
+const BOLT = [[0, 0], [0.4, -0.15], [0.34, -0.03], [1, 0.03], [0.58, 0.17], [0.64, 0.06], [0.05, 0.13]];
+const SHIELD = [[-0.78, -0.82], [0.78, -0.82], [0.78, -0.05]].concat(quad([0.78, -0.05], [0.72, 0.6], [0, 0.98], 14), quad([0, 0.98], [-0.72, 0.6], [-0.78, -0.05], 14));
+const SAYS = { font: 'Segoe UI Black', align: 'c', anchor: 'm' };
+
+function jagged(cx, cy, R, r, n, seed, rot = 0) {
+  const rr = seeded(seed), p = [];
+  for (let i = 0; i < n * 2; i++) { const a = rot + Math.PI * i / n, k = i % 2 ? r * (0.85 + 0.3 * rr()) : R * (0.85 + 0.3 * rr()); p.push([cx + k * Math.cos(a), cy + k * Math.sin(a)]); }
+  return p;
+}
+function focusLines(cx, cy, rin, rout, n, seed, sy = 0.7) {
+  const r = seeded(seed), out = [];
+  for (let i = 0; i < n; i++) {
+    const a = TAU * i / n + (r() - 0.5) * 0.03, ri = rin * (1 + r() * 0.45), w = 0.008 + r() * 0.022;
+    out.push([[cx + ri * Math.cos(a), cy + ri * Math.sin(a) * sy], [cx + rout * Math.cos(a - w), cy + rout * Math.sin(a - w) * sy], [cx + rout * Math.cos(a + w), cy + rout * Math.sin(a + w) * sy]]);
+  }
+  return out;
+}
+function streaks(x1, y0, y1, n, len, seed) {             // vệt tốc độ nằm ngang, nhọn về bên trái
+  const r = seeded(seed), out = [];
+  for (let i = 0; i < n; i++) { const y = y0 + (y1 - y0) * r(), L = len * (0.4 + 0.6 * r()), w = 0.012 + 0.02 * r(); out.push([[x1 + 0.1, y - w], [x1 + 0.1, y + w], [x1 - L, y]]); }
+  return out;
+}
+function bubble(cx, cy, rx, ry, tx, ty) {                // bong bóng thoại có đuôi nhọn chỉ tới (tx, ty)
+  const ang = Math.atan2((ty - cy) / ry, (tx - cx) / rx), n = 60, p = [];
+  for (let i = 0; i < n; i++) { const t = ang + 0.2 + (TAU - 0.4) * i / (n - 1); p.push([cx + rx * Math.cos(t), cy + ry * Math.sin(t)]); }
+  p.push([tx, ty]); return p;
+}
+function skyline(x0, x1, yb, hmin, hmax, seed) {
+  const r = seeded(seed), out = []; let x = x0;
+  while (x < x1) { const w = 0.3 + 0.55 * r(), h = hmin + (hmax - hmin) * r(); out.push([[x, yb], [x, yb - h], [x + w, yb - h], [x + w, yb]]); if (r() < 0.3) out.push(rotRect(x + w / 2, yb - h - 0.18, 0.36, 0.03, D(90))); x += w + 0.04; }
+  return out;
+}
+function web(cx, cy, R, a0, a1, spokes, rings) {
+  const sp = [], rg = [];
+  for (let i = 0; i <= spokes; i++) { const a = a0 + (a1 - a0) * i / spokes; sp.push([[cx, cy], [cx + R * Math.cos(a), cy + R * Math.sin(a)]]); }
+  for (let k = 1; k <= rings; k++) {
+    const rk = R * k / rings, ring = [];
+    for (let i = 0; i < spokes; i++) {
+      const a = a0 + (a1 - a0) * i / spokes, b = a0 + (a1 - a0) * (i + 1) / spokes, m = (a + b) / 2;
+      const seg = quad([cx + rk * Math.cos(a), cy + rk * Math.sin(a)], [cx + rk * 0.86 * Math.cos(m), cy + rk * 0.86 * Math.sin(m)], [cx + rk * Math.cos(b), cy + rk * Math.sin(b)], 8);
+      ring.push(...(i ? seg.slice(1) : seg));
+    }
+    rg.push(ring);
+  }
+  return sp.concat(rg);
+}
+function dashes(pts, on = 2, off = 2) { const out = []; for (let i = 0; i + on < pts.length; i += on + off) out.push(pts.slice(i, i + on + 1)); return out; }
+function compass(ctx, cx, cy, R, col, a, tag) {
+  ctx.poly([circle(cx, cy, R * 0.72, 60), circle(cx, cy, R * 0.8, 60)], { closed: true, lineColor: col, lineW: 1.5, lineAlpha: a, name: '!!' + tag + 'vong' });
+  const ticks = []; for (let i = 0; i < 32; i++) { const t = TAU * i / 32, k = i % 4 ? 0.72 : 0.64; ticks.push([[cx + R * k * Math.cos(t), cy + R * k * Math.sin(t)], [cx + R * 0.8 * Math.cos(t), cy + R * 0.8 * Math.sin(t)]]); }
+  ctx.poly(ticks, { closed: false, lineColor: col, lineW: 1, lineAlpha: a, name: '!!' + tag + 'vach' });
+  ctx.poly(star(cx, cy, R * 0.62, 4, 0.22, D(-45)), { color: col, alpha: a * 0.55, name: '!!' + tag + 'phu' });
+  ctx.poly(star(cx, cy, R, 4, 0.2), { color: col, alpha: a, name: '!!' + tag + 'chinh' });
+}
+function hud(ctx, cx, cy, s, col, a, c2, th, tag) {
+  const P = U(cx, cy, s), segs = [], ticks = [];
+  for (let i = 0; i < 6; i++) segs.push(arc(0, 0, 0.95, D(i * 60 + 8), D(i * 60 + 52), 12));
+  for (let i = 0; i < 48; i++) { const t = TAU * i / 48, k = i % 4 ? 0.74 : 0.68; ticks.push([[k * Math.cos(t), k * Math.sin(t)], [0.78 * Math.cos(t), 0.78 * Math.sin(t)]]); }
+  ctx.poly(mapR(segs, P), { closed: false, lineColor: col, lineW: Math.max(1.5, 4 * s), lineAlpha: a, name: '!!' + tag + 'cung' });
+  ctx.poly(mapR(ticks, P), { closed: false, lineColor: col, lineW: 1, lineAlpha: a * 0.8, name: '!!' + tag + 'vach' });
+  ctx.poly(mapR([circle(0, 0, 0.55, 48), circle(0, 0, 0.42, 48)], P), { closed: true, lineColor: col, lineW: 1.2, lineAlpha: a, name: '!!' + tag + 'vong' });
+  ctx.poly(mapR([0, 90, 180, 270].map(d => place([[0, -0.07], [0.12, 0], [0, 0.07]], 1.08 * Math.cos(D(d)), 1.08 * Math.sin(D(d)), 1, D(d + 180))), P), { color: col, alpha: a, name: '!!' + tag + 'ngam' });
+  ctx.box(...P([-0.6, -0.6]), 1.2 * s, 1.2 * s, { kind: 'ellipse', radial: true, gradient: ['7DF9FF', '7DF9FF'], galphas: [Math.min(1, a * 0.7), 0], name: '!!' + tag + 'sang' });
+  ctx.poly(circle(0, 0, 0.26, 40).map(P), { color: 'E0FFFF', alpha: a, lineColor: '7DF9FF', lineW: Math.max(1, 3 * s), lineAlpha: a, name: '!!' + tag + 'loi' });
+}
+function aura(ctx, cx, cy, R, a, tag, seed) {               // hào quang lửa bốc lên quanh quả cầu sáng
+  const flame = (k, sd) => { const r = seeded(sd), p = []; for (let i = 0; i < 44; i++) { const t = TAU * i / 44, up = Math.sin(t) < 0 ? 1 + 0.9 * -Math.sin(t) : 1, kk = (i % 2 ? 0.86 : 1 + 0.25 * r()) * k; p.push([cx + R * kk * Math.cos(t) * 0.85, cy + R * kk * Math.sin(t) * up]); } return p; };
+  ctx.poly(flame(1.25, seed), { color: 'F77F00', alpha: a * 0.75, name: '!!' + tag + 'lua1' });
+  ctx.poly(flame(0.95, seed + 1), { color: 'FFB703', alpha: a * 0.85, name: '!!' + tag + 'lua2' });
+  ctx.box(cx - R * 0.75, cy - R * 0.75, R * 1.5, R * 1.5, { kind: 'ellipse', radial: true, gradient: ['FFFFFF', 'FFE066'], galphas: [a, a * 0.9], name: '!!' + tag + 'cau' });
+}
+function heroShield(ctx, cx, cy, s, a, tag) {
+  const P = U(cx, cy, s);
+  ctx.poly(SHIELD.map(P), { color: 'D62828', alpha: a, lineColor: 'FFD60A', lineW: Math.max(2, 6 * s), lineAlpha: a, name: '!!' + tag + 'khien' });
+  ctx.poly(SHIELD.map(([x, y]) => P([x * 0.78, y * 0.78 - 0.02])), { closed: true, lineColor: 'FFD60A', lineW: Math.max(1, 2 * s), lineAlpha: a, name: '!!' + tag + 'khien2' });
+  ctx.poly(place(BOLT, ...P([-0.42, -0.42]), 1.05 * s, D(52)), { color: 'FFD60A', alpha: a, lineColor: '111111', lineW: 1.5, lineAlpha: a, name: '!!' + tag + 'set' });
+}
+function comicFrame(ctx, info, w = 6) {
+  ctx.box(0.16, 0.16, SW - 0.32, SH - 0.32, { lineColor: '111111', lineW: w, name: '!!ac-khung' });
+  Object.assign(info, { x0: Math.max(info.x0, 0.95), y0: Math.max(info.y0, 0.8), y1: Math.min(info.y1, SH - 0.85) });
+}
+
+Object.assign(MOTIFS, {
+  'toc-do': { pack: 'anime', name: 'Manga · Đường tốc độ', short: 'Tốc độ',
+    desc: 'Chùm đường tập trung trắng đen kiểu khung hình cao trào trong manga, điểm một vạch đỏ — câu lạc bộ anime, thể thao, hành động.',
+    sw: ['0D0D0D', '222222', 'FFFFFF', 'D62828'], ownInv: true, palette: MANGA,
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        const cx = kind === 'closing' ? SW / 2 : SW * 0.34;
+        ctx.poly(focusLines(cx, SH / 2, 3.9, 14, 150, 5 + idx), { color: th.inv_ink, alpha: 0.3, name: '!!td-tia' });
+        if (kind !== 'closing') { ctx.poly(rotRect(SW - 1.1, 0.85, 3.0, 0.2, D(-28)), { color: th.inv_accent, name: '!!td-vach' }); info.x1 = Math.min(info.x1, SW - 2.7); }
+      } else ctx.poly(streaks(SW - 0.3, 0.2, 0.55, 14, 2.6, 9), { color: th.ink, alpha: 0.5, name: '!!td-vet' });
+    } },
+  'cham-tram': { pack: 'anime', name: 'Comic · Chấm tram & tia nắng', short: 'Chấm tram',
+    desc: 'Nền đỏ tia nắng vàng, mảng chấm tram ở góc và khung mực dày như bìa truyện tranh Mỹ — sinh động, thiếu nhi, ngoại khóa.',
+    sw: ['A4161A', 'D62839', 'FFD60A', 'FFF6DC'], ownInv: true, palette: pal(COMIC, { inv: ['D62839', 'A4161A'], inv_ink: 'FFFFFF', inv_body: 'FFE3E3', inv_accent: 'FFD60A' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        ctx.poly(rays(SW * 0.82, SH * 0.42, 16, 40, 0), { color: th.inv_accent, alpha: 0.2, name: '!!ct-tia' });
+        ctx.poly(T.dotField(0, SH, 4.4, 3.0, 0.3, 0.13, 'bl'), { color: '000000', alpha: 0.28, name: '!!ct-tram1' });
+        ctx.poly(T.dotField(SW, 0, 4.2, 2.6, 0.28, 0.12, 'tr'), { color: th.inv_accent, alpha: 0.6, name: '!!ct-tram2' });
+        comicFrame(ctx, info);
+      } else {
+        ctx.poly(T.dotField(SW, 0, 2.6, 1.5, 0.2, 0.085, 'tr'), { color: th.accent3, alpha: 0.95, name: '!!ct-tram2' });
+        ctx.poly(T.dotField(0, SH, 2.2, 1.1, 0.18, 0.07, 'bl'), { color: th.accent, alpha: 0.5, name: '!!ct-tram1' });
+      }
+    } },
+  'bum': { pack: 'anime', name: 'Comic · BÙM! POW!', short: 'BÙM!',
+    desc: 'Vụ nổ răng cưa vàng đỏ viền mực với chữ BÙM!, POW! trên nền xanh — mở màn, câu đố, trò chơi, khoảnh khắc bất ngờ.',
+    sw: ['1E3A8A', '1D4ED8', 'FFD60A', 'E63946'], ownInv: true, palette: pal(COMIC, { inv: ['1D4ED8', '1E3A8A'], inv_ink: 'FFFFFF', inv_body: 'E3EBFF', inv_accent: 'FFD60A' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      const boom = (cx, cy, R, word, size, tag, seed) => {
+        ctx.poly(jagged(cx, cy, R * 1.22, R * 0.85, 14, seed), { color: 'E63946', lineColor: '111111', lineW: 3, name: '!!' + tag + 'no1' });
+        ctx.poly(jagged(cx, cy, R, R * 0.68, 12, seed + 3, 0.2), { color: 'FFD60A', lineColor: '111111', lineW: 2.5, name: '!!' + tag + 'no2' });
+        ctx.text(cx - R, cy - R * 0.5, 2 * R, R, word, Object.assign({ size, color: 'E63946', name: '!!' + tag + 'chu' }, SAYS));
+      };
+      if (inv) {
+        ctx.poly(rays(SW - 3.0, SH / 2, 16, 36, 0.1), { color: 'FFFFFF', alpha: 0.1, name: '!!bum-tia' });
+        if (kind === 'closing') { boom(1.6, 1.35, 0.95, 'WOW!', 30, 'bum1-', 3); boom(SW - 1.7, SH - 1.35, 0.9, 'YEAH!', 26, 'bum2-', 7); }
+        else { boom(SW - 3.0, SH / 2 - 0.1, kind === 'cover' ? 1.9 : 1.55, kind === 'cover' ? 'BÙM!' : 'POW!', kind === 'cover' ? 64 : 52, 'bum-', 11); info.x1 = Math.min(info.x1, SW - 5.6); }
+        comicFrame(ctx, info);
+      } else boom(SW - 0.72, 0.45, 0.3, '!', 20, 'bum-', 11);
+    } },
+  'bong-thoai': { pack: 'anime', name: 'Bong bóng thoại', short: 'Bóng thoại',
+    desc: 'Bong bóng lời thoại và bong bóng suy nghĩ viền mực trên nền xanh ngọc — hội thoại, tình huống, tiếng Anh giao tiếp, kể chuyện.',
+    sw: ['0369A1', '0EA5E9', 'FFFFFF', 'FFD60A'], ownInv: true, palette: pal(COMIC, { accent: '0369A1', accent2: 'E63946', inv: ['0EA5E9', '0369A1'], inv_ink: 'FFFFFF', inv_body: 'E0F4FF', inv_accent: 'FFD60A' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      const say = (cx, cy, rx, ry, tx, ty, word, size, tag) => {
+        ctx.poly(bubble(cx, cy, rx, ry, tx, ty), { color: 'FFFFFF', lineColor: '111111', lineW: 3, name: '!!' + tag + 'bong' });
+        ctx.text(cx - rx * 0.8, cy - ry * 0.7, rx * 1.6, ry * 1.4, word, Object.assign({ size, color: '111111', name: '!!' + tag + 'chu' }, SAYS));
+      };
+      const think = (cx, cy, rx, ry, word, size, tag) => {
+        ctx.poly([ell(cx, cy, rx, ry, 0, 48), circle(cx - rx * 0.9, cy + ry * 1.05, ry * 0.22, 20), circle(cx - rx * 1.2, cy + ry * 1.5, ry * 0.12, 16)], { color: 'FFFFFF', lineColor: '111111', lineW: 2.5, name: '!!' + tag + 'nghi' });
+        ctx.text(cx - rx * 0.8, cy - ry * 0.7, rx * 1.6, ry * 1.4, word, Object.assign({ size, color: '111111', name: '!!' + tag + 'chu' }, SAYS));
+      };
+      if (inv) {
+        if (kind === 'closing') { say(2.0, 1.25, 1.2, 0.6, 2.8, 1.95, 'Hay quá!', 22, 'bt1-'); think(SW - 2.0, SH - 1.5, 1.1, 0.55, 'Hẹn gặp lại!', 18, 'bt2-'); }
+        else {
+          const big = kind === 'cover';
+          say(SW - 3.0, 2.15, big ? 2.1 : 1.8, big ? 1.15 : 0.95, SW - 4.4, big ? 3.75 : 3.45, big ? 'Bắt đầu nào!' : 'Tiếp nào!', big ? 34 : 30, 'bt1-');
+          think(SW - 1.75, SH - 1.6, 1.15, 0.6, 'Hmm…', 26, 'bt2-');
+          info.x1 = Math.min(info.x1, SW - 5.4);
+        }
+        comicFrame(ctx, info, 5);
+      } else say(SW - 0.95, 0.4, 0.5, 0.25, SW - 1.4, 0.6, '!', 16, 'bt-');
+    } },
+  'nang-luong': { pack: 'anime', name: 'Shōnen · Hào quang năng lượng', short: 'Năng lượng',
+    desc: 'Quả cầu sáng giữa hào quang lửa cam vàng, tia sét và tia lửa trên nền tím đêm — sôi động, thi đua, khởi động, chinh phục thử thách.',
+    sw: ['1B0B3A', '3B0F5C', 'FFB703', 'F77F00'], ownInv: true,
+    palette: pal(COMIC, { accent: 'E85D04', accent2: '6A0DAD', accent3: 'FFB703', inv: ['14072E', '2E0B52', '3B0F5C'], inv_ink: 'FFFFFF', inv_body: 'E9DDF7', inv_accent: 'FFB703' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        if (kind === 'closing') aura(ctx, SW / 2, SH / 2 + 0.4, 2.2, 0.22, 'nl-', 4);
+        else {
+          const cx = SW - 2.5, cy = SH / 2 + 0.55, R = kind === 'cover' ? 1.25 : 1.05;
+          aura(ctx, cx, cy, R, 0.95, 'nl-', 4);
+          ctx.poly([place(BOLT, cx - R * 1.75, cy - R * 1.9, R * 0.9, D(35)), place(BOLT, cx + R * 0.95, cy - R * 2.0, R * 0.8, D(110))], { color: 'FFE066', lineColor: 'FFFFFF', lineW: 1, name: '!!nl-set' });
+          const r = seeded(9), sp = []; for (let i = 0; i < 18; i++) { const t = TAU * r(), d = R * (1.4 + 1.1 * r()); sp.push(star(cx + d * Math.cos(t), cy + d * Math.sin(t) * 0.9, 0.05 + 0.07 * r(), 4, 0.3)); }
+          ctx.poly(sp, { color: 'FFF3B0', alpha: 0.9, name: '!!nl-tialua' });
+          info.x1 = Math.min(info.x1, SW - 5.9);
+        }
+      } else {
+        ctx.box(SW - 0.9, 0.22, 0.42, 0.42, { kind: 'ellipse', radial: true, gradient: ['FFE066', 'F77F00'], name: '!!nl-cau' });
+        ctx.poly(place(BOLT, SW - 1.55, 0.25, 0.5, D(35)), { color: th.accent, name: '!!nl-set' });
+      }
+    } },
+  'hai-tac': { pack: 'anime', name: 'Phiêu lưu · Hải tặc & bản đồ', short: 'Hải tặc',
+    desc: 'La bàn, đường đi nét đứt và dấu X kho báu trên nền gỗ sẫm, nội dung trên giấy da cũ — phiêu lưu, khám phá, trò chơi tìm kho báu.',
+    sw: ['2B1D0E', '4A3216', 'E9C46A', 'A4161A'], ownInv: true,
+    palette: { bg: 'F6E9C9', bg2: 'F1E0B8', ink: '2B1D0E', body: '4A3520', muted: '7A6046', accent: 'A4161A', accent2: '1D3557', accent3: 'C9A227',
+      card: 'FFF8E7', card_line: 'C8A971', inv: ['24170A', '3D2A14', '4A3216'], inv_ink: 'F6E9C9', inv_body: 'E8D5A8', inv_accent: 'E9C46A' },
+    draw(ctx, th, inv, idx, kind, info) {
+      const X = (x, y, s, tag) => ctx.poly([rotRect(x, y, s, s * 0.22, D(45)), rotRect(x, y, s, s * 0.22, D(-45))], { color: 'C1121F', name: '!!' + tag + 'x' });
+      if (inv) {
+        if (kind === 'closing') { compass(ctx, SW / 2, SH / 2, 2.6, th.inv_accent, 0.13, 'ht-'); }
+        else {
+          const cx = SW - 2.6, cy = SH / 2 - 0.3, R = kind === 'cover' ? 2.0 : 1.6;
+          compass(ctx, cx, cy, R, th.inv_accent, 0.85, 'ht-');
+          const route = quad([cx - R * 0.4, cy + R * 0.9], [cx - R * 2.2, cy + R * 1.6], [cx - R * 1.9, SH - 0.7], 30);
+          ctx.poly(dashes(route), { closed: false, lineColor: th.inv_ink, lineW: 2.5, lineAlpha: 0.8, name: '!!ht-duong' });
+          X(cx - R * 1.9, SH - 0.65, 0.42, 'ht-');
+          info.x1 = Math.min(info.x1, cx - R - 0.5);
+        }
+      } else { compass(ctx, SW - 1.4, SH - 1.4, 1.1, th.accent2, 0.13, 'ht-'); X(SW - 0.65, 0.42, 0.26, 'ht-'); }
+    } },
+  'mang-nhen': { pack: 'anime', name: 'Mạng nhện · Đô thị về đêm', short: 'Mạng nhện',
+    desc: 'Mạng nhện giăng từ góc trang trên nền thành phố đêm xanh thẫm, điểm đỏ — hành động, khoa học về loài nhện, chủ đề thành phố.',
+    sw: ['0B1D3A', '12305C', 'E63946', 'FFFFFF'], ownInv: true,
+    palette: pal(COMIC, { accent: 'C1121F', accent2: '1D3557', accent3: '457B9D', inv: ['0A1830', '12305C', '1B3F73'], inv_ink: 'FFFFFF', inv_body: 'D6E2F5', inv_accent: 'E63946' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        ctx.poly(skyline(-0.1, SW + 0.1, SH + 0.02, 0.5, kind === 'closing' ? 1.4 : 2.0, 13), { color: '050B18', alpha: 0.85, name: '!!mn-pho' });
+        if (kind === 'closing') {
+          ctx.poly(web(SW + 0.1, -0.1, 3.0, D(90), D(180), 6, 5), { closed: false, lineColor: 'FFFFFF', lineW: 1, lineAlpha: 0.5, name: '!!mn-mang1' });
+          ctx.poly(web(-0.1, -0.1, 3.0, 0, D(90), 6, 5), { closed: false, lineColor: 'FFFFFF', lineW: 1, lineAlpha: 0.5, name: '!!mn-mang2' });
+        } else {
+          ctx.poly(web(SW + 0.15, -0.15, kind === 'cover' ? 5.4 : 4.6, D(90), D(180), 8, 7), { closed: false, lineColor: 'FFFFFF', lineW: 1.25, lineAlpha: 0.6, name: '!!mn-mang1' });
+          info.x1 = Math.min(info.x1, SW - (kind === 'cover' ? 5.0 : 4.3));
+        }
+        ctx.box(0, SH - 0.08, SW, 0.08, { color: th.inv_accent, name: '!!mn-dai' });
+        info.y1 = Math.min(info.y1, SH - 2.1);
+      } else ctx.poly(web(SW + 0.05, -0.05, 1.25, D(90), D(180), 6, 5), { closed: false, lineColor: th.ink, lineW: 0.9, lineAlpha: 0.4, name: '!!mn-mang1' });
+    } },
+  'sieu-anh-hung': { pack: 'anime', name: 'Siêu anh hùng · Khiên tia sét', short: 'Siêu anh hùng',
+    desc: 'Tấm khiên đỏ viền vàng có tia sét, tia nắng kiểu bìa truyện và phố xá phía dưới — phẩm chất, lòng dũng cảm, tấm gương người tốt việc tốt.',
+    sw: ['1E3A8A', '1D4ED8', 'D62828', 'FFD60A'], ownInv: true,
+    palette: pal(COMIC, { accent: 'D62828', accent2: '1D4ED8', accent3: 'FFC300', inv: ['1E3A8A', '1D4ED8'], inv_ink: 'FFFFFF', inv_body: 'E3EBFF', inv_accent: 'FFD60A' }),
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        const closing = kind === 'closing', cx = closing ? SW / 2 : SW - 3.0, s = closing ? 2.6 : (kind === 'cover' ? 2.2 : 1.8);
+        ctx.poly(rays(cx, SH / 2, 16, 36, 0.05), { color: th.inv_accent, alpha: closing ? 0.08 : 0.16, name: '!!sah-tia' });
+        ctx.poly(skyline(-0.1, SW + 0.1, SH + 0.02, 0.4, 1.3, 17), { color: '0A1A40', alpha: 0.7, name: '!!sah-pho' });
+        heroShield(ctx, cx, SH / 2 - 0.1, s, closing ? 0.13 : 1, 'sah-');
+        if (!closing) info.x1 = Math.min(info.x1, cx - s - 0.5);
+        comicFrame(ctx, info, 5);
+      } else heroShield(ctx, SW - 1.45, SH - 1.4, 1.1, 0.12, 'sah-');
+    } },
+  'giap-hud': { pack: 'anime', name: 'Giáp công nghệ · HUD', short: 'HUD',
+    desc: 'Vòng HUD vàng kim quanh lõi năng lượng xanh lam phát sáng trên nền đỏ sẫm — công nghệ, robot, kỹ thuật, khoa học viễn tưởng.',
+    sw: ['140606', '5C0F12', 'FFC857', '7DF9FF'], ownInv: true,
+    palette: { bg: 'F7F4F2', bg2: 'EFEAE6', ink: '1A0F0F', body: '3D2B2B', muted: '6E5A5A', accent: 'B3121B', accent2: 'C9A227', accent3: '2EC4E6',
+      card: 'FFFFFF', card_line: 'E2D6D0', inv: ['140606', '3D0B0B', '5C0F12'], inv_ink: 'FFF6E8', inv_body: 'F0D9C8', inv_accent: 'FFC857' },
+    draw: emblemDraw(hud, { halo: true, ca: 0.14 }) },
+  'khung-truyen': { pack: 'anime', name: 'Manga · Khung truyện', short: 'Khung truyện',
+    desc: 'Ba ô khung truyện nét trắng với chấm tram, vệt tốc độ và mảng đỏ trên nền đen — giới thiệu truyện, kể chuyện bằng tranh, câu lạc bộ manga.',
+    sw: ['0D0D0D', '262626', 'FFFFFF', 'FF4D4D'], ownInv: true, palette: MANGA,
+    draw(ctx, th, inv, idx, kind, info) {
+      if (inv) {
+        if (kind === 'closing') { ctx.poly(focusLines(SW / 2, SH / 2, 4.2, 14, 110, 3), { color: 'FFFFFF', alpha: 0.18, name: '!!kt-tia' }); return; }
+        const x0 = SW - 5.4, A = [[x0, 0.5], [SW - 0.5, 0.5], [SW - 0.5, 3.35], [x0, 3.75]], B = [[x0, 4.0], [x0 + 2.6, 3.7], [x0 + 2.25, SH - 0.5], [x0, SH - 0.5]], C = [[x0 + 2.85, 3.67], [SW - 0.5, 3.6], [SW - 0.5, SH - 0.5], [x0 + 2.5, SH - 0.5]];
+        ctx.poly(T.dotField(x0, 3.75, 4.9, 3.25, 0.2, 0.075, 'bl'), { color: 'FFFFFF', alpha: 0.35, name: '!!kt-tram' });
+        ctx.poly(streaks(x0 + 2.4, 4.2, SH - 0.8, 12, 2.0, 21), { color: 'FFFFFF', alpha: 0.6, name: '!!kt-vet' });
+        ctx.poly(C, { color: th.inv_accent, alpha: 0.9, name: '!!kt-do' });
+        ctx.poly([A, B, C], { closed: true, lineColor: 'FFFFFF', lineW: 3, name: '!!kt-khung' });
+        info.x1 = Math.min(info.x1, x0 - 0.45);
+      } else ctx.poly([[[SW - 1.45, 0.22], [SW - 0.95, 0.22], [SW - 1.0, 0.58], [SW - 1.45, 0.58]], [[SW - 0.85, 0.22], [SW - 0.3, 0.22], [SW - 0.3, 0.58], [SW - 0.9, 0.58]]], { closed: true, lineColor: th.ink, lineW: 1.5, name: '!!kt-khung' });
+    } },
+});
+
 for (const k in MOTIFS) MOTIFS[k].id = k;
 
 /** Trả về mẫu mới = mẫu gốc + họa tiết (và bảng màu của họa tiết nếu usePalette). */
