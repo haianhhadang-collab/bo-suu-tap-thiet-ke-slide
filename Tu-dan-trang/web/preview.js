@@ -21,7 +21,9 @@ function textHtml(spec) {
     const ind = p.bullet ? p.bullet.indent * PX : 0;
     const bullet = p.bullet ? `<span style="position:absolute;left:0;color:#${p.bullet.color}">${esc(p.bullet.char)}</span>` : '';
     const runs = p.runs.map(r => `<span style="font-family:'${r.font}',sans-serif;font-size:${r.size * PX / 72}px;font-weight:${r.bold ? 700 : 400};font-style:${r.italic ? 'italic' : 'normal'};color:#${r.color}">${esc(r.t)}</span>`).join('');
-    return `<div style="position:relative;text-align:${al};line-height:${p.ln * PX / 72}px;padding-left:${ind}px;white-space:pre-wrap;word-wrap:break-word">${bullet}${runs}</div>`;
+    // cỡ chữ của khối = cỡ lớn nhất trong đoạn, để dòng không bị giãn bởi cỡ chữ mặc định của trang
+    const fs = Math.max(...p.runs.map(r => r.size)) * PX / 72, ff = p.runs.length ? p.runs[0].font : 'Segoe UI';
+    return `<div style="position:relative;text-align:${al};font-family:'${ff}',sans-serif;font-size:${fs}px;line-height:${p.ln * PX / 72}px;padding-left:${ind}px;white-space:pre-wrap;word-wrap:break-word">${bullet}${runs}</div>`;
   }).join('');
   return `<div style="position:absolute;inset:${(spec.margin || 0) * PX}px;display:flex;flex-direction:column;justify-content:${jc}">${ps}</div>`;
 }
@@ -45,13 +47,13 @@ function render(sl, width = 320) {
     } else if (el.t === 'text') {
       html += `<div style="position:absolute;${box}">${textHtml(el.text)}</div>`;
     } else if (el.t === 'poly') {
-      const xs = el.pts.map(p => p[0]), ys = el.pts.map(p => p[1]);
+      const rings = Array.isArray(el.pts[0][0]) ? el.pts : [el.pts], all = [].concat(...rings);
+      const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
       const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0 || 0.01, h = Math.max(...ys) - y0 || 0.01;
-      const pts = el.pts.map(([x, y]) => `${(x - x0) * PX},${(y - y0) * PX}`).join(' ');
-      const tag = el.closed ? 'polygon' : 'polyline';
+      const d = rings.map(pts => 'M' + pts.map(([x, y]) => `${((x - x0) * PX).toFixed(1)},${((y - y0) * PX).toFixed(1)}`).join('L') + (el.closed ? 'Z' : '')).join('');
       const fill = el.closed && el.fill ? rgba(el.fill.color, el.fill.alpha) : 'none';
-      const stroke = el.line ? `stroke="${rgba(el.line.color)}" stroke-width="${el.line.w * PX / 72}"` : '';
-      html += `<svg style="position:absolute;left:${x0 * PX}px;top:${y0 * PX}px;overflow:visible" width="${w * PX}" height="${h * PX}"><${tag} points="${pts}" fill="${fill}" ${stroke} stroke-linecap="round"/></svg>`;
+      const stroke = el.line ? `stroke="${rgba(el.line.color, el.line.alpha)}" stroke-width="${el.line.w * PX / 72}"` : '';
+      html += `<svg style="position:absolute;left:${x0 * PX}px;top:${y0 * PX}px;overflow:visible" width="${w * PX}" height="${h * PX}"><path d="${d}" fill="${fill}" ${stroke} stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     } else if (el.t === 'pic') {
       const c = el.crop;
       const r = el.radius ? `border-radius:${Math.min(el.w, el.h) * PX * el.radius}px;` : '';

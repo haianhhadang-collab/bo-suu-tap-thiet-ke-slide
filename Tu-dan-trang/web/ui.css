@@ -38,6 +38,14 @@
 .tdt-th .nm{display:block;font-size:12.5px;font-weight:600;padding:5px 8px 6px;line-height:1.2}
 .tdt-sw{display:flex;gap:3px;flex:none}
 .tdt-sw i{width:14px;height:26px;border-radius:4px;display:block}
+.tdt-motifs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tdt-mo{border:1.5px solid var(--line);border-radius:10px;padding:0;background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:var(--text);overflow:hidden}
+.tdt-mo.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.tdt-mo .pic{display:block;aspect-ratio:16/9;overflow:hidden;background:var(--surface-2)}
+.tdt-mo .pic .tdt-thumb{border-radius:0;box-shadow:none}
+.tdt-mo .none{display:grid;place-items:center;height:100%;font-size:12px;color:var(--muted)}
+.tdt-mo .nm{display:block;font-size:12.5px;font-weight:600;padding:5px 8px 6px;line-height:1.2}
+.tdt-check{display:flex;align-items:center;gap:7px;font-size:13px;margin-top:8px;cursor:pointer;color:var(--muted)}
 .tdt-opts label{display:flex;align-items:center;gap:7px;font-size:13.5px;margin:4px 0;cursor:pointer}
 .tdt-opts select{font:inherit;font-size:13.5px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);width:100%;margin-top:6px}
 .tdt-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}

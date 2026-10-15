@@ -57,11 +57,13 @@ function shapeXml(el, id, rid) {
     return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${name}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm(el, el.rot)}<a:prstGeom prst="${el.geom}"><a:avLst>${av}</a:avLst></a:prstGeom>${fillXml(el.fill)}${lineXml(el.line)}${effXml(el)}</p:spPr>${txBody(el.text)}</p:sp>`;
   }
   if (el.t === 'poly') {
-    const xs = el.pts.map(p => p[0]), ys = el.pts.map(p => p[1]);
+    // pts là một đường [[x,y],…] hoặc nhiều đường [[[x,y],…],…] (gộp thành một hình nhiều nét)
+    const rings = Array.isArray(el.pts[0][0]) ? el.pts : [el.pts], all = [].concat(...rings);
+    const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
     const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(Math.max(...xs) - x0, 0.01), h = Math.max(Math.max(...ys) - y0, 0.01);
     const P = ([x, y]) => `<a:pt x="${E(x - x0)}" y="${E(y - y0)}"/>`;
-    const path = `<a:moveTo>${P(el.pts[0])}</a:moveTo>` + el.pts.slice(1).map(p => `<a:lnTo>${P(p)}</a:lnTo>`).join('') + (el.closed ? '<a:close/>' : '');
-    const geo = `<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/><a:pathLst><a:path w="${E(w)}" h="${E(h)}">${path}</a:path></a:pathLst></a:custGeom>`;
+    const paths = rings.map(pts => `<a:path w="${E(w)}" h="${E(h)}"><a:moveTo>${P(pts[0])}</a:moveTo>` + pts.slice(1).map(p => `<a:lnTo>${P(p)}</a:lnTo>`).join('') + (el.closed ? '<a:close/>' : '') + '</a:path>').join('');
+    const geo = `<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/><a:pathLst>${paths}</a:pathLst></a:custGeom>`;
     return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${name}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm({ x: x0, y: y0, w, h })}${geo}${el.closed ? fillXml(el.fill) : '<a:noFill/>'}${lineXml(el.line)}<a:effectLst/></p:spPr>${txBody(null)}</p:sp>`;
   }
   if (el.t === 'pic') {

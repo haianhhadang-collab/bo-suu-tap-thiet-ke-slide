@@ -690,7 +690,7 @@ class Ctx {
   }
   poly(pts, o = {}) {
     return this.add({ t: 'poly', pts, closed: o.closed !== false, fill: o.closed === false ? null : (o.color ? { color: o.color, alpha: o.alpha } : null),
-      line: o.lineColor ? { color: o.lineColor, w: o.lineW || 1 } : null, name: o.name || '' });
+      line: o.lineColor ? { color: o.lineColor, w: o.lineW || 1, alpha: o.lineAlpha } : null, name: o.name || '' });
   }
   text(x, y, w, h, content, o = {}) {
     const size = o.size || 18, spacing = o.spacing || 1.15;
@@ -727,7 +727,10 @@ function paint(ctx, th, inv, idx, kind) {
   const bgc = idx % 2 ? th.bg : th.bg2;
   if (inv) ctx.background(th.inv, 135); else ctx.background([bgc]);
   const info = { x0: 0.8, y0: 0.62, x1: SW - 0.8, y1: SH - 0.72, foot: inv ? th.inv_body : th.muted, bg: inv ? th.inv[0] : bgc };
-  (DECOR[th.decor] || DECOR.minimal)(ctx, th, inv, idx, kind, r, info);
+  // họa tiết theo chủ đề (hoa-van.js): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
+  const motif = th.motif && G.TuDanTrang && G.TuDanTrang.MOTIFS ? G.TuDanTrang.MOTIFS[th.motif] : null;
+  if (!(motif && inv && motif.ownInv)) (DECOR[th.decor] || DECOR.minimal)(ctx, th, inv, idx, kind, r, info);
+  if (motif) motif.draw(ctx, th, inv, idx, kind, info);
   return info;
 }
 const wavePts = (top, amp, ph, freq) => { const p = [[-0.05, SH + 0.05]]; for (let i = 0; i <= 60; i++) { const x = -0.05 + (SW + 0.1) * i / 60; p.push([x, top + amp * Math.sin(freq * x + ph) + amp * 0.35 * Math.sin(2.3 * freq * x + ph * 1.7)]); } p.push([SW + 0.05, SH + 0.05]); return p; };
@@ -1238,7 +1241,7 @@ function closing(out, th, s, idx, opts) {
   const lh = lines.reduce((a, l) => a + heightIn(l, ctx.font, 20, w) + 0.1, 0);
   const top = (ctx.y0 + ctx.y1 - hh - 0.4 - lh) / 2;
   const tt = ctx.text(x, top, w, hh + 0.1, t, { font: ctx.head, size, color: ctx.ink, bold: ctx.hb, align: 'c', spacing: 1.1, name: 'Tiêu đề' });
-  const bar = ctx.box(SW / 2 - 0.6, top + hh + 0.15, 1.2, 0.08, { color: ctx.accent, kind: 'round', radius: 0.5, name: '!!tmark' });
+  const bar = ctx.box(x + w / 2 - 0.6, top + hh + 0.15, 1.2, 0.08, { color: ctx.accent, kind: 'round', radius: 0.5, name: '!!tmark' });
   ctx.step([tt, bar], 'zoom');
   let y = top + hh + 0.45;
   for (const l of lines) { const lhh = heightIn(l, ctx.font, 20, w) + 0.1; ctx.step(ctx.text(x, y, w, lhh, l, { font: ctx.font, size: 20, color: ctx.body, align: 'c' }), 'fade'); y += lhh; }

@@ -23,14 +23,15 @@ def main(paths):
     css = (WEB / "ui.css").read_text(encoding="utf-8")
     dialog = (WEB / "ui.html").read_text(encoding="utf-8")
     khung = (WEB / "khung.b64.txt").read_text(encoding="utf-8").strip()
-    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "pptx.js", "preview.js", "ui.js"))
+    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "hoa-van.js", "pptx.js", "preview.js", "ui.js"))
     assert "</script" not in js.lower()
     head = ('\n<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>\n'
             '<script>window.JSZip||document.write(\'<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\\/script>\')</script>\n')
     cta = ('\n    <div class="tdt-cta">\n'
            '      <button class="btn-main" id="tdt-open">✦ Tự dàn trang file của bạn</button>\n'
            '      <p><b>Mới:</b> thả file .pptx, .docx, .md hoặc .txt, chọn một mẫu (10 mẫu dựng sẵn hoặc bấm '
-           '<b>“Áp dụng mẫu này”</b> trên bất kỳ thẻ nào để lấy bảng màu của thẻ) — xem trước tức thì và tải về '
+           '<b>“Áp dụng mẫu này”</b> trên bất kỳ thẻ nào để lấy bảng màu của thẻ), thêm <b>họa tiết theo chủ đề</b> '
+           '(cờ đỏ sao vàng, sen vàng Hồ Chí Minh, trống đồng Đông Sơn, hồi văn, hoa mai Tết) — xem trước tức thì và tải về '
            'PowerPoint có sẵn animation. Chạy ngay trong trình duyệt, file không gửi đi đâu.</p>\n    </div>\n    ')
     script = f'\n<script>\nwindow.TU_DAN_TRANG_KHUNG="{khung}";\n{js}\n</script>\n'
 
@@ -68,7 +69,7 @@ def main(paths):
         if not ok:
             i = s.rindex("</body>")
             s = s[:i] + "<!--TDT-JS-->" + script + "<!--/TDT-JS-->\n" + s[i:]
-        p.write_text(s, encoding="utf-8")
+        p.write_text(s, encoding="utf-8", newline="\n")
         print(f"đã cập nhật {p}  ({len(s.encode('utf-8')) // 1024} KB)")
 
 

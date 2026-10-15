@@ -3,7 +3,10 @@
   const TDT = window.TuDanTrang;
   const $ = id => document.getElementById(id);
   const dlg = $('tdt');
-  const state = { deck: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, result: null, busy: false };
+  const state = { deck: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', result: null, busy: false };
+  // mẫu thực dùng = mẫu đã chọn + họa tiết theo chủ đề (nếu có)
+  const usedTheme = () => state.motif ? TDT.withMotif(state.theme, state.motif, $('tdt-motif-pal').checked) : state.theme;
+  const SAMPLE = { title: 'Tiêu đề bài', subtitle: '', meta: [], slides: [], fileName: '' };
 
   const opts = () => ({ anim: document.querySelector('input[name="tdt-anim"]:checked').value, transition: $('tdt-trans').value || null });
   const status = (msg, err) => { const s = $('tdt-status'); s.textContent = msg; s.classList.toggle('err', !!err); };
@@ -19,13 +22,28 @@
         <span class="tdt-sw">${c.pal.map(h => `<i style="background:${h}"></i>`).join('')}</span>
         <span><small>Từ bộ sưu tập</small><span class="nm">${c.name}</span></span></div>`;
     } else f.innerHTML = '';
+    renderMotifs();
+  }
+  // mỗi họa tiết hiện bằng ảnh thu nhỏ trang bìa dựng thật trên mẫu đang chọn
+  function renderMotifs() {
+    const box = $('tdt-motifs'), pal = $('tdt-motif-pal').checked, w = Math.max(120, (box.clientWidth || 300) / 2 - 4);
+    box.replaceChildren(...[''].concat(Object.keys(TDT.MOTIFS)).map(id => {
+      const m = TDT.MOTIFS[id], b = document.createElement('button');
+      b.className = 'tdt-mo' + (state.motif === id ? ' on' : ''); b.dataset.id = id; b.title = m ? m.desc : 'Chỉ dùng trang trí của mẫu';
+      b.innerHTML = `<span class="pic">${m ? '' : '<span class="none">Không thêm</span>'}</span><span class="nm">${m ? m.name : 'Không dùng họa tiết'}</span>`;
+      if (m) {
+        try { b.firstChild.appendChild(TDT.renderSlide(TDT.build(SAMPLE, TDT.withMotif(state.theme, id, pal), { anim: 'none' }).slides[0], w)); }
+        catch (e) { console.error(e); }
+      }
+      return b;
+    }));
   }
   function refresh() {
     renderThemes();
     if (!state.deck) return;
     const t0 = performance.now();
     try {
-      state.result = TDT.build(state.deck, state.theme, opts());
+      state.result = TDT.build(state.deck, usedTheme(), opts());
     } catch (e) { console.error(e); status('Lỗi khi dàn trang: ' + e.message, true); return; }
     const box = $('tdt-preview');
     const grid = document.createElement('div'); grid.className = 'tdt-grid';
@@ -38,7 +56,7 @@
     });
     box.replaceChildren(grid);
     const miss = state.deck.missingImages && state.deck.missingImages.length ? ` · Thiếu ảnh: ${state.deck.missingImages.join(', ')} (chọn kèm file ảnh)` : '';
-    status(`${state.result.slides.length} trang · mẫu “${state.theme.name}” · ${Math.round(performance.now() - t0)} ms${miss}`);
+    status(`${state.result.slides.length} trang · mẫu “${state.result.theme.name}” · ${Math.round(performance.now() - t0)} ms${miss}`);
     $('tdt-dl').disabled = false;
   }
   async function loadFiles(files) {
@@ -58,7 +76,7 @@
     $('tdt-dl').disabled = true; status('Đang tạo file PowerPoint…');
     try {
       const blob = await TDT.toPptx(state.result);
-      const name = `${state.deck.fileName || 'slide'} - ${state.theme.name}`.replace(/[\\/:*?"<>|]+/g, '_') + '.pptx';
+      const name = `${state.deck.fileName || 'slide'} - ${state.result.theme.name}`.replace(/[\\/:*?"<>|]+/g, '_') + '.pptx';
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
@@ -81,6 +99,8 @@
   $('tdt-close').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
   $('tdt-themes').addEventListener('click', e => { const b = e.target.closest('.tdt-th'); if (!b) return; state.theme = TDT.THEMES[b.dataset.id]; refresh(); });
+  $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo'); if (!b) return; state.motif = b.dataset.id; refresh(); });
+  $('tdt-motif-pal').addEventListener('change', () => refresh());
   $('tdt-from').addEventListener('click', e => { if (e.target.closest('#tdt-card')) { state.theme = state.cardTheme; refresh(); } });
   document.querySelectorAll('input[name="tdt-anim"]').forEach(r => r.addEventListener('change', () => state.deck && refresh()));
   $('tdt-trans').addEventListener('change', () => state.deck && refresh());
