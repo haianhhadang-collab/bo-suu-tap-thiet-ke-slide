@@ -60,6 +60,16 @@ h1{font-size:clamp(30px,5vw,52px);line-height:1.08;margin:10px 0 14px;font-weigh
 section.topic{padding:34px 0 6px}
 section.topic h2{font-size:24px;margin:0 0 4px;letter-spacing:-.01em}
 section.topic p.desc{margin:0 0 18px;color:var(--muted);font-size:15px}
+/* Thu gọn / mở từng chủ đề */
+.ttog{all:unset;cursor:pointer;display:inline-flex;align-items:baseline;gap:10px;border-radius:8px}
+.ttog:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.tcaret{display:inline-block;color:var(--muted);font-size:.9em;line-height:1;transition:transform .2s}
+.ttog:hover .tcaret{color:var(--text)}
+section.topic.collapsed{padding:18px 0 0}
+section.topic.collapsed h2{margin:0}
+section.topic.collapsed .tcaret{transform:rotate(-90deg)}
+.sec-tools{display:flex;justify-content:flex-end;padding-top:16px}
+.sec-tools + #sections > section.topic:first-child{padding-top:6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .card .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
@@ -333,6 +343,7 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 </div>
 
 <main class="wrap">
+  <div class="sec-tools"><button class="chip" id="collapse-all" type="button">Thu gọn tất cả</button></div>
   <div id="sections"></div>
   <div class="empty" id="empty">Không có mẫu nào khớp bộ lọc. Hãy bỏ bớt điều kiện.</div>
 </main>
@@ -863,14 +874,54 @@ function card(t){
   </article>`;
 }
 
+// Chủ đề đang thu gọn: nhớ trên máy người xem
+const COLLAPSE_KEY = "slide-collapsed";
+let collapsed = new Set();
+try { collapsed = new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || "[]")); } catch(_){}
+
 document.getElementById("sections").innerHTML = TOPICS.map(tp=>{
   const items = T.filter(t=>t[3]===tp.id);
-  return `<section class="topic" data-topic="${tp.id}" id="${tp.id}">
-    <h2>${tp.name} <span class="count">· ${items.length} mẫu</span></h2>
-    <p class="desc">${tp.desc}</p>
-    <div class="grid">${items.map(card).join("")}</div>
+  const open = !collapsed.has(tp.id);
+  return `<section class="topic${open?"":" collapsed"}" data-topic="${tp.id}" id="${tp.id}">
+    <h2><button class="ttog" type="button" aria-expanded="${open}" aria-controls="tb-${tp.id}"><span class="tcaret" aria-hidden="true">▾</span><span>${tp.name} <span class="count" data-total="${items.length}">· ${items.length} mẫu</span></span></button></h2>
+    <div class="topic-body" id="tb-${tp.id}"${open?"":" hidden"}>
+      <p class="desc">${tp.desc}</p>
+      <div class="grid">${items.map(card).join("")}</div>
+    </div>
   </section>`;
 }).join("");
+
+function setOpen(sec, open){
+  sec.classList.toggle("collapsed", !open);
+  sec.querySelector(".ttog").setAttribute("aria-expanded", open);
+  sec.querySelector(".topic-body").hidden = !open;
+  if(open) collapsed.delete(sec.id); else collapsed.add(sec.id);
+}
+function saveCollapsed(){
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed])); } catch(_){}
+  syncCollapseAll();
+}
+// Nút chung: còn chủ đề nào đang mở (trong số đang hiện) thì "Thu gọn tất cả", không thì "Mở tất cả"
+const collapseAll = document.getElementById("collapse-all");
+function syncCollapseAll(){
+  const shown = [...document.querySelectorAll("section.topic")].filter(s=>s.style.display!=="none");
+  const allClosed = shown.length > 0 && shown.every(s=>s.classList.contains("collapsed"));
+  collapseAll.textContent = allClosed ? "Mở tất cả" : "Thu gọn tất cả";
+  collapseAll.dataset.open = allClosed ? "1" : "";
+}
+collapseAll.addEventListener("click", ()=>{
+  const open = !!collapseAll.dataset.open;
+  document.querySelectorAll("section.topic").forEach(s=>setOpen(s, open));
+  saveCollapsed();
+});
+document.getElementById("sections").addEventListener("click", e=>{
+  const b = e.target.closest(".ttog"); if(!b) return;
+  const sec = b.closest("section.topic");
+  setOpen(sec, sec.classList.contains("collapsed")); saveCollapsed();
+});
+// Mở bằng liên kết #chu-de thì mở luôn chủ đề đó
+const hashSec = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+if(hashSec && hashSec.matches("section.topic.collapsed")) setOpen(hashSec, true);
 
 // Trên điện thoại, nhóm Chủ đề / Phong cách gập lại thành nút; mở nhóm này thì nhóm kia đóng
 const mobile = matchMedia("(max-width:640px)");
@@ -895,7 +946,11 @@ function chips(el, list, key){
     list.map(x=>`<button class="chip" data-v="${x.id}">${x.name.split(" · ")[0]}</button>`).join("");
   el.addEventListener("click", e=>{
     const b = e.target.closest(".chip"); if(!b) return;
-    setChip(el, key, b.dataset.v); apply();
+    setChip(el, key, b.dataset.v);
+    // chọn một chủ đề đang thu gọn thì mở chủ đề đó ra
+    const sec = key==="topic" && document.getElementById(b.dataset.v);
+    if(sec && sec.classList.contains("collapsed")){ setOpen(sec, true); saveCollapsed(); }
+    apply();
     if(mobile.matches) openGroup(null);
   });
 }
@@ -917,6 +972,7 @@ document.getElementById("reset").addEventListener("click", ()=>{
 
 function apply(){
   let shown = 0;
+  const filtered = state.topic!=="all" || state.style!=="all" || state.q || state.wow || state.free || state.fresh;
   document.querySelectorAll("section.topic").forEach(sec=>{
     let n = 0;
     sec.querySelectorAll(".card").forEach(c=>{
@@ -929,11 +985,14 @@ function apply(){
       c.style.display = ok ? "" : "none"; if(ok) n++;
     });
     sec.style.display = n ? "" : "none"; shown += n;
+    // số mẫu cạnh tên chủ đề: khi đang lọc thì hiện số mẫu khớp, để chủ đề thu gọn vẫn báo có kết quả
+    const cnt = sec.querySelector(".count");
+    cnt.textContent = filtered ? `· ${n}/${cnt.dataset.total} mẫu` : `· ${cnt.dataset.total} mẫu`;
   });
   document.getElementById("count").textContent = `Đang hiện ${shown}/${T.length} mẫu`;
-  const filtered = state.topic!=="all" || state.style!=="all" || state.q || state.wow || state.free || state.fresh;
   document.getElementById("reset").classList.toggle("show", !!filtered);
   document.getElementById("empty").style.display = shown ? "none" : "block";
+  syncCollapseAll();
 }
 apply();
 
