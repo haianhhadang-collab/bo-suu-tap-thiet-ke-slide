@@ -38,7 +38,19 @@
 .tdt-th .nm{display:block;font-size:12.5px;font-weight:600;padding:5px 8px 6px;line-height:1.2}
 .tdt-sw{display:flex;gap:3px;flex:none}
 .tdt-sw i{width:14px;height:26px;border-radius:4px;display:block}
-.tdt-motifs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tdt-motifs{display:flex;flex-direction:column;gap:8px}
+.tdt-none{font:inherit;font-size:12.5px;font-weight:600;text-align:left;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);cursor:pointer}
+.tdt-none.on{border-color:var(--accent);color:var(--text);box-shadow:0 0 0 2px var(--accent-soft)}
+.tdt-pack{border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.tdt-pack>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:7px;padding:9px 10px;font-size:13px;font-weight:700;user-select:none}
+.tdt-pack>summary::-webkit-details-marker{display:none}
+.tdt-pack>summary::after{content:"▾";margin-left:auto;color:var(--muted);transition:transform .2s}
+.tdt-pack[open]>summary::after{transform:rotate(180deg)}
+.tdt-pack>summary:hover{background:var(--surface-2);border-radius:10px}
+.tdt-pack .pn{min-width:0}
+.tdt-pack small{flex:none;font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:1px 7px}
+.tdt-pack .sel{flex:none;font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.tdt-mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:2px 8px 9px}
 .tdt-mo{border:1.5px solid var(--line);border-radius:10px;padding:0;background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:var(--text);overflow:hidden}
 .tdt-mo.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .tdt-mo .pic{display:block;aspect-ratio:16/9;overflow:hidden;background:var(--surface-2)}
@@ -58,3 +70,4 @@
 .tdt-empty{border:1px dashed var(--line);border-radius:12px;padding:40px 20px;text-align:center;color:var(--muted);font-size:14.5px;line-height:1.6}
 .tdt-note{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
 @media (max-width:820px){.tdt-body{grid-template-columns:1fr}.tdt-side{border-right:0;border-bottom:1px solid var(--line)}.tdt-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
+.tdt-step .tdt-hint{font-weight:500;text-transform:none;letter-spacing:0}

@@ -31,7 +31,7 @@ def main(paths):
            '      <button class="btn-main" id="tdt-open">✦ Tự dàn trang file của bạn</button>\n'
            '      <p><b>Mới:</b> thả file .pptx, .docx, .md hoặc .txt, chọn một mẫu (10 mẫu dựng sẵn hoặc bấm '
            '<b>“Áp dụng mẫu này”</b> trên bất kỳ thẻ nào để lấy bảng màu của thẻ), thêm <b>họa tiết theo chủ đề</b> '
-           '(cờ đỏ sao vàng, sen vàng Hồ Chí Minh, trống đồng Đông Sơn, hồi văn, hoa mai Tết) — xem trước tức thì và tải về '
+           '(26 họa tiết trong 5 gói: lịch sử – cách mạng, văn hóa truyền thống, lễ hội, thiên nhiên, giáo dục) — xem trước tức thì và tải về '
            'PowerPoint có sẵn animation. Chạy ngay trong trình duyệt, file không gửi đi đâu.</p>\n    </div>\n    ')
     script = f'\n<script>\nwindow.TU_DAN_TRANG_KHUNG="{khung}";\n{js}\n</script>\n'
 

@@ -3,7 +3,7 @@
   const TDT = window.TuDanTrang;
   const $ = id => document.getElementById(id);
   const dlg = $('tdt');
-  const state = { deck: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', result: null, busy: false };
+  const state = { deck: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false };
   // mẫu thực dùng = mẫu đã chọn + họa tiết theo chủ đề (nếu có)
   const usedTheme = () => state.motif ? TDT.withMotif(state.theme, state.motif, $('tdt-motif-pal').checked) : state.theme;
   const SAMPLE = { title: 'Tiêu đề bài', subtitle: '', meta: [], slides: [], fileName: '' };
@@ -25,18 +25,31 @@
     renderMotifs();
   }
   // mỗi họa tiết hiện bằng ảnh thu nhỏ trang bìa dựng thật trên mẫu đang chọn
+  function motifButton(id, w, pal) {
+    const m = TDT.MOTIFS[id], b = document.createElement('button');
+    b.className = 'tdt-mo' + (state.motif === id ? ' on' : ''); b.dataset.id = id; b.title = m.desc;
+    b.innerHTML = `<span class="pic"></span><span class="nm">${m.name}</span>`;
+    try { b.firstChild.appendChild(TDT.renderSlide(TDT.build(SAMPLE, TDT.withMotif(state.theme, id, pal), { anim: 'none' }).slides[0], w)); }
+    catch (e) { console.error(e); }
+    return b;
+  }
+  // họa tiết chia theo gói, mỗi gói gập/mở được; ảnh thu nhỏ chỉ dựng khi gói được mở
   function renderMotifs() {
-    const box = $('tdt-motifs'), pal = $('tdt-motif-pal').checked, w = Math.max(120, (box.clientWidth || 300) / 2 - 4);
-    box.replaceChildren(...[''].concat(Object.keys(TDT.MOTIFS)).map(id => {
-      const m = TDT.MOTIFS[id], b = document.createElement('button');
-      b.className = 'tdt-mo' + (state.motif === id ? ' on' : ''); b.dataset.id = id; b.title = m ? m.desc : 'Chỉ dùng trang trí của mẫu';
-      b.innerHTML = `<span class="pic">${m ? '' : '<span class="none">Không thêm</span>'}</span><span class="nm">${m ? m.name : 'Không dùng họa tiết'}</span>`;
-      if (m) {
-        try { b.firstChild.appendChild(TDT.renderSlide(TDT.build(SAMPLE, TDT.withMotif(state.theme, id, pal), { anim: 'none' }).slides[0], w)); }
-        catch (e) { console.error(e); }
-      }
-      return b;
-    }));
+    const box = $('tdt-motifs'), pal = $('tdt-motif-pal').checked, w = Math.max(120, ((box.clientWidth || 300) - 26) / 2);
+    if (!state.open) state.open = new Set([state.motif ? TDT.MOTIFS[state.motif].pack : TDT.PACKS[0].id]);
+    const none = document.createElement('button');
+    none.className = 'tdt-none' + (state.motif ? '' : ' on'); none.dataset.id = ''; none.textContent = 'Không dùng họa tiết — chỉ trang trí của mẫu';
+    const packs = TDT.PACKS.map(pk => {
+      const ids = Object.keys(TDT.MOTIFS).filter(id => TDT.MOTIFS[id].pack === pk.id);
+      const d = document.createElement('details'); d.className = 'tdt-pack'; d.open = state.open.has(pk.id);
+      const sel = ids.includes(state.motif) ? `<span class="sel">✓ ${TDT.MOTIFS[state.motif].short}</span>` : '';
+      d.innerHTML = `<summary title="${pk.desc}"><span class="pn">${pk.name}</span><small>${ids.length}</small>${sel}</summary><div class="tdt-mgrid"></div>`;
+      const fill = () => { const g = d.lastChild; if (!g.childElementCount) g.replaceChildren(...ids.map(id => motifButton(id, w, pal))); };
+      if (d.open) fill();
+      d.addEventListener('toggle', () => { if (d.open) { state.open.add(pk.id); fill(); } else state.open.delete(pk.id); });
+      return d;
+    });
+    box.replaceChildren(none, ...packs);
   }
   function refresh() {
     renderThemes();
@@ -99,7 +112,7 @@
   $('tdt-close').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
   $('tdt-themes').addEventListener('click', e => { const b = e.target.closest('.tdt-th'); if (!b) return; state.theme = TDT.THEMES[b.dataset.id]; refresh(); });
-  $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo'); if (!b) return; state.motif = b.dataset.id; refresh(); });
+  $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo, .tdt-none'); if (!b) return; state.motif = b.dataset.id; refresh(); });
   $('tdt-motif-pal').addEventListener('change', () => refresh());
   $('tdt-from').addEventListener('click', e => { if (e.target.closest('#tdt-card')) { state.theme = state.cardTheme; refresh(); } });
   document.querySelectorAll('input[name="tdt-anim"]').forEach(r => r.addEventListener('change', () => state.deck && refresh()));
