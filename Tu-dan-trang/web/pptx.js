@@ -39,7 +39,7 @@ function txBody(spec, tag = 'p:txBody') {
     if (p.bullet) ppr += ` marL="${E(p.bullet.indent)}" indent="${-E(p.bullet.indent)}"`;
     ppr += `><a:lnSpc><a:spcPts val="${Math.round(p.ln * 100)}"/></a:lnSpc>`;
     if (p.after) ppr += `<a:spcAft><a:spcPts val="${Math.round(p.after * 100)}"/></a:spcAft>`;
-    ppr += p.bullet ? `<a:buClr>${clr(p.bullet.color)}</a:buClr><a:buFont typeface="Segoe UI"/><a:buChar char="${esc(p.bullet.char)}"/>` : '<a:buNone/>';
+    ppr += p.bullet ? `<a:buClr>${clr(p.bullet.color)}</a:buClr><a:buFont typeface="${/^[●■•–—♦]$/.test(p.bullet.char) ? 'Segoe UI' : 'Segoe UI Symbol'}"/><a:buChar char="${esc(p.bullet.char)}"/>` : '<a:buNone/>';
     ppr += '</a:pPr>';
     const runs = p.runs.map(r => `<a:r><a:rPr lang="vi-VN" sz="${Math.round(r.size * 100)}" b="${r.bold ? 1 : 0}" i="${r.italic ? 1 : 0}" dirty="0"><a:solidFill>${clr(r.color)}</a:solidFill><a:latin typeface="${esc(r.font)}"/><a:cs typeface="${esc(r.font)}"/></a:rPr><a:t>${esc(r.t)}</a:t></a:r>`).join('');
     return `<a:p>${ppr}${runs}</a:p>`;

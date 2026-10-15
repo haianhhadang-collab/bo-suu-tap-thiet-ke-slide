@@ -5,7 +5,7 @@
   const dlg = $('tdt');
   const state = { deck: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false };
   // mẫu thực dùng = mẫu đã chọn + họa tiết theo chủ đề (nếu có)
-  const usedTheme = () => state.motif ? TDT.withMotif(state.theme, state.motif, $('tdt-motif-pal').checked) : state.theme;
+  const usedTheme = () => state.motif ? TDT.withMotif(state.theme, state.motif, $('tdt-motif-pal').checked, $('tdt-motif-page').value) : state.theme;
   const SAMPLE = { title: 'Tiêu đề bài', subtitle: '', meta: [], slides: [], fileName: '' };
 
   const opts = () => ({ anim: document.querySelector('input[name="tdt-anim"]:checked').value, transition: $('tdt-trans').value || null });
@@ -114,6 +114,9 @@
   $('tdt-themes').addEventListener('click', e => { const b = e.target.closest('.tdt-th'); if (!b) return; state.theme = TDT.THEMES[b.dataset.id]; refresh(); });
   $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo, .tdt-none'); if (!b) return; state.motif = b.dataset.id; refresh(); });
   $('tdt-motif-pal').addEventListener('change', () => refresh());
+  // kiểu trang trí trang nội dung: xoay vòng hoặc cố định một kiểu
+  $('tdt-motif-page').innerHTML = TDT.PAGE_STYLES.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+  $('tdt-motif-page').addEventListener('change', () => state.deck && refresh());
   $('tdt-from').addEventListener('click', e => { if (e.target.closest('#tdt-card')) { state.theme = state.cardTheme; refresh(); } });
   document.querySelectorAll('input[name="tdt-anim"]').forEach(r => r.addEventListener('change', () => state.deck && refresh()));
   $('tdt-trans').addEventListener('change', () => state.deck && refresh());

@@ -917,15 +917,116 @@ Object.assign(MOTIFS, {
     } },
 });
 
+// ============================================================ trang trí trang nội dung
+// Mỗi họa tiết có một biểu tượng nhỏ (glyph). Từ đó dựng 5 kiểu trang trí cho trang nội dung; các trang tự đổi kiểu
+// xoay vòng, hoặc dùng cố định một kiểu (th.motifPage). glyph(x, y, s, màu, i) trả về các lớp
+// { r: các đường, c: màu tô, l: màu nét, w: độ dày nét, open: nét hở, a: hệ số độ đậm } — cùng lớp của mọi biểu tượng gộp thành một hình.
+const diamond = (x, y, s) => [[x, y - s], [x + s, y], [x, y + s], [x - s, y]];
+const flower = (x, y, s, c) => { const pr = s * 0.48, p = []; for (let j = 0; j < 5; j++) { const t = -Math.PI / 2 + TAU * j / 5; p.push(circle(x + pr * 0.95 * Math.cos(t), y + pr * 0.95 * Math.sin(t), pr, 14)); } return [{ r: p, c: c.petal }, { r: [circle(x, y, pr * 0.5, 12)], c: c.heart }]; };
+const hsRings = () => [arc(0, 0, 0.78, D(-80), D(-235), 30).concat(arc(0.1, -0.08, 0.66, D(-235), D(-80), 30)), rotRect(-0.54, 0.73, 0.5, 0.17, D(135)), rotRect(0.21, 0.37, 1.18, 0.13, D(45)), rotRect(-0.27, -0.11, 0.64, 0.24, D(-45))];
+const GLYPH = {
+  'cach-mang': (x, y, s, c) => [{ r: [star(x, y, s)], c }],
+  'ho-chi-minh': (x, y, s, c) => [{ r: lotus(x, y + s * 0.55, s), l: c, w: 0.9 }],
+  'dong-son': (x, y, s, c) => [{ r: [star(x, y, s * 0.68, 12, 0.45)], c }, { r: [circle(x, y, s, 28), circle(x, y, s * 0.84, 28)], l: c, w: 0.75 }],
+  'hoi-van': (x, y, s, c) => [{ r: [[[x - s, y + s], [x - s, y - s], [x + s, y - s], [x + s, y + s * 0.55], [x - s * 0.35, y + s * 0.55], [x - s * 0.35, y - s * 0.25], [x + s * 0.4, y - s * 0.25]]], l: c, w: 1.4, open: true }],
+  'tet': (x, y, s) => flower(x, y, s, MAI),
+  'bua-liem': (x, y, s, c) => [{ r: mapR(hsRings(), U(x, y, s)), c }],
+  'vong-lua': (x, y, s, c) => [{ r: [[[x, y + s], [x, y - s * 0.55]]], l: c, w: 1, open: true },
+    { r: [place(PETAL, x, y + s * 0.35, s * 0.62, D(-135)), place(PETAL, x, y + s * 0.35, s * 0.62, D(-45)), place(PETAL, x, y - s * 0.15, s * 0.56, D(-130)), place(PETAL, x, y - s * 0.15, s * 0.56, D(-50)), place(PETAL, x, y - s * 0.5, s * 0.5, D(-90))], c }],
+  'co-bay': (x, y, s, c) => { const top = [], bot = []; for (let i = 0; i <= 10; i++) { const u = i / 10, xx = x - s * 0.62 + u * s * 1.6, yy = y - s * 0.85 + s * 0.1 * Math.sin(u * 6); top.push([xx, yy]); bot.unshift([xx, yy + s * 1.0]); }
+    return [{ r: [rotRect(x - s * 0.68, y + s * 0.05, s * 1.9, s * 0.1, D(90))], c }, { r: [top.concat(bot)], c: RED }, { r: [star(x + s * 0.18, y - s * 0.32, s * 0.3)], c: GOLD }]; },
+  'may-cuon': (x, y, s, c) => [{ r: cloud(x, y + s * 0.1, s * 0.72), l: c, w: 1.1, open: true }],
+  'tho-cam': (x, y, s) => [{ r: [diamond(x, y, s)], c: 'B3202A' }, { r: [diamond(x, y, s * 0.55)], c: 'F2B705' }, { r: [diamond(x, y, s * 0.22)], c: '1F1A3D' }],
+  'gach-bong': (x, y, s, c) => [{ r: [[[x - s, y - s], [x + s, y - s], [x + s, y + s], [x - s, y + s]], circle(x, y, s * 0.6, 24)], l: c, w: 0.8 }, { r: [0, 1, 2, 3].map(k => place(PETAL, x, y, s, D(45 + k * 90))), c, a: 0.6 }],
+  'song-nuoc': (x, y, s, c) => [{ r: [1, 0.66, 0.33].map(k => arc(x, y + s * 0.5, s * k, Math.PI, TAU, 16)), l: c, w: 1, open: true }],
+  'luy-tre': (x, y, s, c) => [{ r: [rotRect(x - s * 0.35, y, s * 2, s * 0.17, D(82))], c }, { r: [place(NARROW, x - s * 0.3, y - s * 0.35, s * 1.25, D(-20)), place(NARROW, x - s * 0.3, y - s * 0.35, s * 1.1, D(18)), place(NARROW, x - s * 0.3, y + s * 0.25, s * 1.05, D(155))], c, a: 0.85 }],
+  'non-nuoc': (x, y, s, c) => [{ r: [[[x - s, y + s * 0.6], [x - s * 0.35, y - s * 0.45], [x, y + s * 0.05], [x + s * 0.42, y - s * 0.8], [x + s, y + s * 0.6]]], c, a: 0.8 }],
+  'hoa-dao': (x, y, s) => flower(x, y, s, DAO),
+  'den-long': (x, y, s) => [{ r: [ell(x, y + s * 0.1, s * 0.62, s * 0.78, 0, 24)], c: 'D7263D' }, { r: [rotRect(x, y - s * 0.7, s * 0.62, s * 0.16, 0), rotRect(x, y + s * 0.9, s * 0.62, s * 0.16, 0)], c: '4E2A0C' },
+    { r: [[[x, y - s * 0.78], [x, y - s * 1.15]], [[x, y + s * 0.98], [x, y + s * 1.3]]], l: 'B8860B', w: 0.75, open: true }],
+  'trung-thu': (x, y, s, c) => [{ r: [circle(x - s * 0.15, y + s * 0.1, s * 0.78, 24)], c: 'F4B942' }, { r: [star(x + s * 0.72, y - s * 0.62, s * 0.3)], c }],
+  'phao-hoa': (x, y, s, c) => { const r = []; for (let i = 0; i < 12; i++) { const t = TAU * i / 12; r.push([[x + s * 0.3 * Math.cos(t), y + s * 0.3 * Math.sin(t)], [x + s * Math.cos(t), y + s * Math.sin(t)]]); } return [{ r, l: c, w: 1.1, open: true }]; },
+  'dam-sen': (x, y, s) => [{ r: lotus(x, y + s * 0.55, s).slice(0, -1), c: 'F48FB1', l: 'C2185B', w: 0.6 }, { r: [lotus(x, y + s * 0.55, s).pop()], c: '7CB342' }],
+  'bac-thang': (x, y, s, c) => [{ r: [0.5, 1.0, 1.5, 2.0].map(k => arc(x + s, y + s, s * k, Math.PI, Math.PI * 1.5, 12)), l: c, w: 1.6, open: true }],
+  'la-nhiet-doi': (x, y, s, c) => [{ r: [place(PETAL, x - s, y + s * 0.45, s * 2.1, D(-26))], c, a: 0.85 }, { r: [[[x - s, y + s * 0.45], [x + s * 0.85, y - s * 0.45]]], l: 'FFFFFF', w: 0.6, open: true }],
+  'trai-dat': (x, y, s, c) => [{ r: [circle(x, y, s * 0.85, 28), ell(x, y, s * 0.38, s * 0.85, 0, 24)], l: c, w: 0.9 }, { r: [[[x - s * 0.85, y], [x + s * 0.85, y]]], l: c, w: 0.7, open: true }, { r: [place(PETAL, x, y - s * 0.85, s * 0.5, D(-40))], c }],
+  'sach-but': (x, y, s, c) => [{ r: [[[x, y - s * 0.6], [x - s, y - s * 0.78], [x - s, y + s * 0.6], [x, y + s * 0.78]], [[x, y - s * 0.6], [x + s, y - s * 0.78], [x + s, y + s * 0.6], [x, y + s * 0.78]]], c, a: 0.18, l: c, w: 1 }],
+  'nguyen-tu': (x, y, s, c) => [{ r: [0, 60, 120].map(k => ell(x, y, s, s * 0.36, D(k), 28)), l: c, w: 0.8 }, { r: [circle(x, y, s * 0.18, 12)], c }],
+  'mach-dien': (x, y, s, c) => [{ r: [[[x - s, y], [x - s * 0.2, y], [x + s * 0.3, y - s * 0.5], [x + s, y - s * 0.5]], [[x - s * 0.2, y], [x + s * 0.3, y + s * 0.5], [x + s, y + s * 0.5]]], l: c, w: 1, open: true },
+    { r: [circle(x + s, y - s * 0.5, s * 0.16, 10), circle(x + s, y + s * 0.5, s * 0.16, 10), circle(x - s, y, s * 0.16, 10)], c }],
+  'hinh-hoc': (x, y, s, c, i = 0) => [{ r: [[[0, 1, 2].map(k => [x + s * Math.cos(TAU * k / 3 - Math.PI / 2), y + s * 1.1 * Math.sin(TAU * k / 3 - Math.PI / 2) + s * 0.15]), circle(x, y, s * 0.85, 28), rotRect(x, y, s * 1.5, s * 1.5, D(15))][i % 3]], l: c, w: 1.3 }],
+  'toc-do': (x, y, s, c) => [{ r: [-0.5, 0, 0.5].map((d, k) => [[x + s, y + d * s - s * 0.06], [x + s, y + d * s + s * 0.06], [x - s * (0.6 + 0.4 * (k % 2)), y + d * s]]), c }],
+  'cham-tram': (x, y, s, c) => { const r = []; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const k = 1 - (i + j) / 5; r.push(circle(x - s + i * s, y - s + j * s, s * 0.32 * k, 10)); } return [{ r, c }]; },
+  'bum': (x, y, s) => [{ r: [jagged(x, y, s, s * 0.6, 8, 3)], c: 'FFD60A', l: '111111', w: 1 }],
+  'bong-thoai': (x, y, s) => [{ r: [bubble(x, y - s * 0.15, s, s * 0.6, x - s * 0.55, y + s * 0.9)], c: 'FFFFFF', l: '111111', w: 1 }],
+  'nang-luong': (x, y, s, c) => [{ r: [place(BOLT, x - s * 0.62, y - s * 0.75, s * 1.7, D(48))], c }],
+  'hai-tac': (x, y, s, c) => [{ r: [star(x, y, s, 4, 0.24)], c }, { r: [circle(x, y, s * 0.62, 24)], l: c, w: 0.75 }],
+  'mang-nhen': (x, y, s, c) => [{ r: web(x - s, y - s, s * 2, 0, D(90), 4, 3), l: c, w: 0.7, open: true }],
+  'sieu-anh-hung': (x, y, s) => [{ r: [SHIELD.map(U(x, y, s))], c: 'D62828', l: 'FFD60A', w: 1 }],
+  'giap-hud': (x, y, s, c) => [{ r: [circle(x, y, s, 24), circle(x, y, s * 0.62, 20)], l: c, w: 1 }, { r: [circle(x, y, s * 0.3, 14)], c: '2EC4E6' }],
+  'khung-truyen': (x, y, s, c) => [{ r: [[[x - s, y - s], [x + s * 0.1, y - s], [x - s * 0.05, y + s], [x - s, y + s]], [[x + s * 0.25, y - s], [x + s, y - s], [x + s, y + s], [x + s * 0.1, y + s]]], l: c, w: 1 }],
+};
+const BULLET = { 'cach-mang': '★', 'bua-liem': '★', 'vong-lua': '★', 'co-bay': '★', 'sieu-anh-hung': '★', 'ho-chi-minh': '❀', 'tet': '✿', 'hoa-dao': '✿', 'dam-sen': '❀',
+  'dong-son': '◆', 'hoi-van': '◆', 'tho-cam': '◆', 'gach-bong': '❖', 'phao-hoa': '✦', 'trung-thu': '✦', 'nang-luong': '✦', 'hai-tac': '✦', 'toc-do': '▶', 'khung-truyen': '▶', 'mach-dien': '▶', 'bum': '★' };
+
+function drawGlyphs(ctx, glyph, pts, s, col, a, tag) {
+  const layers = [];
+  pts.forEach(([x, y], i) => glyph(x, y, s, col, i).forEach((L, k) => { (layers[k] = layers[k] || Object.assign({}, L, { r: [] })).r.push(...L.r); }));
+  layers.forEach((L, k) => ctx.poly(L.r, { closed: !L.open, color: L.open ? null : (L.c || null), alpha: L.c ? Math.min(1, a * (L.a || 1)) : null,
+    lineColor: L.l || null, lineW: L.w || 1, lineAlpha: L.l ? a : null, name: '!!' + tag + k }));
+}
+const PAGE_KITS = {
+  diem(ctx, th, m, info) {                  // diềm biểu tượng chạy ngang đầu trang
+    const step = 0.78, n = Math.floor((SW - 1.3) / step), x0 = (SW - (n - 1) * step) / 2;
+    drawGlyphs(ctx, m.glyph, Array.from({ length: n }, (_, i) => [x0 + i * step, 0.36]), 0.19, th.accent, 0.85, 'pg-diem');
+    ctx.box(0.6, 0.66, SW - 1.2, 0.014, { color: th.accent2, alpha: 0.5, name: '!!pg-diemke' });
+    info.y0 = Math.max(info.y0, 0.86);
+  },
+  le(ctx, th, m, info) {                    // dải biểu tượng dọc mép trái (mép phải nếu mẫu đã có dải màu bên trái)
+    const right = th.decor === 'sidebar', pts = [];
+    const x2 = right ? SW - 0.5 : 0.5;
+    for (let y = 0.65; y < SH - 0.4; y += 0.7) pts.push([x2, y]);
+    drawGlyphs(ctx, m.glyph, pts, 0.2, th.accent, 0.8, 'pg-le');
+    ctx.box(right ? SW - 0.93 : 0.92, 0.5, 0.018, SH - 1.0, { color: th.accent2, alpha: 0.55, name: '!!pg-ke' });
+    if (right) info.x1 = Math.min(info.x1, SW - 1.22); else info.x0 = Math.max(info.x0, 1.22);
+  },
+  chim(ctx, th, m, info) {                  // biểu tượng chìm cỡ lớn + một biểu tượng nhỏ ở góc
+    drawGlyphs(ctx, m.glyph, [[SW - 2.0, SH / 2 + 0.35]], 1.75, th.accent, 0.13, 'pg-chim');
+    drawGlyphs(ctx, m.glyph, [[SW - 0.62, 0.46], [SW - 1.18, 0.46]], 0.2, th.accent, 0.9, 'pg-goc');
+    info.x1 = Math.min(info.x1, SW - 1.45);
+  },
+  khung(ctx, th, m, info) {                 // khung mảnh, biểu tượng ở bốn góc
+    ctx.box(0.36, 0.36, SW - 0.72, SH - 0.72, { lineColor: th.accent2, lineW: 1.25, lineAlpha: 0.65, name: '!!pg-khung' });
+    ctx.box(0.46, 0.46, SW - 0.92, SH - 0.92, { lineColor: th.accent2, lineW: 0.6, lineAlpha: 0.45, name: '!!pg-khung2' });
+    drawGlyphs(ctx, m.glyph, [[0.4, 0.4], [SW - 0.4, 0.4], [0.4, SH - 0.4], [SW - 0.4, SH - 0.4]], 0.26, th.accent, 1, 'pg-4goc');
+    drawGlyphs(ctx, m.glyph, [[SW / 2, 0.4], [SW / 2, SH - 0.4]], 0.16, th.accent, 0.9, 'pg-2giua');
+    Object.assign(info, { x0: Math.max(info.x0, 1.0), y0: Math.max(info.y0, 0.78), x1: Math.min(info.x1, SW - 1.0), y1: Math.min(info.y1, SH - 1.05), foot_y: SH - 0.8 });
+  },
+};
+const PAGE_ORDER = ['goc', 'diem', 'le', 'chim', 'khung'];
+const PAGE_STYLES = [['xoay', 'Đổi kiểu xoay vòng'], ['goc', 'Góc trang (nhẹ)'], ['diem', 'Diềm họa tiết đầu trang'], ['le', 'Dải họa tiết bên trái'], ['chim', 'Hình chìm lớn'], ['khung', 'Khung có họa tiết ở góc']];
+for (const k in MOTIFS) {
+  const m = MOTIFS[k], own = m.draw;
+  m.glyph = GLYPH[k]; m.bullet = BULLET[k];
+  if (!m.glyph) continue;
+  m.draw = function (ctx, th, inv, idx, kind, info) {
+    if (inv) return own.call(this, ctx, th, inv, idx, kind, info);
+    const mode = th.motifPage && th.motifPage !== 'xoay' ? th.motifPage : PAGE_ORDER[idx % PAGE_ORDER.length];
+    if (mode === 'goc' || !PAGE_KITS[mode]) return own.call(this, ctx, th, inv, idx, kind, info);
+    PAGE_KITS[mode](ctx, th, m, info);
+  };
+}
+
 for (const k in MOTIFS) MOTIFS[k].id = k;
 
 /** Trả về mẫu mới = mẫu gốc + họa tiết (và bảng màu của họa tiết nếu usePalette). */
-function withMotif(th, id, usePalette = true) {
+function withMotif(th, id, usePalette = true, page = 'xoay') {
   const m = MOTIFS[id]; if (!m) return th;
-  return Object.assign({}, th, usePalette && m.palette ? m.palette : {}, { motif: id, name: th.name + ' + ' + m.short });
+  return Object.assign({}, th, usePalette && m.palette ? m.palette : {}, m.bullet ? { bullet: m.bullet } : {}, { motif: id, motifPage: page, name: th.name + ' + ' + m.short });
 }
 
 T.MOTIFS = MOTIFS;
 T.PACKS = PACKS;
+T.PAGE_STYLES = PAGE_STYLES;
 T.withMotif = withMotif;
 })(window);
