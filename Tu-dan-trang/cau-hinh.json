@@ -3,5 +3,7 @@
   "animation": "tu-chay",
   "chuyen_trang": "theo-mau",
   "thu_muc_ket_qua": "Ket-qua",
-  "chu_ky_quet_giay": 3
+  "chu_ky_quet_giay": 3,
+  "hoa_van": "khong",
+  "dung_mau_hoa_van": true
 }

@@ -7,7 +7,7 @@ from pathlib import Path
 from pptx import Presentation
 
 from . import layouts as L
-from . import readers, themes
+from . import hoavan, readers, themes
 from .draw import E, H, W
 from .model import Deck, Item, Slide
 
@@ -36,7 +36,9 @@ def _split_closing(deck: Deck):
 
 def build(src, theme_id: str, out_dir, opts: dict | None = None, deck: Deck | None = None) -> Path:
     opts = dict(opts or {})
-    th = themes.get(theme_id)
+    # "co-dien+dong-son" = mẫu co-dien kèm họa tiết dong-son; không ghi "+" thì lấy họa tiết trong opts
+    theme_id, _, motif = theme_id.partition("+")
+    th = hoavan.apply(themes.get(theme_id), motif or opts.get("motif", ""), opts.get("motif_palette", True))
     deck = deck or readers.read(src)
     _split_closing(deck)
 

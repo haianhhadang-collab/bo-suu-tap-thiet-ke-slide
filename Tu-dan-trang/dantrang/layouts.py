@@ -448,11 +448,14 @@ def lay_cards(ctx: Ctx, cards: list[Item], x, y, w, h, numbered=False) -> list[I
             bgc = _tint(col, ctx.bg, 0.8) if not ctx.inv else D.mix(ctx.bg, "FFFFFF", 0.12)
         kind = "round" if th["radius"] > 0.03 else "rect"
         rad = th["radius"] * (1.6 / max(min(cw, card_h), 0.8))
+        if style == "comic":    # bóng đổ khối lệch kiểu truyện tranh
+            shapes.append(D.box(ctx.slide, cx + 0.09, cy + 0.09, cw, card_h, color="000000" if ctx.inv else th["ink"],
+                                alpha=0.45 if ctx.inv else None, kind=kind, radius=min(rad, 0.3)))
         card = D.box(ctx.slide, cx, cy, cw, card_h, color=bgc if style != "outline" else (th["card"] if not ctx.inv else None),
                      kind=kind, radius=min(rad, 0.3),
                      line_color=(th["card_line"] if style in ("strip-top", "border-left", "header") else
-                                 (th["accent2"] if style == "outline" else None)),
-                     line_w=1.0 if style != "outline" else 1.25,
+                                 (th["accent2"] if style == "outline" else (th["ink"] if style == "comic" else None))),
+                     line_w=2.5 if style == "comic" else (1.0 if style != "outline" else 1.25),
                      shadow=(th["ink"] if style in ("strip-top", "header", "border-left") and not ctx.inv else None),
                      alpha=None, name=f"card{k}")
         shapes.append(card)
@@ -691,6 +694,18 @@ def cover(prs, th, deck, opts):
     ms = 17
     mh = sum(TF.height_in(m, ctx.font, ms, w - 0.4) for m in meta) + 0.1 * len(meta)
     top = max(ctx.y0 + 0.4, (ctx.y1 - mh - 0.6 - (th_ + 0.35 + sh)) / 2 + 0.2)
+    # vùng chữ hẹp và thấp (vd mẫu có sóng ở chân trang + họa tiết lớn bên phải): tiêu đề, phụ đề lấn xuống khối
+    # tác giả => thu nhỏ dần tiêu đề và phụ đề cho tới khi vừa. Khi đã vừa thì giữ nguyên cách tính như bản web.
+    floor_ = (ctx.y1 - mh - 0.12 if meta else ctx.y1) - 0.15
+    sizes, subs = [s for s in (56, 52, 48, 44, 40, 36, 32, 28, 26, 24) if s < size], [s for s in (26, 24, 22, 20, 18, 16) if s < ss]
+    while top + th_ + 0.3 + sh + 0.1 > floor_ and (sizes or (sub and subs)):
+        if sizes and (not (sub and subs) or size / 2 >= ss):
+            size = sizes.pop(0)
+            th_ = TF.height_in(t, ctx.head, size, min(w, 10.8), ctx.hb, 1.1)
+        else:
+            ss = subs.pop(0)
+            sh = TF.height_in(sub, ctx.font, ss, min(w, 10.5), False, 1.15)
+        top = max(ctx.y0 + 0.4, (ctx.y1 - mh - 0.6 - (th_ + 0.35 + sh)) / 2 + 0.2)
     bar = D.box(ctx.slide, x, top - 0.38, 1.1, 0.09, color=ctx.accent, kind="round", radius=0.5, name="!!tmark")
     tt = D.text(ctx.slide, x, top, min(w, 10.8), th_ + 0.1, t, font=ctx.head, size=size, color=ctx.ink, bold=ctx.hb,
                 spacing=1.1, name="Tiêu đề")

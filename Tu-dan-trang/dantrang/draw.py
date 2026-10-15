@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import math
 
 from lxml import etree
 from pptx.dml.color import RGBColor
@@ -28,7 +29,8 @@ def mix(a: str, b: str, t: float) -> str:
     a, b = a.lstrip("#"), b.lstrip("#")
     ca = [int(a[i:i + 2], 16) for i in (0, 2, 4)]
     cb = [int(b[i:i + 2], 16) for i in (0, 2, 4)]
-    return "".join(f"{round(x + (y - x) * t):02X}" for x, y in zip(ca, cb))
+    # làm tròn 0.5 lên như Math.round của bản web (round() của Python làm tròn về số chẵn)
+    return "".join(f"{math.floor(x + (y - x) * t + 0.5):02X}" for x, y in zip(ca, cb))
 
 
 def luminance(h: str) -> float:
@@ -176,6 +178,37 @@ def poly(slide, pts, color=None, alpha=None, gradient=None, angle=90, name=None,
     return shp
 
 
+def paths(slide, rings, color=None, alpha=None, closed=True, line_color=None, line_w=1.0, line_alpha=None,
+          name=None):
+    """Một hình gồm nhiều nét (custGeom nhiều <a:path>): rings là một đường [(x,y),…] hoặc list các đường (inch).
+    Gộp nhiều nét thành một hình giúp slide nhẹ và họa tiết sửa/di chuyển được như một khối trong PowerPoint."""
+    if not isinstance(rings[0][0], (list, tuple)):
+        rings = [rings]
+    xs = [p[0] for r in rings for p in r]
+    ys = [p[1] for r in rings for p in r]
+    x0, y0 = min(xs), min(ys)
+    w, h = max(max(xs) - x0, 0.01), max(max(ys) - y0, 0.01)
+    shp = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, E(x0), E(y0), E(w), E(h))
+    P = lambda p: f'<a:pt x="{int(round((p[0] - x0) * EMU))}" y="{int(round((p[1] - y0) * EMU))}"/>'
+    body = "".join(
+        f'<a:path w="{int(E(w))}" h="{int(E(h))}"><a:moveTo>{P(r[0])}</a:moveTo>'
+        + "".join(f"<a:lnTo>{P(p)}</a:lnTo>" for p in r[1:]) + ("<a:close/>" if closed else "") + "</a:path>"
+        for r in rings)
+    geo = etree.fromstring(f'<a:custGeom xmlns:a="{A_NS}"><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/>'
+                           f'<a:rect l="0" t="0" r="r" b="b"/><a:pathLst>{body}</a:pathLst></a:custGeom>')
+    spPr = shp._element.spPr
+    old = spPr.find(qn("a:prstGeom"))
+    old.addprevious(geo)
+    spPr.remove(old)
+    fill(shp, color if closed else None, alpha)
+    line(shp, line_color, line_w, line_alpha)
+    effects(shp)
+    if name:
+        shp.name = name
+    shp.text_frame.text = ""
+    return shp
+
+
 # ---------- chữ ----------
 
 _ALIGN = {"l": PP_ALIGN.LEFT, "c": PP_ALIGN.CENTER, "r": PP_ALIGN.RIGHT, "j": PP_ALIGN.JUSTIFY}
@@ -233,7 +266,9 @@ def _bullet(p, char, color, indent_in):
         for el in pPr.findall(qn(tag)):
             pPr.remove(el)
     pPr.append(etree.fromstring(f'<a:buClr xmlns:a="{A_NS}">{_clr(color)}</a:buClr>'))
-    pPr.append(etree.fromstring(f'<a:buFont xmlns:a="{A_NS}" typeface="Segoe UI"/>'))
+    # ★ ❀ ✿ ✦ ❖ ▶ … (bullet theo họa tiết) chỉ có trong Segoe UI Symbol
+    face = "Segoe UI" if char in "●■•–—♦" else "Segoe UI Symbol"
+    pPr.append(etree.fromstring(f'<a:buFont xmlns:a="{A_NS}" typeface="{face}"/>'))
     pPr.append(etree.fromstring(f'<a:buChar xmlns:a="{A_NS}" char="{char}"/>'))
 
 

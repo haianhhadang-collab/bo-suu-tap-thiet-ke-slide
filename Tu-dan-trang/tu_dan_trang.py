@@ -7,7 +7,10 @@ Cách dùng:
   python tu_dan_trang.py --ds                 xem danh sách mẫu
 
 Tùy chọn:
-  -m, --mau <mã>          mẫu thiết kế (mặc định: theo cau-hinh.json), hoặc "tat-ca" để xuất mọi mẫu
+  -m, --mau <mã>          mẫu thiết kế (mặc định: theo cau-hinh.json), hoặc "tat-ca" để xuất mọi mẫu;
+                          ghép họa tiết bằng dấu +, vd: co-dien+dong-son
+  -v, --hoa-van <mã>      họa tiết theo chủ đề: cach-mang | ho-chi-minh | dong-son | hoi-van | tet | khong
+  --giu-mau               giữ màu của mẫu (không dùng bảng màu của họa tiết)
   -a, --animation <kiểu>  tu-chay | nhap-chuot | khong
   -c, --chuyen <kiểu>     theo-mau | morph | fade | push | wipe | khong
   -o, --ra <thư mục>      nơi lưu kết quả (mặc định: Ket-qua)
@@ -27,6 +30,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from dantrang import build as B  # noqa: E402
+from dantrang import hoavan  # noqa: E402
 from dantrang import themes  # noqa: E402
 
 INBOX = ROOT / "Hop-thu-vao"
@@ -45,6 +49,8 @@ DEFAULT_CFG = {
     "chuyen_trang": "theo-mau",
     "thu_muc_ket_qua": "Ket-qua",
     "chu_ky_quet_giay": 3,
+    "hoa_van": "khong",
+    "dung_mau_hoa_van": True,
 }
 
 
@@ -61,11 +67,31 @@ def load_cfg() -> dict:
     return cfg
 
 
-def make_opts(anim: str, trans: str) -> dict:
-    return {"anim": ANIM.get(anim, anim), "transition": TRANS.get(trans, trans)}
+def make_opts(anim: str, trans: str, motif: str = "", palette: bool = True) -> dict:
+    return {"anim": ANIM.get(anim, anim), "transition": TRANS.get(trans, trans),
+            "motif": hoavan.check(motif), "motif_palette": palette}
 
 
-def run(src: Path, theme: str, out: Path, opts: dict) -> list[Path]:
+def resolve(name: str, default_theme: str) -> tuple[str, str | None]:
+    """Tách "mẫu+họa-tiết" (vd co-dien+dong-son, tat-ca+tet). Chỉ ghi họa tiết (vd dong-son) => mẫu mặc định.
+    Trả về (mẫu, họa tiết hoặc None nếu không ghi)."""
+    theme, motif = "", None
+    for part in (x.strip() for x in name.split("+") if x.strip()):
+        if part in hoavan.MOTIFS or part == "khong":
+            motif = hoavan.check(part)
+        elif not theme:
+            theme = part
+        else:
+            raise KeyError(f"'{part}' không phải mã họa tiết. Các họa tiết: {', '.join(hoavan.MOTIFS)}")
+    if theme and theme != "tat-ca":
+        themes.get(theme)  # báo lỗi rõ ràng nếu sai mã mẫu
+    return theme or default_theme, motif
+
+
+def run(src: Path, theme: str, out: Path, opts: dict, default: str = "song-bien") -> list[Path]:
+    theme, motif = resolve(theme, default)
+    if motif is not None:
+        opts = dict(opts, motif=motif)
     if theme == "tat-ca":
         return B.build_all(src, out, opts)
     return [B.build(src, theme, out, opts)]
@@ -77,14 +103,16 @@ def watch(cfg: dict):
     out = ROOT / cfg["thu_muc_ket_qua"]
     for d in (INBOX, out, DONE, ERR):
         d.mkdir(parents=True, exist_ok=True)
-    for tid in list(themes.THEMES) + ["tat-ca"]:
+    for tid in list(themes.THEMES) + ["tat-ca"] + list(hoavan.MOTIFS):
         (INBOX / tid).mkdir(exist_ok=True)
     print(f"Đang theo dõi: {INBOX}")
     print(f"  • Thả file vào thư mục gốc  -> dùng mẫu mặc định '{cfg['mau_mac_dinh']}'")
     print("  • Thả vào thư mục con theo tên mẫu (vd song-bien, gradient, tat-ca) -> dùng mẫu đó")
+    print("  • Thư mục tên họa tiết (vd dong-son) -> mẫu mặc định + họa tiết; tự tạo thư mục ghép"
+          " mẫu+họa-tiết (vd co-dien+dong-son) để chọn cả hai")
     print(f"  • Kết quả lưu ở: {out}      (Ctrl+C để dừng)\n")
     sizes: dict[Path, int] = {}
-    opts = make_opts(cfg["animation"], cfg["chuyen_trang"])
+    opts = make_opts(cfg["animation"], cfg["chuyen_trang"], cfg["hoa_van"], cfg["dung_mau_hoa_van"])
     while True:
         for f in list(INBOX.glob("*")) + list(INBOX.glob("*/*")):
             if not f.is_file() or f.suffix.lower() not in EXTS or f.name.startswith(("~$", ".")):
@@ -98,7 +126,8 @@ def watch(cfg: dict):
             theme = f.parent.name if f.parent != INBOX else cfg["mau_mac_dinh"]
             t0 = time.time()
             try:
-                outs = run(f, theme, out, opts)
+                theme, motif = resolve(theme, cfg["mau_mac_dinh"])
+                outs = run(f, theme + (f"+{motif}" if motif else ""), out, opts)
                 dest = DONE / f.name
                 if dest.exists():
                     dest = DONE / f"{f.stem}-{int(time.time())}{f.suffix}"
@@ -144,6 +173,8 @@ def gui(cfg: dict, preset: str | None = None):
     anim = tk.StringVar(value=cfg["animation"])
     trans = tk.StringVar(value=cfg["chuyen_trang"])
     all_themes = tk.BooleanVar(value=False)
+    motif_pal = tk.BooleanVar(value=bool(cfg["dung_mau_hoa_van"]))
+    motif_names = {"": "Không"} | {mid: m["name"] for mid, m in hoavan.MOTIFS.items()}
     status = tk.StringVar(value="Chọn file, chọn mẫu rồi bấm “Dàn trang”.")
     last_out: list[Path] = []
 
@@ -174,9 +205,32 @@ def gui(cfg: dict, preset: str | None = None):
     ttk.Label(top, textvariable=desc, wraplength=400, font=F, foreground="#555").grid(
         row=4, column=1, columnspan=2, sticky="nw", padx=(12, 0))
 
+    mf = ttk.Frame(top)
+    mf.grid(row=4, column=0, sticky="nw")
+    ttk.Label(mf, text="Họa tiết theo chủ đề (chọn gói, rồi họa tiết):", font=F).grid(row=0, column=0, sticky="w")
+    packs = hoavan.by_pack()
+    pcb = ttk.Combobox(mf, values=["Tất cả các gói"] + [f"{pk['name']} ({len(mids)})" for pk, mids in packs],
+                       state="readonly", width=34)
+    pcb.grid(row=1, column=0, sticky="w", pady=(2, 0))
+    mcb = ttk.Combobox(mf, state="readonly", width=34)
+    mcb.grid(row=2, column=0, sticky="w", pady=(2, 0))
+    ttk.Checkbutton(mf, text="Dùng bảng màu của họa tiết", variable=motif_pal).grid(row=3, column=0, sticky="w")
+    cur_motif = lambda: next((k for k, v in motif_names.items() if v == mcb.get()), "")
+
+    def fill_motifs():
+        """Gói đang chọn -> danh sách họa tiết (luôn có “Không” ở đầu); giữ họa tiết đang chọn nếu còn trong gói."""
+        k, keep = pcb.current(), cur_motif()
+        mids = list(hoavan.MOTIFS) if k <= 0 else packs[k - 1][1]
+        mcb["values"] = ["Không"] + [motif_names[m] for m in mids]
+        mcb.set(motif_names[keep] if keep in mids else "Không")
+    m0 = hoavan.check(cfg["hoa_van"])
+    pcb.current(next((i + 1 for i, (pk, mids) in enumerate(packs) if m0 in mids), 0))
+    mcb.set(motif_names.get(m0, "Không"))
+    fill_motifs()
+
     def preview(*_):
         sel = lb.curselection()
-        th = themes.get(ids[sel[0] if sel else start])
+        th = hoavan.apply(themes.get(ids[sel[0] if sel else start]), cur_motif(), motif_pal.get())
         cv.delete("all")
         c0 = "#" + th["inv"][0]
         c1 = "#" + th["inv"][-1]
@@ -201,8 +255,12 @@ def gui(cfg: dict, preset: str | None = None):
                 cv.create_rectangle(x + 6, 94 + j * 9, x + 44 - j * 6, 97 + j * 9, fill="#" + th["muted"], width=0)
         for k, col in enumerate((th["accent"], th["accent2"], th["accent3"], th["ink"])):
             cv.create_rectangle(214 + k * 26, 180, 236 + k * 26, 202, fill="#" + col, width=0)
-        desc.set(f"{th['desc']}\nPhông: {th['head']} / {th['body_font']}  ·  Chuyển trang: {th['transition']}  ·  Hiệu ứng: {th['effect']}")
+        mdesc = hoavan.MOTIFS[th["motif"]]["desc"] + "\n" if th.get("motif") else ""
+        desc.set(f"{mdesc}{th['desc']}\nPhông: {th['head']} / {th['body_font']}  ·  Chuyển trang: {th['transition']}  ·  Hiệu ứng: {th['effect']}")
     lb.bind("<<ListboxSelect>>", preview)
+    mcb.bind("<<ComboboxSelected>>", preview)
+    pcb.bind("<<ComboboxSelected>>", lambda e: (fill_motifs(), preview()))
+    motif_pal.trace_add("write", preview)
     preview()
 
     ttk.Checkbutton(top, text="Xuất cùng lúc tất cả các mẫu (để so sánh)", variable=all_themes).grid(
@@ -253,7 +311,7 @@ def gui(cfg: dict, preset: str | None = None):
         sel = lb.curselection()
         theme = "tat-ca" if all_themes.get() else ids[sel[0] if sel else start]
         tr = next((k for k, v in names.items() if v == cb.get()), "theo-mau")
-        opts = make_opts(anim.get(), tr)
+        opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get())
         go.config(state="disabled")
         status.set("Đang dàn trang… (mẫu “tất cả” mất khoảng 10–30 giây)")
 
@@ -289,6 +347,8 @@ def main():
     ap.add_argument("-a", "--animation", default=None, choices=list(ANIM))
     ap.add_argument("-c", "--chuyen", default=None, choices=list(TRANS))
     ap.add_argument("-o", "--ra", default=None)
+    ap.add_argument("-v", "--hoa-van", default=None, choices=list(hoavan.MOTIFS) + ["khong"])
+    ap.add_argument("--giu-mau", action="store_true")
     ap.add_argument("--theo-doi", action="store_true")
     ap.add_argument("--gui", action="store_true")
     ap.add_argument("--ds", action="store_true")
@@ -297,6 +357,12 @@ def main():
     if a.ds:
         for tid, th in themes.THEMES.items():
             print(f"{tid:15s} {th['name']:26s} {th['desc']}")
+        print(f"\nHọa tiết theo chủ đề — {len(hoavan.MOTIFS)} họa tiết, {len(hoavan.PACKS)} gói"
+              " (-v <mã> hoặc mẫu+mã, vd co-dien+dong-son):")
+        for pk, mids in hoavan.by_pack():
+            print(f"\n[{pk['name']}] {pk['desc']}")
+            for mid in mids:
+                print(f"  {mid:15s} {hoavan.MOTIFS[mid]['name']:30s} {hoavan.MOTIFS[mid]['desc']}")
         return
     if a.theo_doi:
         watch(cfg)
@@ -306,8 +372,9 @@ def main():
         return
     theme = a.mau or cfg["mau_mac_dinh"]
     out = Path(a.ra) if a.ra else ROOT / cfg["thu_muc_ket_qua"]
-    opts = make_opts(a.animation or cfg["animation"], a.chuyen or cfg["chuyen_trang"])
-    for o in run(Path(a.file), theme, out, opts):
+    opts = make_opts(a.animation or cfg["animation"], a.chuyen or cfg["chuyen_trang"],
+                     a.hoa_van or cfg["hoa_van"], cfg["dung_mau_hoa_van"] and not a.giu_mau)
+    for o in run(Path(a.file), theme, out, opts, cfg["mau_mac_dinh"]):
         print(o)
 
 

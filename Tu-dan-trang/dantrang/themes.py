@@ -1,4 +1,4 @@
-"""10 mẫu thiết kế dựng sẵn. Có thể thêm mẫu bằng file JSON trong thư mục `mau/`.
+"""12 mẫu thiết kế dựng sẵn. Có thể thêm mẫu bằng file JSON trong thư mục `mau/`.
 
 Mọi phông dùng ở đây đều có sẵn trên Windows và đủ dấu tiếng Việt
 (Trebuchet MS, Georgia, Impact thiếu chữ ơ, ư, ạ… nên không dùng).
@@ -16,7 +16,7 @@ from pathlib import Path
 #   inv_ink, inv_body, inv_accent   màu chữ trên nền inv
 #   head, body_font  phông tiêu đề / nội dung;   head_bold, caps (tiêu đề viết hoa)
 #   decor        kiểu trang trí;  title_mark  dấu dưới tiêu đề;  bullet  ký tự đầu dòng
-#   card_style   strip-top | border-left | outline | solid | header
+#   card_style   strip-top | border-left | outline | solid | header | comic
 #   radius       độ bo góc thẻ (0–0.5);  transition  morph | fade | push | wipe;  effect  float | fade | wipe | zoom | fly
 
 THEMES: dict[str, dict] = {
@@ -100,6 +100,24 @@ THEMES: dict[str, dict] = {
         head="Segoe UI Semibold", head_bold=False, body_font="Segoe UI", caps=False,
         decor="sidebar", title_mark="bar", bullet="■", card_style="border-left", radius=0.04,
         transition="push", effect="wipe"),
+    "truyen-tranh": dict(
+        name="Truyện tranh · Comic",
+        desc="Viền mực đen dày, chấm tram, tia nắng đỏ vàng xanh, thẻ bóng đổ khối — sinh động, thiếu nhi, ngoại khóa.",
+        bg="FFF6DC", bg2="FFFBEF", ink="111111", body="2B2B2B", muted="555555",
+        accent="E63946", accent2="1D4ED8", accent3="FFC300", card="FFFFFF", card_line="111111",
+        inv=["1D4ED8", "1E3A8A"], inv_ink="FFFFFF", inv_body="E3EBFF", inv_accent="FFC300",
+        head="Segoe UI Black", head_bold=False, body_font="Segoe UI", caps=True,
+        decor="comic", title_mark="block", bullet="■", card_style="comic", radius=0.0,
+        transition="push", effect="zoom"),
+    "manga": dict(
+        name="Manga đen trắng",
+        desc="Trắng đen như trang truyện, đường tốc độ, chấm tram, một điểm đỏ — anime, manga, câu lạc bộ.",
+        bg="FFFFFF", bg2="F5F5F5", ink="0D0D0D", body="2A2A2A", muted="5C5C5C",
+        accent="D62828", accent2="1A1A1A", accent3="8C8C8C", card="FFFFFF", card_line="1A1A1A",
+        inv=["0D0D0D", "262626"], inv_ink="FFFFFF", inv_body="D9D9D9", inv_accent="FF4D4D",
+        head="Segoe UI Black", head_bold=False, body_font="Segoe UI", caps=False,
+        decor="manga", title_mark="bar", bullet="▶", card_style="comic", radius=0.0,
+        transition="fade", effect="zoom"),
 }
 
 DEFAULTS = dict(THEMES["song-bien"])

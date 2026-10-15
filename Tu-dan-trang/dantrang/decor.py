@@ -6,6 +6,7 @@ import math
 import random
 
 from . import draw as D
+from . import hoavan
 from .draw import H, W
 
 
@@ -20,7 +21,12 @@ def paint(slide, th, inv: bool, idx: int, kind: str) -> dict:
         D.background(slide, [bg])
     info = dict(x0=0.8, y0=0.62, x1=W - 0.8, y1=H - 0.72, foot=th["muted"] if not inv else th["inv_body"],
                 bg=(th["inv"][0] if inv else (th["bg"] if idx % 2 else th["bg2"])))
-    fn(slide, th, inv, idx, kind, rnd, info)
+    # họa tiết theo chủ đề (hoavan.py): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
+    motif = hoavan.MOTIFS.get(th.get("motif") or "")
+    if not (motif and inv and motif["own_inv"]):
+        fn(slide, th, inv, idx, kind, rnd, info)
+    if motif:
+        motif["draw"](slide, th, inv, idx, kind, info)
     return info
 
 
@@ -229,3 +235,49 @@ def _sidebar(slide, th, inv, idx, kind, rnd, info):
         D.box(slide, 0, 0, 0.28, H, gradient=[th["inv"][0], th["accent"]], angle=90, name="!!side")
         D.box(slide, 0.28, 0, 0.06, H, color=th["accent2"], name="!!side2")
         info["x0"] = 1.0
+
+
+# ---------- truyện tranh (comic) ----------
+
+def _comic(slide, th, inv, idx, kind, rnd, info):
+    if inv:
+        cx, cy = (W / 2, H / 2) if kind == "closing" else (W * 0.8, H * 0.45)
+        wedges = []
+        for i in range(0, 36, 2):
+            a0, a1 = 2 * math.pi * i / 36, 2 * math.pi * (i + 1) / 36
+            wedges.append([(cx, cy), (cx + 16 * math.cos(a0), cy + 16 * math.sin(a0)),
+                           (cx + 16 * math.cos(a1), cy + 16 * math.sin(a1))])
+        D.paths(slide, wedges, color=th["inv_accent"], alpha=0.16, name="!!cm-tia")
+        D.paths(slide, hoavan.dot_field(0, H, 3.4, 2.4, 0.24, 0.1, "bl"), color="000000", alpha=0.25, name="!!cm-tram")
+        D.box(slide, 0.16, 0.16, W - 0.32, H - 0.32, line_color="111111", line_w=6, name="!!cm-khung")
+        info.update(x0=0.95, y0=0.8, x1=W - 0.95, y1=H - 0.85)
+    else:
+        D.paths(slide, hoavan.dot_field(W, 0, 2.6, 1.6, 0.2, 0.08, "tr"), color=th["accent3"], alpha=0.9,
+                name="!!cm-tram")
+        D.box(slide, 0.16, 0.16, W - 0.32, H - 0.32, line_color=th["ink"], line_w=4.5, name="!!cm-khung")
+        info.update(x0=0.9, y0=0.72, x1=W - 0.9, y1=H - 0.85)
+
+
+# ---------- manga đen trắng ----------
+
+def _manga(slide, th, inv, idx, kind, rnd, info):
+    if inv:
+        # số ngẫu nhiên cùng dãy với bản web (mulberry32) để đường tốc độ ra y hệt
+        r = hoavan.seeded(idx * 7919 + len(th["id"]))
+        u = lambda a, b: a + (b - a) * r()
+        cx, cy = (W / 2 if kind == "closing" else W * 0.36), H / 2
+        lines = []
+        for i in range(90):
+            a = 2 * math.pi * i / 90 + u(-0.02, 0.02)
+            rin, w = u(3.6, 5.2), u(0.012, 0.035)
+            lines.append([(cx + rin * math.cos(a), cy + rin * math.sin(a) * 0.7),
+                          (cx + 12 * math.cos(a - w), cy + 12 * math.sin(a - w) * 0.7),
+                          (cx + 12 * math.cos(a + w), cy + 12 * math.sin(a + w) * 0.7)])
+        D.paths(slide, lines, color="FFFFFF", alpha=0.22, name="!!mg-tocdo")
+        D.box(slide, 0.22, 0.22, W - 0.44, H - 0.44, line_color="FFFFFF", line_w=1.5, line_alpha=0.6, name="!!mg-khung")
+        info.update(x0=0.95, y0=0.8, x1=W - 0.95, y1=H - 0.85)
+    else:
+        D.paths(slide, hoavan.dot_field(0, H, W, 0.9, 0.16, 0.06, "b"), color=th["ink"], alpha=0.18, name="!!mg-tram")
+        D.box(slide, 0.22, 0.22, W - 0.44, H - 0.44, line_color=th["ink"], line_w=2.25, name="!!mg-khung")
+        D.box(slide, 0.22, 0.22, 0.22, H - 0.44, color=th["accent"], name="!!mg-gay")
+        info.update(x0=0.95, y0=0.72, x1=W - 0.85, y1=H - 1.0)
