@@ -293,7 +293,15 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 <script>window.JSZip||document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>')</script>
 <!--/TDT-HEAD-->
 <!--SUA-CHU-->
-<script type="application/json" id="sua-chu-data">{"v":1,"chu":{}}</script>
+<script type="application/json" id="sua-chu-data">{"v":1,"chu":{
+"✦ Tự dàn trang file của bạn":"File của bạn",
+"Bộ sưu tập thiết kế slide PowerPoint đẹp":"Auto PPT",
+"nguồn tải miễn phí":"nguồn",
+"Up file lên:":"File chấp nhận:",
+"File chấp nhận: .pptx, .docx, .md hoặc .txt":".pptx, .docx, .md hoặc .txt",
+"Sưu tập · cập nhật 15/10/2026":"Tháng 10/2026",
+"Thông tin sưu tập ngày 15/10/2026. Trạng thái miễn phí/Premium và nội dung mẫu có thể đổi theo thời gian. Bảng màu trên thẻ là ước lượng dựa vào tên và mô tả của mẫu. Nhãn “Mới” đánh dấu mẫu bổ sung đợt 15/10/2026.":"Cập nhật 15/10/2026"
+}}</script>
 <script>
 /* Sửa chữ giao diện: đổi chữ trên trang Bộ sưu tập ngay trong trình duyệt rồi lưu thẳng vào file.
    - Mở chế độ sửa: thêm #sua vào cuối địa chỉ trang (vd .../Bo-suu-tap-thiet-ke-slide.html#sua).
@@ -379,6 +387,11 @@ window.SuaChu = { payload, inject };
 
 // ================================================================ chế độ sửa (#sua)
 const FS = typeof window.showOpenFilePicker === 'function';
+// khung trình duyệt trong ứng dụng Claude cho chọn file nhưng từ chối mọi quyền đọc/ghi file =>
+// bỏ bước chọn file, chép chữ đã sửa ra để dán cho Claude lưu. Gặp trình duyệt khác chặn kiểu đó thì nhớ lại.
+const APP = / Claude\//.test(navigator.userAgent);
+let fsBlocked = APP;
+try { if (localStorage.getItem('sua-chu-fs') === 'chan') fsBlocked = true; } catch (_) {}
 const CTL = 'button,a,label,summary,[role="button"]';
 const wantEdit = () => new URLSearchParams(location.search).has('sua') || location.hash === '#sua';
 const escH = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -443,6 +456,7 @@ html.sua-on #sua-ui button:disabled{cursor:default!important}
 .sua-file{display:inline-flex;align-items:center;gap:2px;padding:1px 2px 1px 10px;border-radius:999px;background:var(--surface-2,#efece5);color:var(--text,#1d1b18)}
 .sua-file .sua-x{font-size:15px;padding:1px 6px}
 .sua-lf{display:flex;flex-wrap:wrap;gap:8px}
+.sua-data{display:block;width:100%;height:110px;resize:vertical;font:12px/1.4 Consolas,ui-monospace,monospace;padding:8px;border-radius:8px;border:1px solid var(--line,#e2ddd3);background:var(--bg,#fff);color:inherit}
 @media (max-width:480px){
   .sua-bar{left:8px;right:8px;bottom:8px;transform:none;width:auto;gap:6px}
   .sua-long{display:none}
@@ -460,7 +474,8 @@ const HTML = `
   <div class="sua-lh"><b>Chữ đã sửa</b><small class="sua-sum"></small><button type="button" class="sua-x" data-a="close-list" aria-label="Đóng danh sách">×</button></div>
   <div class="sua-items"></div>
   <div class="sua-files"></div>
-  <div class="sua-lf"><button type="button" class="sua-b" data-a="download">Tải file HTML về máy</button><button type="button" class="sua-b" data-a="undo">Bỏ thay đổi chưa lưu</button></div>
+  <textarea class="sua-data" readonly spellcheck="false" aria-label="Chữ đã sửa, dạng dữ liệu để dán cho Claude" hidden></textarea>
+  <div class="sua-lf"><button type="button" class="sua-b" data-a="copy">Chép chữ đã sửa</button><button type="button" class="sua-b" data-a="download">Tải file HTML về máy</button><button type="button" class="sua-b" data-a="undo">Bỏ thay đổi chưa lưu</button></div>
 </div>
 <div class="sua-bar" role="toolbar" aria-label="Sửa chữ trên trang">
   <button type="button" class="sua-sw" data-a="toggle" aria-pressed="true"><span class="sua-k" aria-hidden="true"></span><span class="sua-t">Đang sửa chữ</span></button>
@@ -538,7 +553,9 @@ function setEditing(on) {
   ui.sw.setAttribute('aria-pressed', String(on));
   ui.sw.querySelector('.sua-t').innerHTML = on ? 'Đang sửa<span class="sua-long"> chữ</span>' : 'Đã tắt<span class="sua-long"> sửa chữ</span>';
   frame(ui.hl, null);
-  say(on ? 'Bấm vào chữ bất kỳ trên trang để sửa. Sửa xong bấm “Lưu vào file”.'
+  say(on ? 'Bấm vào chữ bất kỳ trên trang để sửa. ' + (fsBlocked
+      ? 'Trình duyệt này không lưu thẳng vào file được: sửa xong bấm “Lưu” để chép chữ đã sửa, rồi dán vào khung chat cho Claude lưu.'
+      : 'Sửa xong bấm “Lưu vào file”.')
     : 'Trang đang chạy như bình thường: bấm được nút, mở được hộp thoại. Bật lại để sửa tiếp, kể cả chữ trong hộp thoại Tự dàn trang.');
 }
 
@@ -621,7 +638,7 @@ function place() {
   p.style.left = Math.max(12, Math.min(r.left, innerWidth - pw - 12)) + 'px';
 }
 function closePop() { sel = null; if (!ui) return; ui.pop.hidden = true; frame(ui.box, null); }
-const unsavedNote = () => { const d = dirty(); return d ? ` Có ${d} thay đổi chưa lưu, bấm “Lưu vào file” để giữ lại.` : ''; };
+const unsavedNote = () => { const d = dirty(); return d ? ` Có ${d} thay đổi chưa lưu, bấm “Lưu” để giữ lại.` : ''; };
 function commit() {
   if (!sel) return;
   const { k, before } = sel;
@@ -652,6 +669,7 @@ function refresh() {
   const d = dirty();
   ui.n.querySelector('b').textContent = cur.size;
   ui.save.classList.toggle('sua-dirty', d > 0);
+  ui.save.innerHTML = fsBlocked ? 'Lưu<span class="sua-long"> (chép ra)</span>' : 'Lưu<span class="sua-long"> vào file</span>';
   ui.save.title = d ? `${d} thay đổi chưa lưu` : 'Không có thay đổi mới';
   if (!ui.list.hidden) renderList();
 }
@@ -677,7 +695,10 @@ function renderList() {
   ui.list.querySelector('.sua-sum').textContent = d ? `${d} thay đổi chưa lưu` : cur.size ? 'đã lưu hết' : '';
   ui.list.querySelector('[data-a="undo"]').disabled = !d;
   const fb = ui.list.querySelector('.sua-files');
-  fb.innerHTML = FS
+  fb.innerHTML = FS && fsBlocked
+    ? `<span>Trình duyệt này không cho trang ghi vào file trên máy${APP ? ' (khung trình duyệt trong ứng dụng Claude chặn việc này)' : ''}. “Lưu” sẽ chép chữ đã sửa để dán cho Claude; muốn tự lưu thẳng thì mở trang bằng Chrome hoặc Edge.</span>` +
+      '<button type="button" class="sua-link" data-a="addfile">Vẫn thử chọn file</button>'
+    : FS
     ? '<span>Lưu vào:</span>' + (files.length ? files.map((f, i) => `<span class="sua-file">${escH(f.name)}<button type="button" class="sua-x" data-a="unfile" data-i="${i}" aria-label="Bỏ ${escH(f.name)}" title="Thôi lưu vào file này">×</button></span>`).join('') : '<span>chưa chọn file</span>') +
       '<button type="button" class="sua-link" data-a="addfile">+ Thêm file</button>'
     : '<span>Trình duyệt này không ghi thẳng vào file được: “Lưu vào file” sẽ tải về file HTML mới để chép đè lên file cũ. Dùng Chrome hoặc Edge để lưu thẳng.</span>';
@@ -712,8 +733,9 @@ function onUIClick(e) {
   else if (a === 'revert') revert();
   else if (a === 'rv') { const k = listKeys[+b.dataset.i]; cur.delete(k); apply(document.body, new Set([k])); refresh(); say('Đã đưa về chữ gốc.' + unsavedNote()); }
   else if (a === 'download') { commit(); download(payload()); }
+  else if (a === 'copy') { commit(); copyOut(payload(), ''); }
   else if (a === 'undo') { commit(); reset(); refresh(); say('Đã bỏ các thay đổi chưa lưu.'); }
-  else if (a === 'addfile') addFile().then(() => renderList(), err => { if (err.name !== 'AbortError') say('Không chọn được file: ' + err.message, true); });
+  else if (a === 'addfile') { setBlocked(false); addFile().then(() => renderList(), err => { renderList(); if (err.name !== 'AbortError') say('Không chọn được file: ' + err.message, true); }); }
   else if (a === 'unfile') { files.splice(+b.dataset.i, 1); keepFiles(); renderList(); }
 }
 function exit() {
@@ -757,11 +779,18 @@ async function addFile() {
   }
   await keepFiles();
 }
+const blockedErr = () => Object.assign(new Error('trình duyệt chặn'), { name: 'Blocked' });
+function setBlocked(on) {
+  fsBlocked = on;
+  try { if (on) localStorage.setItem('sua-chu-fs', 'chan'); else localStorage.removeItem('sua-chu-fs'); } catch (_) {}
+  if (ui) refresh();
+}
 async function save() {
   if (busy) return;
   commit();
   const json = payload();
   if (!FS) { download(json); return; }
+  if (fsBlocked) { copyOut(json, ''); return; }
   busy = true;
   const ok = [];
   try {
@@ -770,9 +799,14 @@ async function save() {
       await addFile();
     }
     for (const f of files) {
-      if ((await f.queryPermission({ mode: 'readwrite' })) !== 'granted' && (await f.requestPermission({ mode: 'readwrite' })) !== 'granted')
-        throw new Error(`chưa được phép ghi vào “${f.name}”`);
-      const text = await (await f.getFile()).text(), out = inject(text, json);
+      let p = await f.queryPermission({ mode: 'readwrite' });
+      if (p !== 'granted') p = await f.requestPermission({ mode: 'readwrite' });
+      // bị từ chối cả quyền đọc file vừa chọn: trình duyệt chặn hẳn, không phải người dùng bấm "Không cho phép"
+      if (p === 'denied' && (await f.queryPermission({ mode: 'read' })) === 'denied') throw blockedErr();
+      if (p !== 'granted') throw new Error(`trình duyệt chưa được cho phép ghi vào “${f.name}”. Bấm “Lưu vào file” lần nữa và chọn “Cho phép” khi trình duyệt hỏi`);
+      let text;
+      try { text = await (await f.getFile()).text(); } catch (e) { throw e.name === 'NotAllowedError' ? blockedErr() : e; }
+      const out = inject(text, json);
       if (out == null) throw new Error(`“${f.name}” không phải trang Bộ sưu tập có công cụ sửa chữ`);
       if (out !== text) { const w = await f.createWritable(); await w.write(out); await w.close(); }
       ok.push(f.name);
@@ -782,21 +816,34 @@ async function save() {
     say(`Đã lưu vào ${ok.map(n => '“' + n + '”').join(' và ')} lúc ${at}.` + (ok.length === 1 ? ' Muốn lưu cả bản còn lại: mở “Đã sửa” → “+ Thêm file”.' : ''));
   } catch (e) {
     const part = ok.length ? ` (đã lưu ${ok.join(', ')})` : '';
-    if (e.name === 'AbortError') say('Chưa lưu.' + part);
+    if (e.name === 'Blocked') {
+      setBlocked(true);
+      copyOut(json, `Trình duyệt này không cho trang ghi vào file trên máy${APP ? ' (khung trình duyệt trong ứng dụng Claude chặn việc này)' : ''}${part}. `);
+    }
+    else if (e.name === 'AbortError') say('Chưa lưu.' + part);
     else if (e.name === 'SecurityError') say('Bấm “Lưu vào file” thêm lần nữa để cho phép trình duyệt ghi vào file.' + part);
     else say('Không lưu được: ' + e.message + part, true);
   } finally { busy = false; }
+}
+// chép chữ đã sửa ra bộ nhớ tạm và hiện trong ô dữ liệu, để dán cho Claude lưu vào file
+async function copyOut(json, why) {
+  let copied = false;
+  try { await navigator.clipboard.writeText(json); copied = true; } catch (_) {}
+  if (!ui) return;
+  const ta = ui.list.querySelector('.sua-data');
+  ta.value = json; ta.hidden = false;
+  showList(true); ta.focus({ preventScroll: true }); ta.select();
+  say(why + (copied
+    ? 'Đã chép chữ đã sửa vào bộ nhớ tạm: dán (Ctrl+V) vào khung chat để Claude lưu vào file.'
+    : 'Chữ đã sửa nằm trong ô đang bôi đen: bấm Ctrl+C để chép, rồi dán vào khung chat để Claude lưu vào file.') +
+    ' Muốn tự lưu thẳng: mở trang bằng Chrome hoặc Edge.', !!why);
 }
 // trình duyệt khác: tải về file HTML mới (đọc mã trang qua mạng; mở thẳng từ ổ đĩa thì chép dữ liệu ra bộ nhớ tạm)
 async function download(json) {
   let src = null;
   try { const r = await fetch(location.href.split('#')[0], { cache: 'no-store' }); if (r.ok) src = await r.text(); } catch (_) {}
   const out = src && inject(src, json);
-  if (!out) {
-    try { await navigator.clipboard.writeText(json); } catch (_) {}
-    say('Trình duyệt không đọc được mã của trang (trang mở thẳng từ ổ đĩa). Đã chép phần chữ đã sửa vào bộ nhớ tạm: mở trang bằng Chrome hoặc Edge để lưu thẳng, hoặc dán cho Claude chèn vào file.', true);
-    return;
-  }
+  if (!out) { copyOut(json, 'Trình duyệt không đọc được mã của trang (trang mở thẳng từ ổ đĩa). '); return; }
   const name = decodeURIComponent(location.pathname.split('/').pop() || '') || 'index.html';
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([out], { type: 'text/html' })); a.download = name;

@@ -14,6 +14,14 @@
 
 Lưu thẳng vào file cần Chrome hoặc Edge. Trình duyệt khác thì **Lưu vào file** tải về một file HTML mới để chép đè lên file cũ.
 
+**Khung trình duyệt trong ứng dụng Claude** cho chọn file nhưng chặn mọi quyền đọc, ghi file, nên không lưu thẳng được. Ở đó nút đổi thành **Lưu (chép ra)**: bấm để chép chữ đã sửa vào bộ nhớ tạm, rồi dán (Ctrl+V) vào khung chat cho Claude lưu. Claude lưu bằng lệnh:
+
+```
+python Sua-chu-giao-dien/gan-sua-chu.py --du-lieu du-lieu.json
+```
+
+Lệnh này ghi vào cả hai bản trang. Nút **Chép chữ đã sửa** trong mục **Đã sửa** cũng chép ra như vậy, dùng được ở mọi trình duyệt.
+
 **Đã sửa** liệt kê mọi chữ đã đổi (gốc → mới). Bấm một dòng để tìm chữ đó trên trang, **↺ Về gốc** để bỏ một chữ, **Bỏ thay đổi chưa lưu** để quay về bản trong file.
 
 Không sửa ở đây: tên và mô tả từng mẫu slide, các con số tự đếm, những gì Tự dàn trang vẽ ra, nhãn “Mới” trên thẻ (vẽ bằng CSS).

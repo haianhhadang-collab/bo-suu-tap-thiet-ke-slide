@@ -3,6 +3,10 @@ Chạy lại bao nhiêu lần cũng được: mã nằm giữa hai mốc SUA-CHU
 còn chữ người dùng đã sửa (khối sua-chu-data) của từng file được giữ nguyên.
     python gan-sua-chu.py [đường dẫn file html ...]
 Không ghi đường dẫn: cập nhật mọi bản có sẵn (bản làm việc và bản đăng web).
+
+Lưu chữ đã sửa người dùng chép ra từ trang (nút “Chép chữ đã sửa”, dạng {"v":1,"chu":{...}}):
+    python gan-sua-chu.py --du-lieu du-lieu.json [đường dẫn file html ...]
+    (--du-lieu - : đọc từ đầu vào chuẩn). Dữ liệu này thay hẳn khối sua-chu-data của mọi file đích.
 """
 import json
 import re
@@ -21,7 +25,17 @@ BLOCK_RE = re.compile(re.escape(START) + r".*?" + re.escape(END), re.S)
 EMPTY = '{"v":1,"chu":{}}'
 
 
-def main(paths):
+def format_data(raw):
+    """Kiểm tra và viết lại dữ liệu như trang tự ghi: mỗi chữ một dòng, '<' viết thành \\u003c."""
+    d = json.loads(raw)
+    chu = d.get("chu") if isinstance(d, dict) else None
+    assert isinstance(chu, dict) and all(isinstance(k, str) and isinstance(v, str) for k, v in chu.items()), \
+        'dữ liệu phải có dạng {"v":1,"chu":{"chữ gốc":"chữ mới", ...}}'
+    rows = ",".join("\n" + json.dumps(k, ensure_ascii=False) + ":" + json.dumps(v, ensure_ascii=False) for k, v in chu.items())
+    return ('{"v":1,"chu":{' + rows + ("\n" if chu else "") + "}}").replace("<", "\\u003c")
+
+
+def main(paths, new_data=None):
     js = (HERE / "sua-chu.js").read_text(encoding="utf-8")
     assert "</script" not in js.lower() and "<!--" not in js, "sua-chu.js không được chứa </script hoặc <!--"
     seen = {}
@@ -31,7 +45,7 @@ def main(paths):
             continue
         s = p.read_text(encoding="utf-8")
         m = DATA_RE.search(s)
-        data = m.group(1).strip() if m else EMPTY
+        data = new_data or (m.group(1).strip() if m else EMPTY)
         n = len(json.loads(data).get("chu", {}))   # dữ liệu hỏng thì dừng, không ghi đè
         block = f"{START}\n{OPEN}{data}</script>\n<script>\n{js}</script>\n{END}"
         if BLOCK_RE.search(s):
@@ -47,4 +61,10 @@ def main(paths):
 
 
 if __name__ == "__main__":
-    main([Path(a) for a in sys.argv[1:]] or DEFAULT)
+    args, new_data = sys.argv[1:], None
+    if "--du-lieu" in args:
+        i = args.index("--du-lieu")
+        src = args[i + 1]
+        new_data = format_data(sys.stdin.read() if src == "-" else Path(src).read_text(encoding="utf-8"))
+        del args[i:i + 2]
+    main([Path(a) for a in args] or DEFAULT, new_data)
