@@ -44,7 +44,7 @@
 .tdt-status{font-size:13.5px;color:var(--muted);flex:1;min-width:200px}
 .tdt-status.err{color:#c0392b}
 .tdt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-.tdt-grid .cell{position:relative}
+.tdt-grid .cell{position:relative;width:fit-content;justify-self:start}
 .tdt-grid .cell .no{position:absolute;right:6px;bottom:6px;z-index:2;font-size:11px;font-weight:700;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:1px 6px}
 .tdt-thumb{box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.08)}
 .tdt-empty{border:1px dashed var(--line);border-radius:12px;padding:40px 20px;text-align:center;color:var(--muted);font-size:14.5px;line-height:1.6}
