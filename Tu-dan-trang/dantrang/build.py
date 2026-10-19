@@ -7,7 +7,7 @@ from pathlib import Path
 from pptx import Presentation
 
 from . import layouts as L
-from . import hoavan, readers, themes
+from . import giubocuc, hoavan, readers, themes
 from .draw import E, H, W
 from .model import Deck, Item, Slide
 
@@ -34,11 +34,18 @@ def _split_closing(deck: Deck):
                                  items=[Item(text=h.text, kind="para") for h in hits[1:]]))
 
 
+def keeps_layout(src, opts: dict | None) -> bool:
+    """File PowerPoint: mặc định giữ nguyên bố cục gốc (opts["keep_layout"] = False để dàn lại từ đầu)."""
+    return Path(src).suffix.lower() == ".pptx" and (opts or {}).get("keep_layout", True)
+
+
 def build(src, theme_id: str, out_dir, opts: dict | None = None, deck: Deck | None = None) -> Path:
     opts = dict(opts or {})
     # "co-dien+dong-son" = mẫu co-dien kèm họa tiết dong-son; không ghi "+" thì lấy họa tiết trong opts
     theme_id, _, motif = theme_id.partition("+")
     th = hoavan.apply(themes.get(theme_id), motif or opts.get("motif", ""), opts.get("motif_palette", True))
+    if keeps_layout(src, opts):
+        return giubocuc.build(src, th, out_dir, opts)
     deck = deck or readers.read(src)
     _split_closing(deck)
 
@@ -84,6 +91,8 @@ def build(src, theme_id: str, out_dir, opts: dict | None = None, deck: Deck | No
 
 
 def build_all(src, out_dir, opts=None) -> list[Path]:
+    if keeps_layout(src, opts):
+        return [build(src, tid, out_dir, opts) for tid in themes.THEMES]
     deck_once = readers.read(src)
     outs = []
     import copy

@@ -188,4 +188,5 @@ async function toPptx(result) {
 }
 
 T.toPptx = toPptx;
+T.pptxXml = { shapeXml, fillXml, timingXml, transitionXml, esc };   // dùng lại khi giữ bố cục file gốc (giu-bo-cuc.js)
 })(window);

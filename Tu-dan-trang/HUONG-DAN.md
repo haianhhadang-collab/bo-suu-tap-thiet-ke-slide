@@ -2,6 +2,8 @@
 
 Công cụ nhận một file **.pptx, .docx, .md hoặc .txt**, tự dàn lại thành bộ slide PowerPoint theo một trong **12 mẫu thiết kế**. Bộ slide được thêm sẵn **animation** và **hiệu ứng chuyển trang** của PowerPoint. Nội dung, ảnh và ghi chú thuyết trình được giữ nguyên.
 
+**File PowerPoint (.pptx) được giữ nguyên bố cục gốc**: bảng, ảnh, hộp chữ, hình khối vẫn đúng vị trí và kích thước, công cụ chỉ đổi màu, phông, nền và trang trí theo mẫu (xem [Giữ bố cục file PowerPoint](#giữ-bố-cục-file-powerpoint)). Muốn dàn lại từ đầu như file Word thì bỏ chọn ô "giữ nguyên bố cục gốc" trong cửa sổ, thêm `--dan-lai` ở dòng lệnh, hoặc đặt `"giu_bo_cuc_pptx": false` trong `cau-hinh.json`.
+
 ## Ba cách dùng
 
 | Cách | Làm gì | Hợp khi |
@@ -226,7 +228,23 @@ Ghi chú: lời thuyết trình     ← vào ghi chú (notes) của trang
 
 **Văn bản (.txt)**: xem `vi-du\ghi-chu-nhanh.txt`. Khối đầu tiên là tên bài, phụ đề và thông tin. Mỗi khối cách nhau một dòng trống là một trang; dòng đầu ngắn của khối là tiêu đề trang.
 
-**PowerPoint (.pptx)**: công cụ đọc tiêu đề, khối chữ, nhãn đi kèm nội dung, ảnh, bảng và ghi chú. Slide gốc có sơ đồ vẽ tay phức tạp (hình tròn nối nhau, mũi tên…) sẽ được chuyển thành thẻ hoặc danh sách. Nên xem lại các trang đó.
+**PowerPoint (.pptx)**: mặc định giữ nguyên bố cục (mục dưới). Khi chọn dàn lại (`--dan-lai`), công cụ đọc tiêu đề, khối chữ, nhãn đi kèm nội dung, ảnh, bảng và ghi chú. Slide gốc có sơ đồ vẽ tay phức tạp (hình tròn nối nhau, mũi tên…) sẽ được chuyển thành thẻ hoặc danh sách. Nên xem lại các trang đó.
+
+## Giữ bố cục file PowerPoint
+
+Với file .pptx, công cụ mở chính file gốc và khoác mẫu lên, không dàn lại trang:
+- **Giữ nguyên**: vị trí, kích thước, thứ tự lớp của mọi hộp chữ, bảng, ảnh, hình khối, nhóm hình, biểu đồ; nội dung chữ; ghi chú thuyết trình; animation có sẵn trong file.
+- **Đổi theo mẫu**:
+  - Nền trang. Trang bìa, trang chương (trang nền tối hoặc nền màu đậm, trang chỉ có tiêu đề) và trang kết dùng nền đậm của mẫu.
+  - Màu chữ, màu hình khối, đường kẻ, ô bảng. Màu xám đổi theo độ đậm nhạt so với nền. Màu có sắc độ đổi sang màu nhấn của mẫu; màu dùng nhiều nhất trong file thành màu nhấn chính. Chữ luôn đủ tương phản với nền ngay dưới nó.
+  - Phông chữ: tiêu đề và chữ cỡ lớn dùng phông tiêu đề của mẫu, còn lại dùng phông nội dung. Bảng màu và phông của theme cũng đổi theo, nên biểu đồ, SmartArt đổi màu theo.
+- **Trang trí, họa tiết** của mẫu nằm ở lớp dưới cùng. Phần nào chạm vào chữ hoặc ảnh thì được làm mờ, để không che nội dung. Hình trang trí của mẫu cũ (trong slide master) được ẩn đi.
+- **Không vỡ dòng**: phông mới rộng hơn làm chữ xuống thêm dòng thì cỡ chữ nhỏ lại vừa đủ (tối đa 30%) để giữ số dòng như bản gốc.
+- **Những chỗ giữ nguyên để an toàn**:
+  - Chữ nằm trên ảnh giữ màu gốc.
+  - Phông máy không cài (không đo được) và phông ký hiệu (Wingdings, Symbol…) giữ nguyên.
+  - Ảnh, kể cả ảnh nền phủ kín trang, không bị thay.
+- **Animation**: trang chưa có animation được thêm hiệu ứng xuất hiện cho từng khối nội dung, theo thứ tự đọc từ trên xuống, trái sang. Chuyển trang theo lựa chọn như thường.
 
 ## Cài đặt (chỉ một lần)
 
@@ -244,6 +262,7 @@ Cấu hình trong `cau-hinh.json` (file tự tạo ở lần chạy đầu):
 - `chu_ky_quet_giay`: chu kỳ quét hộp thư, tính bằng giây
 - `hoa_van`: họa tiết mặc định, `khong` hoặc một mã trong bảng họa tiết ở trên (vd `dong-son`, `trung-thu`, `sach-but`)
 - `dung_mau_hoa_van`: `true` dùng bảng màu của họa tiết, `false` giữ màu của mẫu
+- `giu_bo_cuc_pptx`: `true` (mặc định) file .pptx giữ nguyên bố cục gốc, `false` dàn lại từ đầu
 
 ## Kiểm tra kết quả
 

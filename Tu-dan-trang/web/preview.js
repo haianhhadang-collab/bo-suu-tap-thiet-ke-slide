@@ -64,7 +64,11 @@ function render(sl, width = 320) {
       } else html += `<img src="${el.img.url}" style="position:absolute;${box};${r}object-fit:fill">`;
     } else if (el.t === 'table') {
       let y = el.y; const rows = el.rows.map(rw => {
-        const tds = rw.cells.map((c, j) => `<td style="width:${el.cols[j] * PX}px;height:${rw.h * PX}px;background:#${c.fill};color:#${c.color};font-family:'${c.font}';font-size:${c.size * PX / 72}px;font-weight:${c.bold ? 700 : 400};padding:0 ${0.1 * PX}px;border:1px solid #fff">${esc(c.text)}</td>`).join('');
+        let ci = 0;   // ô gộp (span) khi xem trước bảng của file gốc
+        const tds = rw.cells.map(c => {
+          const span = c.span || 1, cw = el.cols.slice(ci, ci + span).reduce((a, b) => a + b, 0); ci += span;
+          return `<td${span > 1 ? ` colspan="${span}"` : ''} style="width:${cw * PX}px;height:${rw.h * PX}px;background:#${c.fill};color:#${c.color};font-family:'${c.font}';font-size:${c.size * PX / 72}px;font-weight:${c.bold ? 700 : 400};padding:0 ${0.1 * PX}px;border:1px solid #fff;white-space:pre-wrap">${c.hidden ? '' : esc(c.text)}</td>`;
+        }).join('');
         return `<tr>${tds}</tr>`;
       }).join('');
       html += `<table style="position:absolute;left:${el.x * PX}px;top:${y * PX}px;border-collapse:collapse;table-layout:fixed">${rows}</table>`;

@@ -58,6 +58,9 @@
 .tdt-mo .none{display:grid;place-items:center;height:100%;font-size:12px;color:var(--muted)}
 .tdt-mo .nm{display:block;font-size:12.5px;font-weight:600;padding:5px 8px 6px;line-height:1.2}
 .tdt-check{display:flex;align-items:center;gap:7px;font-size:13px;margin-top:8px;cursor:pointer;color:var(--muted)}
+.tdt-check[hidden]{display:none}
+.tdt-check.keep{align-items:flex-start;color:var(--text)}
+.tdt-check.keep input{margin-top:2px}
 .tdt-opts label{display:flex;align-items:center;gap:7px;font-size:13.5px;margin:4px 0;cursor:pointer}
 .tdt-opts select{font:inherit;font-size:13.5px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);width:100%;margin-top:6px}
 .tdt-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}

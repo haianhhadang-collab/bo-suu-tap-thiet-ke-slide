@@ -1,4 +1,5 @@
 """TỰ DÀN TRANG — biến .pptx / .docx / .md / .txt thành bộ slide đẹp theo mẫu, có sẵn animation.
+File .pptx được giữ nguyên bố cục gốc (bảng, ảnh, hộp chữ…), chỉ đổi màu, phông, nền, trang trí theo mẫu.
 
 Cách dùng:
   python tu_dan_trang.py                      mở cửa sổ chọn file
@@ -14,6 +15,7 @@ Tùy chọn:
   -a, --animation <kiểu>  tu-chay | nhap-chuot | khong
   -c, --chuyen <kiểu>     theo-mau | morph | fade | push | wipe | khong
   -o, --ra <thư mục>      nơi lưu kết quả (mặc định: Ket-qua)
+  --dan-lai               file .pptx: dàn lại từ đầu theo nội dung thay vì giữ bố cục gốc
 """
 from __future__ import annotations
 
@@ -51,6 +53,7 @@ DEFAULT_CFG = {
     "chu_ky_quet_giay": 3,
     "hoa_van": "khong",
     "dung_mau_hoa_van": True,
+    "giu_bo_cuc_pptx": True,
 }
 
 
@@ -67,9 +70,9 @@ def load_cfg() -> dict:
     return cfg
 
 
-def make_opts(anim: str, trans: str, motif: str = "", palette: bool = True) -> dict:
+def make_opts(anim: str, trans: str, motif: str = "", palette: bool = True, keep: bool = True) -> dict:
     return {"anim": ANIM.get(anim, anim), "transition": TRANS.get(trans, trans),
-            "motif": hoavan.check(motif), "motif_palette": palette}
+            "motif": hoavan.check(motif), "motif_palette": palette, "keep_layout": keep}
 
 
 def resolve(name: str, default_theme: str) -> tuple[str, str | None]:
@@ -112,7 +115,8 @@ def watch(cfg: dict):
           " mẫu+họa-tiết (vd co-dien+dong-son) để chọn cả hai")
     print(f"  • Kết quả lưu ở: {out}      (Ctrl+C để dừng)\n")
     sizes: dict[Path, int] = {}
-    opts = make_opts(cfg["animation"], cfg["chuyen_trang"], cfg["hoa_van"], cfg["dung_mau_hoa_van"])
+    opts = make_opts(cfg["animation"], cfg["chuyen_trang"], cfg["hoa_van"], cfg["dung_mau_hoa_van"],
+                     cfg["giu_bo_cuc_pptx"])
     while True:
         for f in list(INBOX.glob("*")) + list(INBOX.glob("*/*")):
             if not f.is_file() or f.suffix.lower() not in EXTS or f.name.startswith(("~$", ".")):
@@ -174,6 +178,7 @@ def gui(cfg: dict, preset: str | None = None):
     trans = tk.StringVar(value=cfg["chuyen_trang"])
     all_themes = tk.BooleanVar(value=False)
     motif_pal = tk.BooleanVar(value=bool(cfg["dung_mau_hoa_van"]))
+    keep = tk.BooleanVar(value=bool(cfg["giu_bo_cuc_pptx"]))
     motif_names = {"": "Không"} | {mid: m["name"] for mid, m in hoavan.MOTIFS.items()}
     status = tk.StringVar(value="Chọn file, chọn mẫu rồi bấm “Dàn trang”.")
     last_out: list[Path] = []
@@ -265,6 +270,8 @@ def gui(cfg: dict, preset: str | None = None):
 
     ttk.Checkbutton(top, text="Xuất cùng lúc tất cả các mẫu (để so sánh)", variable=all_themes).grid(
         row=5, column=0, sticky="w", pady=(6, 0))
+    ttk.Checkbutton(top, text="File .pptx: giữ nguyên bố cục gốc (chỉ đổi màu, phông, nền, trang trí)",
+                    variable=keep).grid(row=5, column=1, columnspan=2, sticky="w", padx=(12, 0), pady=(6, 0))
 
     ttk.Label(top, text="3. Animation và chuyển trang", font=FB).grid(row=6, column=0, sticky="w", pady=(12, 2))
     af = ttk.Frame(top)
@@ -311,7 +318,7 @@ def gui(cfg: dict, preset: str | None = None):
         sel = lb.curselection()
         theme = "tat-ca" if all_themes.get() else ids[sel[0] if sel else start]
         tr = next((k for k, v in names.items() if v == cb.get()), "theo-mau")
-        opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get())
+        opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get(), keep.get())
         go.config(state="disabled")
         status.set("Đang dàn trang… (mẫu “tất cả” mất khoảng 10–30 giây)")
 
@@ -349,6 +356,7 @@ def main():
     ap.add_argument("-o", "--ra", default=None)
     ap.add_argument("-v", "--hoa-van", default=None, choices=list(hoavan.MOTIFS) + ["khong"])
     ap.add_argument("--giu-mau", action="store_true")
+    ap.add_argument("--dan-lai", action="store_true")
     ap.add_argument("--theo-doi", action="store_true")
     ap.add_argument("--gui", action="store_true")
     ap.add_argument("--ds", action="store_true")
@@ -373,7 +381,8 @@ def main():
     theme = a.mau or cfg["mau_mac_dinh"]
     out = Path(a.ra) if a.ra else ROOT / cfg["thu_muc_ket_qua"]
     opts = make_opts(a.animation or cfg["animation"], a.chuyen or cfg["chuyen_trang"],
-                     a.hoa_van or cfg["hoa_van"], cfg["dung_mau_hoa_van"] and not a.giu_mau)
+                     a.hoa_van or cfg["hoa_van"], cfg["dung_mau_hoa_van"] and not a.giu_mau,
+                     cfg["giu_bo_cuc_pptx"] and not a.dan_lai)
     for o in run(Path(a.file), theme, out, opts, cfg["mau_mac_dinh"]):
         print(o)
 

@@ -23,14 +23,14 @@ def main(paths):
     css = (WEB / "ui.css").read_text(encoding="utf-8")
     dialog = (WEB / "ui.html").read_text(encoding="utf-8")
     khung = (WEB / "khung.b64.txt").read_text(encoding="utf-8").strip()
-    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "hoa-van.js", "pptx.js", "preview.js", "ui.js"))
+    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "hoa-van.js", "pptx.js", "preview.js", "giu-bo-cuc.js", "ui.js"))
     assert "</script" not in js.lower()
     head = ('\n<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>\n'
             '<script>window.JSZip||document.write(\'<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\\/script>\')</script>\n')
     cta = ('\n    <div class="tdt-cta">\n'
            '      <button class="btn-main" id="tdt-open">✦ Tự dàn trang file của bạn</button>\n'
            '      <p><b>Up file lên:</b> File chấp nhận: .pptx, .docx, .md hoặc .txt<br>'
-           '<b>Các chức năng tự động:</b> dàn trang, chọn màu chữ, màu nền theo chủ đề<br>'
+           '<b>Các chức năng tự động:</b> dàn trang, chọn màu chữ, màu nền theo chủ đề; file .pptx giữ nguyên bố cục gốc<br>'
            '<b>Các chức năng tùy chọn:</b> họa tiết theo chủ đề; tạo chuyển động</p>\n    </div>\n    ')
     script = f'\n<script>\nwindow.TU_DAN_TRANG_KHUNG="{khung}";\n{js}\n</script>\n'
 

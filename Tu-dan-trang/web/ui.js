@@ -3,7 +3,7 @@
   const TDT = window.TuDanTrang;
   const $ = id => document.getElementById(id);
   const dlg = $('tdt');
-  const state = { deck: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false };
+  const state = { deck: null, src: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false };
   // mẫu thực dùng = mẫu đã chọn + họa tiết theo chủ đề (nếu có)
   const usedTheme = () => state.motif ? TDT.withMotif(state.theme, state.motif, $('tdt-motif-pal').checked) : state.theme;
   const SAMPLE = { title: 'Tiêu đề bài', subtitle: '', meta: [], slides: [], fileName: '' };
@@ -56,7 +56,8 @@
     if (!state.deck) return;
     const t0 = performance.now();
     try {
-      state.result = TDT.build(state.deck, usedTheme(), opts());
+      // file .pptx: mặc định giữ nguyên bố cục gốc (giu-bo-cuc.js); bỏ chọn thì dàn lại từ đầu như file Word, Markdown
+      state.result = state.src && $('tdt-keep').checked ? TDT.keepBuild(state.src, state.deck, usedTheme(), opts()) : TDT.build(state.deck, usedTheme(), opts());
     } catch (e) { console.error(e); status('Lỗi khi dàn trang: ' + e.message, true); return; }
     const box = $('tdt-preview');
     const grid = document.createElement('div'); grid.className = 'tdt-grid';
@@ -69,7 +70,7 @@
     });
     box.replaceChildren(grid);
     const miss = state.deck.missingImages && state.deck.missingImages.length ? ` · Thiếu ảnh: ${state.deck.missingImages.join(', ')} (chọn kèm file ảnh)` : '';
-    status(`${state.result.slides.length} trang · mẫu “${state.result.theme.name}” · ${Math.round(performance.now() - t0)} ms${miss}`);
+    status(`${state.result.slides.length} trang · mẫu “${state.result.theme.name}”${state.result.keep ? ' · giữ bố cục gốc' : ''} · ${Math.round(performance.now() - t0)} ms${miss}`);
     $('tdt-dl').disabled = false;
   }
   async function loadFiles(files) {
@@ -79,16 +80,19 @@
     try {
       state.deck = await TDT.readFiles(files);
       const main = [...files].find(f => /\.(pptx|docx|md|markdown|txt)$/i.test(f.name));
+      if (state.src) Object.values(state.src.media).forEach(u => u && URL.revokeObjectURL(u));
+      state.src = /\.pptx$/i.test(main.name) ? await TDT.loadSource(await main.arrayBuffer()) : null;
+      $('tdt-keep-row').hidden = !state.src;
       const extra = files.length - 1;
       $('tdt-file').textContent = '📄 ' + main.name + (extra > 0 ? ` + ${extra} file ảnh` : '');
       refresh();
-    } catch (e) { console.error(e); state.deck = null; status('Không đọc được file: ' + e.message, true); }
+    } catch (e) { console.error(e); state.deck = state.src = null; $('tdt-keep-row').hidden = true; status('Không đọc được file: ' + e.message, true); }
   }
   async function download() {
     if (!state.result) return;
     $('tdt-dl').disabled = true; status('Đang tạo file PowerPoint…');
     try {
-      const blob = await TDT.toPptx(state.result);
+      const blob = state.result.keep ? await TDT.keepToPptx(state.src, state.result) : await TDT.toPptx(state.result);
       const name = `${state.deck.fileName || 'slide'} - ${state.result.theme.name}`.replace(/[\\/:*?"<>|]+/g, '_') + '.pptx';
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
@@ -117,6 +121,7 @@
   $('tdt-from').addEventListener('click', e => { if (e.target.closest('#tdt-card')) { state.theme = state.cardTheme; refresh(); } });
   document.querySelectorAll('input[name="tdt-anim"]').forEach(r => r.addEventListener('change', () => state.deck && refresh()));
   $('tdt-trans').addEventListener('change', () => state.deck && refresh());
+  $('tdt-keep').addEventListener('change', () => state.deck && refresh());
   $('tdt-dl').addEventListener('click', download);
   const drop = $('tdt-drop'), inp = $('tdt-input');
   drop.addEventListener('click', () => inp.click());

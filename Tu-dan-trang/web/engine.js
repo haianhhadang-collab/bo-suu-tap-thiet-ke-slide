@@ -1399,5 +1399,6 @@ function build(deckIn, th, opts = {}) {
   return { title: deck.title, fileName: deck.fileName, theme: th, slides: out };
 }
 
-G.TuDanTrang = Object.assign(G.TuDanTrang || {}, { THEMES, themeFromCard, readFiles, build, mix, contrast, readable, dotField, SW, SH });
+G.TuDanTrang = Object.assign(G.TuDanTrang || {}, { THEMES, themeFromCard, readFiles, build, mix, contrast, readable, dotField, SW, SH,
+  Ctx, textWidthPt, CLOSING_RE });
 })(window);
