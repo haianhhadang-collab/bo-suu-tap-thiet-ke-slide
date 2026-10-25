@@ -456,7 +456,8 @@ class Restyler {
     }
     // 4. họa tiết chạm vào chữ, ảnh thì làm mờ (ảnh phủ kín trang che hết họa tiết nên bỏ qua)
     const full = 0.85 * this.SW * this.SH;
-    if (!ctx.info.art) this.softenDecor(added, recs.filter(r => r.text || (r.pic && r.box[2] * r.box[3] < full)).map(r => r.box));   // ảnh trang trí đã có lớp phủ đều cả trang
+    // ảnh trang trí (artN hình đầu) đã có lớp phủ đều cả trang nên không làm mờ; họa tiết vẽ sau vẫn làm mờ như thường
+    this.softenDecor(added.slice(ctx.info.artN || 0), recs.filter(r => r.text || (r.pic && r.box[2] * r.box[3] < full)).map(r => r.box));
     // 5. animation (giữ animation có sẵn) + chuyển trang
     if (!hadTiming && (opts.anim || 'auto') !== 'none') {
       const steps = this.steps(tree, recs, added), ids = new Map();

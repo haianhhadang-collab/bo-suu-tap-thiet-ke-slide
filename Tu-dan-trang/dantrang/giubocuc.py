@@ -734,8 +734,8 @@ class Restyler:
                 r.text = True   # biểu đồ, SmartArt: không đổi gì, chỉ tránh để họa tiết đè lên
         # 4. họa tiết chạm vào chữ, ảnh thì làm mờ (ảnh phủ kín trang che hết họa tiết nên bỏ qua)
         full = 0.85 * self.SW * self.SH
-        if not info.get("art"):   # ảnh trang trí đã có lớp phủ đều cả trang, không làm mờ
-            self._soften_decor(added, [r.box for r in recs if r.text or (r.pic and r.box[2] * r.box[3] < full)])
+        # ảnh trang trí (art_n hình đầu) đã có lớp phủ đều cả trang nên không làm mờ; họa tiết vẽ sau vẫn làm mờ như thường
+        self._soften_decor(added[info.get("art_n", 0):], [r.box for r in recs if r.text or (r.pic and r.box[2] * r.box[3] < full)])
         # 5. animation (giữ animation có sẵn) + chuyển trang
         if not had_timing and opts.get("anim", "auto") != "none":
             add_animations(slide, self._steps(slide, recs, added), opts.get("anim", "auto"))

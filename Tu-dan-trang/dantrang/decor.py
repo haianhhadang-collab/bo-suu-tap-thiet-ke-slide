@@ -21,14 +21,14 @@ def paint(slide, th, inv: bool, idx: int, kind: str, art=None) -> dict:
         D.background(slide, [bg])
     info = dict(x0=0.8, y0=0.62, x1=W - 0.8, y1=H - 0.72, foot=th["muted"] if not inv else th["inv_body"],
                 bg=(th["inv"][0] if inv else (th["bg"] if idx % 2 else th["bg2"])))
-    # ảnh trang trí theo chủ đề (khoanh.py): thay trang trí của mẫu và họa tiết ở trang bìa/chương/kết
-    if art:
-        khoanh.draw(slide, th, kind, art)
-        info["art"] = True
-        return info
     # họa tiết theo chủ đề (hoavan.py): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
     motif = hoavan.MOTIFS.get(th.get("motif") or "")
-    if not (motif and inv and motif["own_inv"]):
+    # ảnh trang trí theo chủ đề (khoanh.py): thay trang trí của mẫu ở trang bìa/chương/kết; họa tiết vẫn vẽ đè lên ảnh
+    if art:
+        n0 = len(slide.shapes)
+        khoanh.draw(slide, th, kind, art)
+        info["art"], info["art_n"] = True, len(slide.shapes) - n0
+    elif not (motif and inv and motif["own_inv"]):
         fn(slide, th, inv, idx, kind, rnd, info)
     if motif:
         motif["draw"](slide, th, inv, idx, kind, info)

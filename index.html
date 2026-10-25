@@ -245,13 +245,28 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 .tdt-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .tdt-status{font-size:13.5px;color:var(--muted);flex:1;min-width:200px}
 .tdt-status.err{color:#c0392b}
-.tdt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-.tdt-grid .cell{position:relative;width:fit-content;justify-self:start}
+.tdt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.tdt-grid .cell{position:relative;width:fit-content;justify-self:start;cursor:zoom-in}
+.tdt-grid .cell.to{grid-column:1/-1;cursor:zoom-out}
 .tdt-grid .cell .no{position:absolute;right:6px;bottom:6px;z-index:2;font-size:11px;font-weight:700;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:1px 6px}
 .tdt-thumb{box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.08)}
 .tdt-empty{border:1px dashed var(--line);border-radius:12px;padding:40px 20px;text-align:center;color:var(--muted);font-size:14.5px;line-height:1.6}
 .tdt-note{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
-@media (max-width:820px){.tdt-body{grid-template-columns:1fr}.tdt-side{border-right:0;border-bottom:1px solid var(--line)}.tdt-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
+/* khổ hẹp (điện thoại, máy tính bảng dọc): cả hộp thoại cuộn một cột liền mạch — các bước trước, xem trước sau;
+   thanh trạng thái + nút tải luôn bám mép dưới/trên vùng cuộn để bấm được bất cứ lúc nào */
+@media (max-width:820px){
+  #tdt{width:calc(100vw - 16px);max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px)}
+  .tdt-wrap{max-height:calc(100vh - 18px);max-height:calc(100dvh - 18px)}
+  .tdt-head{padding:12px 16px}
+  .tdt-body{display:block;overflow:auto;overscroll-behavior:contain}
+  .tdt-side{overflow:visible;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px}
+  .tdt-main{display:contents}
+  .tdt-bar{position:sticky;top:0;bottom:0;z-index:3;margin:0;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  .tdt-status{min-width:0;font-size:13px}
+  .tdt-bar .btn-main{padding:9px 14px;font-size:14px}
+  #tdt-preview{padding:12px 16px 16px}
+  .tdt-grid{grid-template-columns:1fr}
+}
 .tdt-step .tdt-hint{font-weight:500;text-transform:none;letter-spacing:0}
 /* bước 2–5 gập/mở được */
 .tdt-sec{border-top:1px solid var(--line);padding-top:12px}
@@ -1048,7 +1063,7 @@ window.addEventListener('hashchange', () => { if (wantEdit()) startUI(); });
           <span class="tdt-status" id="tdt-status">Chọn file để xem trước.</span>
           <button class="btn-main" id="tdt-dl" disabled>⬇ Tải file PowerPoint</button>
         </div>
-        <div id="tdt-preview"><div class="tdt-empty">Bản xem trước hiện ở đây ngay khi bạn chọn file.<br>Bấm sang mẫu khác để so sánh tức thì.</div></div>
+        <div id="tdt-preview"><div class="tdt-empty">Đang mở file ví dụ…<br>Bản xem trước hiện ở đây; bấm sang mẫu khác để so sánh tức thì, bấm vào một trang để phóng to.</div></div>
       </div>
     </div>
   </div>
@@ -2948,12 +2963,12 @@ function paint(ctx, th, inv, idx, kind) {
   const bgc = idx % 2 ? th.bg : th.bg2;
   if (inv) ctx.background(th.inv, 135); else ctx.background([bgc]);
   const info = { x0: 0.8, y0: 0.62, x1: SW - 0.8, y1: SH - 0.72, foot: inv ? th.inv_body : th.muted, bg: inv ? th.inv[0] : bgc };
-  // ảnh trang trí theo chủ đề (kho-anh.js): thay trang trí của mẫu và họa tiết ở trang bìa/chương/kết
-  const art = ctx.opts && ctx.opts._art && G.TuDanTrang.khoAnhNext ? G.TuDanTrang.khoAnhNext(ctx.opts._art, kind) : null;
-  if (art) { G.TuDanTrang.khoAnhVe(ctx, th, kind, art); info.art = true; return info; }
   // họa tiết theo chủ đề (hoa-van.js): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
   const motif = th.motif && G.TuDanTrang && G.TuDanTrang.MOTIFS ? G.TuDanTrang.MOTIFS[th.motif] : null;
-  if (!(motif && inv && motif.ownInv)) (DECOR[th.decor] || DECOR.minimal)(ctx, th, inv, idx, kind, r, info);
+  // ảnh trang trí theo chủ đề (kho-anh.js): thay trang trí của mẫu ở trang bìa/chương/kết; họa tiết vẫn vẽ đè lên ảnh
+  const art = ctx.opts && ctx.opts._art && G.TuDanTrang.khoAnhNext ? G.TuDanTrang.khoAnhNext(ctx.opts._art, kind) : null;
+  if (art) { G.TuDanTrang.khoAnhVe(ctx, th, kind, art); info.art = true; info.artN = ctx.sl.els.length; }
+  else if (!(motif && inv && motif.ownInv)) (DECOR[th.decor] || DECOR.minimal)(ctx, th, inv, idx, kind, r, info);
   if (motif) motif.draw(ctx, th, inv, idx, kind, info);
   return info;
 }
@@ -6228,7 +6243,8 @@ class Restyler {
     }
     // 4. họa tiết chạm vào chữ, ảnh thì làm mờ (ảnh phủ kín trang che hết họa tiết nên bỏ qua)
     const full = 0.85 * this.SW * this.SH;
-    if (!ctx.info.art) this.softenDecor(added, recs.filter(r => r.text || (r.pic && r.box[2] * r.box[3] < full)).map(r => r.box));   // ảnh trang trí đã có lớp phủ đều cả trang
+    // ảnh trang trí (artN hình đầu) đã có lớp phủ đều cả trang nên không làm mờ; họa tiết vẽ sau vẫn làm mờ như thường
+    this.softenDecor(added.slice(ctx.info.artN || 0), recs.filter(r => r.text || (r.pic && r.box[2] * r.box[3] < full)).map(r => r.box));
     // 5. animation (giữ animation có sẵn) + chuyển trang
     if (!hadTiming && (opts.anim || 'auto') !== 'none') {
       const steps = this.steps(tree, recs, added), ids = new Map();
@@ -6662,7 +6678,9 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   const TDT = window.TuDanTrang;
   const $ = id => document.getElementById(id);
   const dlg = $('tdt');
-  const state = { deck: null, src: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false, artDau: '' };
+  const state = { deck: null, src: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false, artDau: '', demo: false, picked: false, zoom: -1 };
+  // file ví dụ hiện sẵn trong phần xem trước khi chưa chọn file (bộ slide hướng dẫn, dàn bằng mẫu Dễ thương pastel + Lũy tre)
+  const VI_DU = { url: 'Tu-dan-trang/vi-du/huong-dan-mau.pptx', ten: 'huong-dan-mau.pptx', mau: 'de-thuong', hoaTiet: 'luy-tre' };
   // mẫu thực dùng = mẫu đã chọn + họa tiết theo chủ đề (nếu có)
   const usedTheme = () => state.motif ? TDT.withMotif(state.theme, state.motif, $('tdt-motif-pal').checked) : state.theme;
   const SAMPLE = { title: 'Tiêu đề bài', subtitle: '', meta: [], slides: [], fileName: '' };
@@ -6758,11 +6776,15 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
     } catch (e) { console.error(e); status('Lỗi khi dàn trang: ' + e.message, true); return; }
     const box = $('tdt-preview');
     const grid = document.createElement('div'); grid.className = 'tdt-grid';
-    const w = Math.max(200, Math.min(300, (box.clientWidth - 24) / 3 - 8));
+    // khổ hẹp: mỗi trang rộng hết khung; khổ rộng: 2 trang một hàng; trang đang phóng to (bấm vào) rộng hết khung
+    const cw = box.clientWidth, narrow = cw && cw < 560, inner = narrow ? cw - 34 : cw - 2;
+    const w = narrow ? Math.max(200, inner) : Math.max(240, Math.floor((cw - 14) / 2) - 2);
+    if (state.zoom >= state.result.slides.length) state.zoom = -1;
     state.result.slides.forEach((sl, i) => {
-      const cell = document.createElement('div'); cell.className = 'cell';
+      const cell = document.createElement('div'); cell.className = 'cell' + (i === state.zoom ? ' to' : ''); cell.dataset.i = i;
+      cell.title = i === state.zoom ? 'Bấm để thu nhỏ' : 'Bấm để phóng to';
       cell.innerHTML = `<span class="no">${i + 1}</span>`;
-      cell.appendChild(TDT.renderSlide(sl, w));
+      cell.appendChild(TDT.renderSlide(sl, i === state.zoom ? Math.max(w, inner) : w));
       grid.appendChild(cell);
     });
     box.replaceChildren(grid);
@@ -6770,12 +6792,15 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
     const a = artCfg(), D = TDT.KHO_ANH;
     const dau = a.dau && D ? D.muc.find(m => m.id === a.dau) : null;
     const art = a.loai !== 'khong' && D ? ` · ${a.loai === 'anh' ? 'ảnh' : 'tranh'} chủ đề “${(D.goi.find(g => g.id === (a.goi === 'tu-dong' ? TDT.khoAnhGoi(state.deck, usedTheme()) : a.goi)) || {}).ten}”${a.goi === 'tu-dong' ? ' (tự đoán)' : ''}${dau && dau.loai === a.loai ? `, bìa “${dau.ten}”` : ''}` : '';
-    status(`${state.result.slides.length} trang · mẫu “${state.result.theme.name}”${state.result.keep ? ' · giữ bố cục gốc' : ''}${art} · ${Math.round(performance.now() - t0)} ms${miss}`);
+    status(`${state.demo ? 'File ví dụ · ' : ''}${state.result.slides.length} trang · mẫu “${state.result.theme.name}”${state.result.keep ? ' · giữ bố cục gốc' : ''}${art} · ${Math.round(performance.now() - t0)} ms${miss}`);
     $('tdt-dl').disabled = false;
   }
   // saved = thời điểm lưu (khi mở lại file đã giữ trong trình duyệt); không có = file vừa chọn
-  async function loadFiles(files, saved) {
+  // demo = file ví dụ (không lưu vào trình duyệt); file thật đầu tiên thì trả mẫu về mặc định nếu người dùng chưa tự chọn
+  async function loadFiles(files, saved, demo) {
     if (!files || !files.length) return;
+    if (!demo && state.demo && !state.picked) { state.theme = TDT.THEMES['song-bien']; state.motif = ''; }
+    state.zoom = -1;
     if (!window.JSZip) { status('Không tải được thư viện JSZip (cần mạng Internet ở lần mở đầu). Hãy kiểm tra kết nối rồi tải lại trang.', true); return; }
     status('Đang đọc file…'); $('tdt-dl').disabled = true;
     try {
@@ -6785,11 +6810,15 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
       state.src = /\.pptx$/i.test(main.name) ? await TDT.loadSource(await main.arrayBuffer()) : null;
       $('tdt-keep-row').hidden = !state.src;
       const extra = files.length - 1;
+      state.demo = !!demo;
       const t = saved || Date.now();
       $('tdt-file').innerHTML = '';
-      $('tdt-file').append('📄 ' + main.name + (extra > 0 ? ` + ${extra} file ảnh` : ''));
-      $('tdt-file').insertAdjacentHTML('beforeend', ` <button class="tdt-forget" id="tdt-forget" type="button" title="Xóa file khỏi trình duyệt ngay">× Bỏ file</button><small class="tdt-han">Giữ trong trình duyệt đến ${hhmm(t + LUU.han)}</small>`);
-      if (!saved) luuFile(files, t);
+      if (demo) $('tdt-file').insertAdjacentHTML('beforeend', '📄 <b>File ví dụ:</b> bộ slide hướng dẫn. Chọn file của bạn ở ô trên để thay.');
+      else {
+        $('tdt-file').append('📄 ' + main.name + (extra > 0 ? ` + ${extra} file ảnh` : ''));
+        $('tdt-file').insertAdjacentHTML('beforeend', ` <button class="tdt-forget" id="tdt-forget" type="button" title="Xóa file khỏi trình duyệt ngay">× Bỏ file</button><small class="tdt-han">Giữ trong trình duyệt đến ${hhmm(t + LUU.han)}</small>`);
+        if (!saved) luuFile(files, t);
+      }
       refresh();
     } catch (e) { console.error(e); state.deck = state.src = null; $('tdt-keep-row').hidden = true; status('Không đọc được file: ' + e.message, true); }
   }
@@ -6820,7 +6849,20 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
     $('tdt-art-box').hidden = !D;
     if (D && sel.options.length === 1) D.goi.forEach(g => sel.add(new Option('Chủ đề ảnh: ' + g.ten, g.id)));
   }
-  function open() { fillArt(); renderThemes(); if (state.deck) refresh(); if (!dlg.open) dlg.showModal(); }
+  // chưa có file (kể cả file còn giữ trong trình duyệt): mở file ví dụ, dùng đúng mẫu của nó nếu người dùng chưa tự chọn mẫu
+  let restored = Promise.resolve(), demoLoading = false;
+  async function loadDemo() {
+    await restored;
+    if (state.deck || demoLoading) return;
+    demoLoading = true;
+    try {
+      const r = await fetch(VI_DU.url); if (!r.ok) throw new Error(r.status);
+      if (state.deck) return;
+      if (!state.picked) { state.theme = TDT.THEMES[VI_DU.mau]; state.motif = VI_DU.hoaTiet; state.open = null; }
+      await loadFiles([new File([await r.blob()], VI_DU.ten)], null, true);
+    } catch (e) { console.warn('Không mở được file ví dụ', e); } finally { demoLoading = false; }
+  }
+  function open() { fillArt(); renderThemes(); if (state.deck) refresh(); else loadDemo(); if (!dlg.open) dlg.showModal(); }
   // nút "Áp dụng vào slide" ở mục Kho ảnh: chọn bộ ảnh (gói + loại) của thẻ, lấy chính ảnh đó làm ảnh bìa
   TDT.apDungKhoAnh = it => {
     fillArt();
@@ -6838,13 +6880,19 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
     const t = T.find(x => x[6] === b.dataset.url); if (!t) return;
     state.cardInfo = { name: t[0], style: t[4], pal: t[7] };
     state.cardTheme = TDT.themeFromCard(state.cardInfo);
-    state.theme = state.cardTheme;
+    state.theme = state.cardTheme; state.picked = true;
     open();
   });
   $('tdt-close').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
-  $('tdt-themes').addEventListener('click', e => { const b = e.target.closest('.tdt-th'); if (!b) return; state.theme = TDT.THEMES[b.dataset.id]; refresh(); });
-  $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo, .tdt-none'); if (!b) return; state.motif = b.dataset.id; refresh(); });
+  $('tdt-themes').addEventListener('click', e => { const b = e.target.closest('.tdt-th'); if (!b) return; state.theme = TDT.THEMES[b.dataset.id]; state.picked = true; refresh(); });
+  $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo, .tdt-none'); if (!b) return; state.motif = b.dataset.id; state.picked = true; refresh(); });
+  // bấm một trang xem trước: phóng to hết khung / thu nhỏ lại
+  $('tdt-preview').addEventListener('click', e => {
+    const c = e.target.closest('.tdt-grid .cell'); if (!c) return;
+    state.zoom = state.zoom === +c.dataset.i ? -1 : +c.dataset.i; refresh();
+    const z = $('tdt-preview').querySelector(`.cell[data-i="${c.dataset.i}"]`); if (z) z.scrollIntoView({ block: 'nearest' });
+  });
   $('tdt-motif-pal').addEventListener('change', () => refresh());
   $('tdt-sec-hoa').addEventListener('toggle', () => { if ($('tdt-sec-hoa').open) renderMotifs(); });
   dlg.querySelector('.tdt-side').addEventListener('change', syncCur);
@@ -6868,7 +6916,7 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   dlg.addEventListener('dragover', e => e.preventDefault());
   dlg.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files.length) loadFiles([...e.dataTransfer.files]); });
   // mở lại file đã giữ trong trình duyệt (chưa quá 1 giờ)
-  docFile().then(v => { if (v && !state.deck) loadFiles(v.files, v.t); });
+  restored = docFile().then(v => { if (v && !state.deck) return loadFiles(v.files, v.t); });
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => dlg.open && state.deck && refresh(), 200); });
 })();
 

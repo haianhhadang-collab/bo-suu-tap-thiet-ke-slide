@@ -3,7 +3,9 @@
   const TDT = window.TuDanTrang;
   const $ = id => document.getElementById(id);
   const dlg = $('tdt');
-  const state = { deck: null, src: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false, artDau: '' };
+  const state = { deck: null, src: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false, artDau: '', demo: false, picked: false, zoom: -1 };
+  // file ví dụ hiện sẵn trong phần xem trước khi chưa chọn file (bộ slide hướng dẫn, dàn bằng mẫu Dễ thương pastel + Lũy tre)
+  const VI_DU = { url: 'Tu-dan-trang/vi-du/huong-dan-mau.pptx', ten: 'huong-dan-mau.pptx', mau: 'de-thuong', hoaTiet: 'luy-tre' };
   // mẫu thực dùng = mẫu đã chọn + họa tiết theo chủ đề (nếu có)
   const usedTheme = () => state.motif ? TDT.withMotif(state.theme, state.motif, $('tdt-motif-pal').checked) : state.theme;
   const SAMPLE = { title: 'Tiêu đề bài', subtitle: '', meta: [], slides: [], fileName: '' };
@@ -99,11 +101,15 @@
     } catch (e) { console.error(e); status('Lỗi khi dàn trang: ' + e.message, true); return; }
     const box = $('tdt-preview');
     const grid = document.createElement('div'); grid.className = 'tdt-grid';
-    const w = Math.max(200, Math.min(300, (box.clientWidth - 24) / 3 - 8));
+    // khổ hẹp: mỗi trang rộng hết khung; khổ rộng: 2 trang một hàng; trang đang phóng to (bấm vào) rộng hết khung
+    const cw = box.clientWidth, narrow = cw && cw < 560, inner = narrow ? cw - 34 : cw - 2;
+    const w = narrow ? Math.max(200, inner) : Math.max(240, Math.floor((cw - 14) / 2) - 2);
+    if (state.zoom >= state.result.slides.length) state.zoom = -1;
     state.result.slides.forEach((sl, i) => {
-      const cell = document.createElement('div'); cell.className = 'cell';
+      const cell = document.createElement('div'); cell.className = 'cell' + (i === state.zoom ? ' to' : ''); cell.dataset.i = i;
+      cell.title = i === state.zoom ? 'Bấm để thu nhỏ' : 'Bấm để phóng to';
       cell.innerHTML = `<span class="no">${i + 1}</span>`;
-      cell.appendChild(TDT.renderSlide(sl, w));
+      cell.appendChild(TDT.renderSlide(sl, i === state.zoom ? Math.max(w, inner) : w));
       grid.appendChild(cell);
     });
     box.replaceChildren(grid);
@@ -111,12 +117,15 @@
     const a = artCfg(), D = TDT.KHO_ANH;
     const dau = a.dau && D ? D.muc.find(m => m.id === a.dau) : null;
     const art = a.loai !== 'khong' && D ? ` · ${a.loai === 'anh' ? 'ảnh' : 'tranh'} chủ đề “${(D.goi.find(g => g.id === (a.goi === 'tu-dong' ? TDT.khoAnhGoi(state.deck, usedTheme()) : a.goi)) || {}).ten}”${a.goi === 'tu-dong' ? ' (tự đoán)' : ''}${dau && dau.loai === a.loai ? `, bìa “${dau.ten}”` : ''}` : '';
-    status(`${state.result.slides.length} trang · mẫu “${state.result.theme.name}”${state.result.keep ? ' · giữ bố cục gốc' : ''}${art} · ${Math.round(performance.now() - t0)} ms${miss}`);
+    status(`${state.demo ? 'File ví dụ · ' : ''}${state.result.slides.length} trang · mẫu “${state.result.theme.name}”${state.result.keep ? ' · giữ bố cục gốc' : ''}${art} · ${Math.round(performance.now() - t0)} ms${miss}`);
     $('tdt-dl').disabled = false;
   }
   // saved = thời điểm lưu (khi mở lại file đã giữ trong trình duyệt); không có = file vừa chọn
-  async function loadFiles(files, saved) {
+  // demo = file ví dụ (không lưu vào trình duyệt); file thật đầu tiên thì trả mẫu về mặc định nếu người dùng chưa tự chọn
+  async function loadFiles(files, saved, demo) {
     if (!files || !files.length) return;
+    if (!demo && state.demo && !state.picked) { state.theme = TDT.THEMES['song-bien']; state.motif = ''; }
+    state.zoom = -1;
     if (!window.JSZip) { status('Không tải được thư viện JSZip (cần mạng Internet ở lần mở đầu). Hãy kiểm tra kết nối rồi tải lại trang.', true); return; }
     status('Đang đọc file…'); $('tdt-dl').disabled = true;
     try {
@@ -126,11 +135,15 @@
       state.src = /\.pptx$/i.test(main.name) ? await TDT.loadSource(await main.arrayBuffer()) : null;
       $('tdt-keep-row').hidden = !state.src;
       const extra = files.length - 1;
+      state.demo = !!demo;
       const t = saved || Date.now();
       $('tdt-file').innerHTML = '';
-      $('tdt-file').append('📄 ' + main.name + (extra > 0 ? ` + ${extra} file ảnh` : ''));
-      $('tdt-file').insertAdjacentHTML('beforeend', ` <button class="tdt-forget" id="tdt-forget" type="button" title="Xóa file khỏi trình duyệt ngay">× Bỏ file</button><small class="tdt-han">Giữ trong trình duyệt đến ${hhmm(t + LUU.han)}</small>`);
-      if (!saved) luuFile(files, t);
+      if (demo) $('tdt-file').insertAdjacentHTML('beforeend', '📄 <b>File ví dụ:</b> bộ slide hướng dẫn. Chọn file của bạn ở ô trên để thay.');
+      else {
+        $('tdt-file').append('📄 ' + main.name + (extra > 0 ? ` + ${extra} file ảnh` : ''));
+        $('tdt-file').insertAdjacentHTML('beforeend', ` <button class="tdt-forget" id="tdt-forget" type="button" title="Xóa file khỏi trình duyệt ngay">× Bỏ file</button><small class="tdt-han">Giữ trong trình duyệt đến ${hhmm(t + LUU.han)}</small>`);
+        if (!saved) luuFile(files, t);
+      }
       refresh();
     } catch (e) { console.error(e); state.deck = state.src = null; $('tdt-keep-row').hidden = true; status('Không đọc được file: ' + e.message, true); }
   }
@@ -161,7 +174,20 @@
     $('tdt-art-box').hidden = !D;
     if (D && sel.options.length === 1) D.goi.forEach(g => sel.add(new Option('Chủ đề ảnh: ' + g.ten, g.id)));
   }
-  function open() { fillArt(); renderThemes(); if (state.deck) refresh(); if (!dlg.open) dlg.showModal(); }
+  // chưa có file (kể cả file còn giữ trong trình duyệt): mở file ví dụ, dùng đúng mẫu của nó nếu người dùng chưa tự chọn mẫu
+  let restored = Promise.resolve(), demoLoading = false;
+  async function loadDemo() {
+    await restored;
+    if (state.deck || demoLoading) return;
+    demoLoading = true;
+    try {
+      const r = await fetch(VI_DU.url); if (!r.ok) throw new Error(r.status);
+      if (state.deck) return;
+      if (!state.picked) { state.theme = TDT.THEMES[VI_DU.mau]; state.motif = VI_DU.hoaTiet; state.open = null; }
+      await loadFiles([new File([await r.blob()], VI_DU.ten)], null, true);
+    } catch (e) { console.warn('Không mở được file ví dụ', e); } finally { demoLoading = false; }
+  }
+  function open() { fillArt(); renderThemes(); if (state.deck) refresh(); else loadDemo(); if (!dlg.open) dlg.showModal(); }
   // nút "Áp dụng vào slide" ở mục Kho ảnh: chọn bộ ảnh (gói + loại) của thẻ, lấy chính ảnh đó làm ảnh bìa
   TDT.apDungKhoAnh = it => {
     fillArt();
@@ -179,13 +205,19 @@
     const t = T.find(x => x[6] === b.dataset.url); if (!t) return;
     state.cardInfo = { name: t[0], style: t[4], pal: t[7] };
     state.cardTheme = TDT.themeFromCard(state.cardInfo);
-    state.theme = state.cardTheme;
+    state.theme = state.cardTheme; state.picked = true;
     open();
   });
   $('tdt-close').addEventListener('click', () => dlg.close());
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
-  $('tdt-themes').addEventListener('click', e => { const b = e.target.closest('.tdt-th'); if (!b) return; state.theme = TDT.THEMES[b.dataset.id]; refresh(); });
-  $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo, .tdt-none'); if (!b) return; state.motif = b.dataset.id; refresh(); });
+  $('tdt-themes').addEventListener('click', e => { const b = e.target.closest('.tdt-th'); if (!b) return; state.theme = TDT.THEMES[b.dataset.id]; state.picked = true; refresh(); });
+  $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo, .tdt-none'); if (!b) return; state.motif = b.dataset.id; state.picked = true; refresh(); });
+  // bấm một trang xem trước: phóng to hết khung / thu nhỏ lại
+  $('tdt-preview').addEventListener('click', e => {
+    const c = e.target.closest('.tdt-grid .cell'); if (!c) return;
+    state.zoom = state.zoom === +c.dataset.i ? -1 : +c.dataset.i; refresh();
+    const z = $('tdt-preview').querySelector(`.cell[data-i="${c.dataset.i}"]`); if (z) z.scrollIntoView({ block: 'nearest' });
+  });
   $('tdt-motif-pal').addEventListener('change', () => refresh());
   $('tdt-sec-hoa').addEventListener('toggle', () => { if ($('tdt-sec-hoa').open) renderMotifs(); });
   dlg.querySelector('.tdt-side').addEventListener('change', syncCur);
@@ -209,6 +241,6 @@
   dlg.addEventListener('dragover', e => e.preventDefault());
   dlg.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files.length) loadFiles([...e.dataTransfer.files]); });
   // mở lại file đã giữ trong trình duyệt (chưa quá 1 giờ)
-  docFile().then(v => { if (v && !state.deck) loadFiles(v.files, v.t); });
+  restored = docFile().then(v => { if (v && !state.deck) return loadFiles(v.files, v.t); });
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => dlg.open && state.deck && refresh(), 200); });
 })();

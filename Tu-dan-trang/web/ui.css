@@ -66,13 +66,28 @@
 .tdt-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .tdt-status{font-size:13.5px;color:var(--muted);flex:1;min-width:200px}
 .tdt-status.err{color:#c0392b}
-.tdt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-.tdt-grid .cell{position:relative;width:fit-content;justify-self:start}
+.tdt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.tdt-grid .cell{position:relative;width:fit-content;justify-self:start;cursor:zoom-in}
+.tdt-grid .cell.to{grid-column:1/-1;cursor:zoom-out}
 .tdt-grid .cell .no{position:absolute;right:6px;bottom:6px;z-index:2;font-size:11px;font-weight:700;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:1px 6px}
 .tdt-thumb{box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.08)}
 .tdt-empty{border:1px dashed var(--line);border-radius:12px;padding:40px 20px;text-align:center;color:var(--muted);font-size:14.5px;line-height:1.6}
 .tdt-note{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
-@media (max-width:820px){.tdt-body{grid-template-columns:1fr}.tdt-side{border-right:0;border-bottom:1px solid var(--line)}.tdt-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
+/* khổ hẹp (điện thoại, máy tính bảng dọc): cả hộp thoại cuộn một cột liền mạch — các bước trước, xem trước sau;
+   thanh trạng thái + nút tải luôn bám mép dưới/trên vùng cuộn để bấm được bất cứ lúc nào */
+@media (max-width:820px){
+  #tdt{width:calc(100vw - 16px);max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px)}
+  .tdt-wrap{max-height:calc(100vh - 18px);max-height:calc(100dvh - 18px)}
+  .tdt-head{padding:12px 16px}
+  .tdt-body{display:block;overflow:auto;overscroll-behavior:contain}
+  .tdt-side{overflow:visible;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px}
+  .tdt-main{display:contents}
+  .tdt-bar{position:sticky;top:0;bottom:0;z-index:3;margin:0;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  .tdt-status{min-width:0;font-size:13px}
+  .tdt-bar .btn-main{padding:9px 14px;font-size:14px}
+  #tdt-preview{padding:12px 16px 16px}
+  .tdt-grid{grid-template-columns:1fr}
+}
 .tdt-step .tdt-hint{font-weight:500;text-transform:none;letter-spacing:0}
 /* bước 2–5 gập/mở được */
 .tdt-sec{border-top:1px solid var(--line);padding-top:12px}
