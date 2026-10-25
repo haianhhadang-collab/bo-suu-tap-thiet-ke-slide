@@ -253,6 +253,14 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 .tdt-note{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
 @media (max-width:820px){.tdt-body{grid-template-columns:1fr}.tdt-side{border-right:0;border-bottom:1px solid var(--line)}.tdt-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
 .tdt-step .tdt-hint{font-weight:500;text-transform:none;letter-spacing:0}
+/* nút lên đầu trang */
+.len-dau{position:fixed;right:20px;bottom:20px;z-index:8;width:44px;height:44px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--text);box-shadow:var(--shadow);display:grid;place-items:center;cursor:pointer;opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s,background .15s,color .15s}
+.len-dau.on{opacity:1;visibility:visible;transform:none}
+.len-dau:hover{background:var(--chip-on);color:var(--chip-on-text);border-color:var(--chip-on)}
+.len-dau:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.len-dau svg{width:20px;height:20px}
+@media (max-width:600px){.len-dau{right:16px;bottom:16px;width:42px;height:42px}}
+@media (prefers-reduced-motion:reduce){.len-dau{transition:none}}
 /* bước ảnh trang trí trong hộp thoại + mục Kho ảnh trên trang */
 .tdt-luu{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--muted)}
 .tdt-forget{font:inherit;font-size:12.5px;color:var(--accent);background:none;border:0;padding:0 0 0 6px;cursor:pointer}
@@ -963,6 +971,7 @@ window.addEventListener('hashchange', () => { if (wantEdit()) startUI(); });
 <!--/KHO-ANH--></div>
 
 <footer><div class="wrap">Thông tin sưu tập ngày 15/10/2026. Trạng thái miễn phí/Premium và nội dung mẫu có thể đổi theo thời gian. Bảng màu trên thẻ là ước lượng dựa vào tên và mô tả của mẫu. Nhãn “Mới” đánh dấu mẫu bổ sung đợt 15/10/2026.</div></footer>
+<!--LEN-DAU--><button class="len-dau" id="len-dau" type="button" aria-label="Lên đầu trang" title="Lên đầu trang"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button><!--/LEN-DAU-->
 <div class="toast" id="toast"></div>
 <!--TDT-DIALOG-->
 <dialog id="tdt" aria-labelledby="tdt-title">
@@ -6900,6 +6909,16 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   });
   if (location.hash === '#kho-anh') { tog.setAttribute('aria-expanded', 'true'); box.classList.remove('collapsed'); render(); }
   window.addEventListener('hashchange', () => { if (location.hash === '#kho-anh' && tog.getAttribute('aria-expanded') !== 'true') tog.click(); });
+})();
+
+/* Nút lên đầu trang: chỉ hiện khi đã cuộn xuống quá khoảng một màn hình. */
+(function () {
+  const b = document.getElementById('len-dau');
+  if (!b) return;
+  const sync = () => b.classList.toggle('on', scrollY > innerHeight * 0.8);
+  addEventListener('scroll', sync, { passive: true });
+  sync();
+  b.addEventListener('click', () => scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
 })();
 
 </script>

@@ -23,8 +23,11 @@ def main(paths):
     css = (WEB / "ui.css").read_text(encoding="utf-8")
     dialog = (WEB / "ui.html").read_text(encoding="utf-8")
     kho = (WEB / "kho-anh.html").read_text(encoding="utf-8")
+    len_dau = ('<button class="len-dau" id="len-dau" type="button" aria-label="Lên đầu trang" title="Lên đầu trang">'
+               '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" '
+               'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>')
     khung = (WEB / "khung.b64.txt").read_text(encoding="utf-8").strip()
-    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "hoa-van.js", "kho-anh.js", "pptx.js", "preview.js", "giu-bo-cuc.js", "ui.js", "kho-anh-trang.js"))
+    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "hoa-van.js", "kho-anh.js", "pptx.js", "preview.js", "giu-bo-cuc.js", "ui.js", "kho-anh-trang.js", "len-dau.js"))
     assert "</script" not in js.lower()
     head = ('\n<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>\n'
             '<script>window.JSZip||document.write(\'<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\\/script>\')</script>\n')
@@ -70,7 +73,11 @@ def main(paths):
         if not ok:
             assert "</main>" in s, "không tìm thấy </main>"
             s = s.replace("</main>", "</main>\n<div class=\"wrap\"><!--KHO-ANH-->\n" + kho + "<!--/KHO-ANH--></div>", 1)
-        # 7. bộ máy + giao diện (đặt sau script chính của trang)
+        # 7. nút lên đầu trang (góc phải dưới, hiện khi đã cuộn xuống)
+        s, ok = block(s, "<!--LEN-DAU-->", "<!--/LEN-DAU-->", len_dau)
+        if not ok:
+            s = s.replace('<div class="toast" id="toast"></div>', '<!--LEN-DAU-->' + len_dau + '<!--/LEN-DAU-->\n<div class="toast" id="toast"></div>', 1)
+        # 8. bộ máy + giao diện (đặt sau script chính của trang)
         s, ok = block(s, "<!--TDT-JS-->", "<!--/TDT-JS-->", script)
         if not ok:
             i = s.rindex("</body>")
