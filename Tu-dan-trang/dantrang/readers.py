@@ -284,40 +284,38 @@ def _join_lines(paras) -> str:
 # Word
 # ======================================================================
 
+HEAD_STYLE_RE = re.compile(r"^(?:heading|đề mục|đầu đề|tiêu đề)\s*(\d)$")
+TOC_STYLE_RE = re.compile(r"^(?:toc|mục lục)(?:\s|$)")
+
+
 def read_docx(path: Path) -> Deck:
+    """Tách trang theo Heading: mỗi heading (mọi cấp, kể cả kiểu tự đặt có cấp đề cương) mở một trang.
+    Heading cấp ngoài cùng có mục con, chỉ có tên hoặc vài dòng dẫn: trang chương. Heading cấp trong chỉ có tên:
+    không có trang riêng, tên hiện làm phụ đề các trang con.
+    Mục con cấp 3 trở xuống mà mục nào cũng ngắn thì gộp thành thẻ trên trang mục cha."""
     import docx
     from docx.oxml.ns import qn
     doc = docx.Document(str(path))
+    st, pdef, dsz = _docx_styles(doc.styles.element)
     deck = Deck()
-    slides: list[Slide] = []
-    cur: Slide | None = None
-    pending_label = ""
-    h1_open: Slide | None = None
-
-    def new(title, hint=""):
-        nonlocal cur
-        cur = Slide(title=title, hint=hint)
-        slides.append(cur)
-        return cur
-
-    body = doc.element.body
+    blocks: list[dict] = []
     rels = doc.part.related_parts
-    for el in body.iterchildren():
+    for el in doc.element.body.iterchildren():
         tag = el.tag.split("}")[1]
         if tag == "tbl":
             tbl = docx.table.Table(el, doc)
             rows = [[clean(c.text) for c in r.cells] for r in tbl.rows]
             rows = [r for r in rows if any(r)]
             if rows:
-                if cur is None or cur.items or cur.table or cur.images:
-                    new(cur.title if cur else deck.title)
-                    cur.cont = bool(cur.title)
-                cur.table = rows
+                blocks.append(dict(t="table", rows=rows))
             continue
         if tag != "p":
             continue
         para = docx.text.paragraph.Paragraph(el, doc)
-        style = (para.style.name if para.style is not None else "").lower()
+        ppr = el.find(qn("w:pPr"))
+        ps = ppr.find(qn("w:pStyle")) if ppr is not None else None
+        sid = ps.get(qn("w:val")) if ps is not None else pdef
+        style = st[sid]["name"] if sid in st else (sid or "").lower()
         txt = clean(para.text)
         # ảnh trong đoạn
         for blip in el.iter(qn("a:blip")):
@@ -326,10 +324,8 @@ def read_docx(path: Path) -> Deck:
             if part is not None:
                 im = Img.from_bytes(part.blob)
                 if im:
-                    if cur is None:
-                        new(deck.title or "")
-                    cur.images.append(im)
-        if not txt:
+                    blocks.append(dict(t="img", img=im))
+        if not txt or TOC_STYLE_RE.match(style):
             continue
         if style == "title":
             deck.title = txt
@@ -337,53 +333,246 @@ def read_docx(path: Path) -> Deck:
         if style == "subtitle":
             deck.subtitle = txt
             continue
-        m = re.match(r"heading (\d)", style) or re.match(r"đề mục (\d)", style)
-        if m:
-            lvl = int(m.group(1))
-            if lvl == 1:
-                if not deck.title and not slides:
-                    deck.title = txt
-                    continue
-                h1_open = new(txt)
-                pending_label = ""
-            elif lvl == 2:
-                if h1_open is not None and h1_open is cur and not cur.items and not cur.images and not cur.table:
-                    h1_open.hint = "section"
-                new(txt)
-                pending_label = ""
-            else:
-                pending_label = txt
+        hl = _head_level(st, sid, ppr)
+        if hl:
+            blocks.append(dict(t="h", level=hl, text=txt))
             continue
-        if cur is None:
-            if not deck.title:
-                deck.title = txt
-                continue
-            if not deck.subtitle and len(txt) < 140 and not slides:
-                deck.subtitle = txt
-                continue
-            new(deck.title)
-        is_list = "list" in style or el.find(qn("w:pPr")) is not None and el.find(qn("w:pPr")).find(qn("w:numPr")) is not None
+        is_list = "list" in style or ppr is not None and ppr.find(qn("w:numPr")) is not None
         lvl = 0
         if is_list:
             ilvl = el.find(f".//{qn('w:ilvl')}")
             lvl = int(ilvl.get(qn("w:val"))) if ilvl is not None else 0
         if "quote" in style or "trích" in style:
-            cur.items.append(Item(text=txt, kind="quote"))
-        elif pending_label:
-            cur.items.append(Item(text=txt, kind="card", label=pending_label))
-            pending_label = ""
+            item = Item(text=txt, kind="quote")
         elif is_list or BULLET_RE.match(txt):
-            cur.items.append(Item(text=strip_bullet(txt), kind="bullet", level=min(lvl, 2)))
+            item = Item(text=strip_bullet(txt), kind="bullet", level=min(lvl, 2))
         else:
-            cur.items.append(Item(text=txt, kind="para"))
-    if pending_label and cur is not None:
-        cur.items.append(Item(text=pending_label, kind="para"))
+            item = Item(text=txt, kind="para")
+        bold, size = _para_fmt(el, st, sid, dsz)
+        blocks.append(dict(t="p", item=item, text=txt, bold=bold, size=size, list=is_list))
+
+    if not any(b["t"] == "h" for b in blocks):
+        _guess_heads(blocks)
+    root = _tree(blocks)
+    pre, tops = root.body, root.kids
+    if not deck.title and not any(b["t"] == "p" for b in pre) and tops:
+        first = tops[0]
+        if len(tops) == 1 and first.kids:   # một heading bao cả bài => tên bài
+            deck.title, pre, tops = first.title, first.body, first.kids
+        elif not first.kids and len(tops) > 1 and _cover_like(first.body):
+            deck.title, pre, tops = first.title, first.body, tops[1:]
+    slides: list[Slide] = []
+    # phần trước heading đầu tiên: tên bài, phụ đề, các dòng thông tin trên trang bìa
+    rest = []
+    for b in pre:
+        if b["t"] == "p" and not deck.title:
+            deck.title = b["text"]
+        elif b["t"] == "p" and not deck.subtitle and not rest and len(b["text"]) < 140:
+            deck.subtitle = b["text"]
+        else:
+            rest.append(b)
+    if rest and len(rest) <= 4 and all(b["t"] == "p" and len(b["text"]) < 140 for b in rest):
+        deck.meta = [b["item"].text for b in rest]
+    elif rest:
+        slides += _body_slides(deck.title, "", rest)
+    for n in tops:
+        _emit(n, 1, "", slides)
     if not deck.title:
         deck.title = path.stem
     deck.slides = [s for s in slides if s.title or s.items or s.images or s.table]
     if not any(s.title for s in deck.slides):
         _auto_titles(deck)
     return deck
+
+
+def _int(el, tag):
+    from docx.oxml.ns import qn
+    e = el.find(qn(tag)) if el is not None else None
+    v = e.get(qn("w:val")) if e is not None else None
+    return int(v) if v is not None and re.fullmatch(r"-?\d+", v) else None
+
+
+def _onoff(el, tag):
+    from docx.oxml.ns import qn
+    e = el.find(qn(tag)) if el is not None else None
+    return None if e is None else e.get(qn("w:val")) not in ("0", "false", "off")
+
+
+def _docx_styles(root):
+    """styleId -> tên, kiểu gốc, cấp đề cương, đậm, cỡ chữ; kèm kiểu đoạn mặc định và cỡ chữ mặc định."""
+    from docx.oxml.ns import qn
+    st, pdef = {}, ""
+    for s in root.findall(qn("w:style")):
+        sid = s.get(qn("w:styleId")) or ""
+        nm, based = s.find(qn("w:name")), s.find(qn("w:basedOn"))
+        ppr, rpr = s.find(qn("w:pPr")), s.find(qn("w:rPr"))
+        st[sid] = dict(name=((nm.get(qn("w:val")) if nm is not None else None) or sid).lower(),
+                       based=(based.get(qn("w:val")) if based is not None else None) or "",
+                       outline=_int(ppr, "w:outlineLvl"), bold=_onoff(rpr, "w:b"), size=_int(rpr, "w:sz"))
+        if s.get(qn("w:type")) == "paragraph" and s.get(qn("w:default")) in ("1", "true"):
+            pdef = sid
+    dr = root.find(qn("w:docDefaults"))
+    for t in ("w:rPrDefault", "w:rPr"):
+        dr = dr.find(qn(t)) if dr is not None else None
+    return st, pdef, _int(dr, "w:sz") or 22
+
+
+def _chain(st, sid):
+    """Kiểu và các kiểu gốc của nó (basedOn)."""
+    seen = []
+    while sid and sid in st and sid not in seen and len(seen) < 12:
+        seen.append(sid)
+        sid = st[sid]["based"]
+    return [st[s] for s in seen]
+
+
+def _head_level(st, sid, ppr) -> int:
+    """Cấp heading 1–9 (0 = đoạn thường): cấp đề cương của đoạn, rồi tên kiểu / cấp đề cương của kiểu và kiểu gốc."""
+    o = _int(ppr, "w:outlineLvl")
+    if o is not None:
+        return o + 1 if o < 9 else 0
+    for s in _chain(st, sid):
+        m = HEAD_STYLE_RE.match(s["name"])
+        if m:
+            return int(m.group(1))
+        if s["outline"] is not None:
+            return s["outline"] + 1 if s["outline"] < 9 else 0
+    return 0
+
+
+def _para_fmt(el, st, sid, dsz):
+    """(cả đoạn in đậm, cỡ chữ lớn nhất theo nửa point)."""
+    from docx.oxml.ns import qn
+    pc = _chain(st, sid)
+    pb = next((s["bold"] for s in pc if s["bold"] is not None), False)
+    ps = next((s["size"] for s in pc if s["size"]), None) or dsz
+    allb, anyt, size = True, False, 0
+    for r in el.iter(qn("w:r")):
+        if not "".join(x.text or "" for x in r.iter(qn("w:t"))).strip():
+            continue
+        anyt = True
+        rpr = r.find(qn("w:rPr"))
+        b, sz = _onoff(rpr, "w:b"), _int(rpr, "w:sz")
+        rs = rpr.find(qn("w:rStyle")) if rpr is not None else None
+        if rs is not None:
+            cc = _chain(st, rs.get(qn("w:val")))
+            if b is None:
+                b = next((s["bold"] for s in cc if s["bold"] is not None), None)
+            if not sz:
+                sz = next((s["size"] for s in cc if s["size"]), None)
+        if b is None:
+            b = pb
+        allb = allb and b
+        size = max(size, sz or ps)
+    return anyt and allb, size
+
+
+def _num_depth(t: str) -> int:
+    """Độ sâu theo cách đánh số đầu dòng: Chương/Phần, I. => 0; 1. => 1; 1.1. => 2; a) => 5."""
+    if re.match(r"(?:chương|phần|part|chapter)\s+[\dIVXLC]+", t, re.I) or re.match(r"[IVXLC]+[.)]\s", t):
+        return 0
+    m = re.match(r"(\d+(?:\.\d+)*)\.?\)?\s", t)
+    if m:
+        return m.group(1).count(".") + 1
+    if re.match(r"[a-zđ][.)]\s", t):
+        return 5
+    return 0 if t.isupper() else 1
+
+
+def _guess_heads(blocks):
+    """Văn bản không dùng kiểu Heading: dòng in đậm cả dòng, ngắn, không kết thúc bằng dấu chấm, phẩy => tiêu đề.
+    Cấp xếp theo cỡ chữ (to trước) rồi theo cách đánh số."""
+    paras = [b for b in blocks if b["t"] == "p"]
+    cands = [b for b in paras if b["bold"] and not b["list"] and len(b["text"]) <= 100
+             and len(b["text"].split()) <= 14 and not re.search(r"[.;,]$", b["text"])]
+    if len(cands) < 2 or len(cands) > 0.5 * len(paras):
+        return
+    keys = sorted({(-b["size"], _num_depth(b["text"])) for b in cands})
+    for b in cands:
+        b["level"] = keys.index((-b["size"], _num_depth(b["text"]))) + 1
+        b["t"] = "h"
+        b["text"] = re.sub(r"\s*[:：]$", "", b["text"])
+
+
+class _Sec:
+    """Một mục của văn bản: tên (heading), nội dung ngay dưới nó, các mục con."""
+
+    def __init__(self, level: int, title: str):
+        self.level, self.title = level, title
+        self.body: list[dict] = []
+        self.kids: list[_Sec] = []
+
+
+def _tree(blocks) -> _Sec:
+    root = _Sec(0, "")
+    stack = [root]
+    for b in blocks:
+        if b["t"] == "h":
+            while stack[-1].level >= b["level"]:
+                stack.pop()
+            n = _Sec(b["level"], b["text"])
+            stack[-1].kids.append(n)
+            stack.append(n)
+        else:
+            stack[-1].body.append(b)
+    return root
+
+
+def _cover_like(body) -> bool:
+    return len(body) <= 3 and all(b["t"] == "p" and len(b["text"]) < 140 for b in body)
+
+
+def _intro(body) -> bool:
+    """Lời dẫn ngắn của chương (tối đa 2 đoạn, 220 ký tự): hiện dưới tên chương trên trang chương."""
+    return len(body) <= 2 and all(b["t"] == "p" for b in body) and sum(len(b["item"].text) for b in body) <= 220
+
+
+def _body_slides(title, sub, blocks) -> list[Slide]:
+    cur = Slide(title=title, subtitle=sub)
+    out = [cur]
+    for b in blocks:
+        if b["t"] == "table":
+            if cur.items or cur.table or cur.images:
+                cur = Slide(title=title, subtitle=sub, cont=bool(title))
+                out.append(cur)
+            cur.table = b["rows"]
+        elif b["t"] == "img":
+            cur.images.append(b["img"])
+        else:
+            cur.items.append(b["item"])
+    return out
+
+
+def _short(n: _Sec) -> bool:
+    """Mục ngắn: không có mục con, bảng, ảnh; tối đa 4 ý, tổng 300 ký tự."""
+    if n.kids or any(b["t"] != "p" for b in n.body):
+        return False
+    ts = [b["item"].text for b in n.body]
+    return len(ts) <= 4 and sum(len(t) for t in ts) <= 300 and (len(ts) <= 1 or max(len(t) for t in ts) <= 120)
+
+
+def _emit(n: _Sec, depth: int, crumb: str, out: list[Slide]):
+    kids = n.kids
+    if len(kids) >= 2 and (depth >= 2 or min(k.level for k in kids) >= 3) and all(_short(k) for k in kids):
+        ss = _body_slides(n.title, crumb, n.body)
+        if ss[-1].table:
+            ss.append(Slide(title=n.title, subtitle=crumb, cont=True))
+        if all(not k.body for k in kids):
+            ss[-1].items += [Item(text=k.title, kind="bullet") for k in kids]
+        else:
+            ss[-1].items += [Item(text="\n".join(b["item"].text for b in k.body), kind="card", label=k.title)
+                             for k in kids]
+        out += ss
+        return
+    sub = ""
+    if depth == 1 and kids and _intro(n.body):   # chương chỉ có tên hoặc vài dòng dẫn => trang chương
+        out.append(Slide(title=n.title, hint="section", items=[b["item"] for b in n.body]))
+    elif n.body or not kids:
+        out += _body_slides(n.title, crumb, n.body)
+    else:   # mục trung gian chỉ có tên: hiện làm phụ đề trên các trang con
+        sub = f"{crumb} · {n.title}" if crumb else n.title
+    for k in kids:
+        _emit(k, depth + 1, sub, out)
 
 
 # ======================================================================

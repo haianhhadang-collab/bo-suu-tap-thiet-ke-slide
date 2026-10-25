@@ -219,12 +219,15 @@ Ghi chú: lời thuyết trình     ← vào ghi chú (notes) của trang
 ---                           ← ép sang trang mới
 ```
 
-**Word (.docx)**: dùng các kiểu có sẵn của Word.
-- Title: tên bài. Subtitle: phụ đề.
-- Heading 1/2: tiêu đề trang. Heading 1 đứng ngay trước Heading 2 thành trang chương.
-- Heading 3: nhãn thẻ.
-- List Bullet: gạch đầu dòng.
-- Bảng và ảnh chèn trong văn bản đều được giữ lại.
+**Word (.docx)**: nội dung được **tách trang theo Heading**. Xem `vi-du\tai-lieu-nhieu-cap.docx`.
+- Title: tên bài. Subtitle: phụ đề. Vài dòng ngắn trước heading đầu tiên (người soạn, đơn vị, ngày) lên trang bìa. Không có Title thì heading đầu tiên bao cả bài làm tên bài.
+- **Mỗi heading mở một trang**, ở mọi cấp (Heading 1, 2, 3…). Tên heading là tiêu đề trang, nội dung ngay dưới heading là nội dung trang. Nội dung dài tự sang trang "(tiếp)".
+- Heading cấp ngoài cùng (thường là Heading 1) có mục con thành **trang chương** (01, 02…). Nếu dưới nó có một hai câu dẫn ngắn thì câu dẫn hiện dưới tên chương.
+- Heading cấp trong chỉ có tên, không có nội dung riêng (ví dụ "1.2. Vòng đời dự án" rồi đến ngay các Heading 3): không thành trang riêng, tên của nó hiện làm phụ đề trên các trang con.
+- Các mục con từ Heading 3 trở xuống mà mục nào cũng ngắn (tối đa 4 ý, khoảng 300 ký tự, không có bảng, ảnh) thì gộp thành **thẻ** trên trang mục cha. Các mục con chỉ có tên thì thành danh sách gạch đầu dòng.
+- Kiểu heading tự đặt (ví dụ kiểu "Chương", "Mục") được nhận theo cấp đề cương (Outline level) của kiểu, hoặc theo kiểu Heading mà nó dựa vào.
+- Văn bản không dùng kiểu Heading nào: dòng in đậm cả dòng, ngắn, không kết thúc bằng dấu chấm được coi là heading. Cấp xếp theo cỡ chữ rồi theo cách đánh số (I. → 1. → 1.1. → a)).
+- Mục lục của Word được bỏ qua. List Bullet: gạch đầu dòng. Bảng và ảnh chèn trong văn bản đều được giữ lại.
 
 **Văn bản (.txt)**: xem `vi-du\ghi-chu-nhanh.txt`. Khối đầu tiên là tên bài, phụ đề và thông tin. Mỗi khối cách nhau một dòng trống là một trang; dòng đầu ngắn của khối là tiêu đề trang.
 

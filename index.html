@@ -2151,32 +2151,34 @@ function fixChips(items) {
 }
 
 // ---------- Word
+// Tách trang theo Heading: mỗi heading (mọi cấp, kể cả kiểu tự đặt có cấp đề cương) mở một trang.
+// Heading cấp ngoài cùng có mục con, chỉ có tên hoặc vài dòng dẫn: trang chương. Heading cấp trong chỉ có tên:
+// không có trang riêng, tên hiện làm phụ đề các trang con.
+// Mục con cấp 3 trở xuống mà mục nào cũng ngắn thì gộp thành thẻ trên trang mục cha.
+const HEAD_STYLE_RE = /^(?:heading|đề mục|đầu đề|tiêu đề)\s*(\d)$/u;
+const TOC_STYLE_RE = /^(?:toc|mục lục)(?:\s|$)/u;
+const wInt = (el, ln) => { const v = attr(kid(el, ln), 'w:val'); return v !== null && /^-?\d+$/.test(v) ? +v : null; };
+const wOnOff = (el, ln) => { const e = kid(el, ln); return e ? !['0', 'false', 'off'].includes(attr(e, 'w:val')) : null; };
+
 async function readDocx(zip) {
   const docPath = 'word/document.xml';
   const doc = parseXml(await zip.file(docPath).async('string')).documentElement;
-  const styleNames = {};
-  if (zip.file('word/styles.xml')) {
-    const st = parseXml(await zip.file('word/styles.xml').async('string')).documentElement;
-    for (const s of desc(st, 'style')) { const n = desc(s, 'name')[0]; styleNames[s.getAttribute('w:styleId')] = (n ? n.getAttribute('w:val') : s.getAttribute('w:styleId')).toLowerCase(); }
-  }
+  const { st, pdef, dsz } = docxStyles(zip.file('word/styles.xml') ? parseXml(await zip.file('word/styles.xml').async('string')).documentElement : null);
   const rel = await rels(zip, docPath);
   const deck = { title: '', subtitle: '', meta: [], slides: [], coverNotes: '' };
-  const slides = []; let cur = null, pendingLabel = '', h1Open = null;
-  const nw = (title, hint = '') => { cur = Slide({ title, hint }); slides.push(cur); return cur; };
+  const blocks = [];
   const body = desc(doc, 'body')[0];
   for (const el of body.children) {
     if (el.localName === 'tbl') {
-      const rows = kids(el, 'tr').map(tr => kids(tr, 'tc').map(tc => clean(desc(tc, 't').map(t => t.textContent).join(' ')))).filter(r => r.some(Boolean));
-      if (rows.length) {
-        if (!cur || cur.items.length || cur.table || cur.images.length) { const t = cur ? cur.title : deck.title; nw(t); cur.cont = !!t; }
-        cur.table = rows;
-      }
+      const rows = kids(el, 'tr').map(tr => kids(tr, 'tc').map(cellText)).filter(r => r.some(Boolean));
+      if (rows.length) blocks.push({ t: 'table', rows });
       continue;
     }
     if (el.localName !== 'p') continue;
     const pPr = kid(el, 'pPr');
-    const sid = attr(path(pPr, 'pStyle'), 'w:val') || '';
-    const style = styleNames[sid] || sid.toLowerCase();
+    const ps = kid(pPr, 'pStyle');
+    const sid = ps ? attr(ps, 'w:val') || '' : pdef;
+    const style = st[sid] ? st[sid].name : sid.toLowerCase();
     let txt = '';
     for (const n of el.getElementsByTagName('*')) { if (n.localName === 't') txt += n.textContent; else if (n.localName === 'tab' || n.localName === 'br') txt += ' '; }
     txt = clean(txt);
@@ -2185,42 +2187,171 @@ async function readDocx(zip) {
       if (r && r.target && zip.file(r.target)) {
         const ext = desc(el, 'extent')[0];
         const ratio = ext ? (+attr(ext, 'cx')) / (+attr(ext, 'cy') || 1) : 1.5;
-        const im = await makeImg(await zip.file(r.target).async('uint8array'), r.target.split('.').pop(), ratio);
-        if (!cur) nw(deck.title || '');
-        cur.images.push(im);
+        blocks.push({ t: 'img', img: await makeImg(await zip.file(r.target).async('uint8array'), r.target.split('.').pop(), ratio) });
       }
     }
-    if (!txt) continue;
+    if (!txt || TOC_STYLE_RE.test(style)) continue;
     if (style === 'title') { deck.title = txt; continue; }
     if (style === 'subtitle') { deck.subtitle = txt; continue; }
-    const m = style.match(/heading (\d)/) || style.match(/đề mục (\d)/);
-    if (m) {
-      const lvl = +m[1];
-      if (lvl === 1) {
-        if (!deck.title && !slides.length) { deck.title = txt; continue; }
-        h1Open = nw(txt); pendingLabel = '';
-      } else if (lvl === 2) {
-        if (h1Open && h1Open === cur && !cur.items.length && !cur.images.length && !cur.table) h1Open.hint = 'section';
-        nw(txt); pendingLabel = '';
-      } else pendingLabel = txt;
-      continue;
-    }
-    if (!cur) {
-      if (!deck.title) { deck.title = txt; continue; }
-      if (!deck.subtitle && txt.length < 140 && !slides.length) { deck.subtitle = txt; continue; }
-      nw(deck.title);
-    }
+    const hl = headLevel(st, sid, pPr);
+    if (hl) { blocks.push({ t: 'h', level: hl, text: txt }); continue; }
     const isList = style.includes('list') || !!path(pPr, 'numPr');
     const ilvl = isList ? +(attr(path(pPr, 'numPr', 'ilvl'), 'w:val') || 0) : 0;
-    if (style.includes('quote') || style.includes('trích')) cur.items.push(Item(txt, 'quote'));
-    else if (pendingLabel) { cur.items.push(Item(txt, 'card', 0, pendingLabel)); pendingLabel = ''; }
-    else if (isList || BULLET_RE.test(txt)) cur.items.push(Item(stripBullet(txt), 'bullet', Math.min(ilvl, 2)));
-    else cur.items.push(Item(txt, 'para'));
+    let item;
+    if (style.includes('quote') || style.includes('trích')) item = Item(txt, 'quote');
+    else if (isList || BULLET_RE.test(txt)) item = Item(stripBullet(txt), 'bullet', Math.min(ilvl, 2));
+    else item = Item(txt, 'para');
+    const [bold, size] = paraFmt(el, st, sid, dsz);
+    blocks.push({ t: 'p', item, text: txt, bold, size, list: isList });
   }
-  if (pendingLabel && cur) cur.items.push(Item(pendingLabel, 'para'));
+
+  if (!blocks.some(b => b.t === 'h')) guessHeads(blocks);
+  const root = docxTree(blocks);
+  let pre = root.body, tops = root.kids;
+  if (!deck.title && !pre.some(b => b.t === 'p') && tops.length) {
+    const first = tops[0];
+    if (tops.length === 1 && first.kids.length) { deck.title = first.title; pre = first.body; tops = first.kids; }   // một heading bao cả bài => tên bài
+    else if (!first.kids.length && tops.length > 1 && coverLike(first.body)) { deck.title = first.title; pre = first.body; tops = tops.slice(1); }
+  }
+  const slides = [];
+  // phần trước heading đầu tiên: tên bài, phụ đề, các dòng thông tin trên trang bìa
+  const rest = [];
+  for (const b of pre) {
+    if (b.t === 'p' && !deck.title) deck.title = b.text;
+    else if (b.t === 'p' && !deck.subtitle && !rest.length && b.text.length < 140) deck.subtitle = b.text;
+    else rest.push(b);
+  }
+  if (rest.length && rest.length <= 4 && rest.every(b => b.t === 'p' && b.text.length < 140)) deck.meta = rest.map(b => b.item.text);
+  else if (rest.length) slides.push(...bodySlides(deck.title, '', rest));
+  for (const n of tops) emitSec(n, 1, '', slides);
   deck.slides = slides.filter(s => s.title || s.items.length || s.images.length || s.table);
   if (!deck.slides.some(s => s.title)) autoTitles(deck);
   return deck;
+}
+// styleId -> tên, kiểu gốc, cấp đề cương, đậm, cỡ chữ; kèm kiểu đoạn mặc định và cỡ chữ mặc định
+function docxStyles(root) {
+  const st = {}; let pdef = '';
+  for (const s of kids(root, 'style')) {
+    const sid = attr(s, 'w:styleId') || '';
+    const nm = kid(s, 'name'), based = kid(s, 'basedOn'), pPr = kid(s, 'pPr'), rPr = kid(s, 'rPr');
+    st[sid] = { name: ((nm && attr(nm, 'w:val')) || sid).toLowerCase(), based: (based && attr(based, 'w:val')) || '',
+      outline: wInt(pPr, 'outlineLvl'), bold: wOnOff(rPr, 'b'), size: wInt(rPr, 'sz') };
+    if (attr(s, 'w:type') === 'paragraph' && ['1', 'true'].includes(attr(s, 'w:default'))) pdef = sid;
+  }
+  return { st, pdef, dsz: wInt(path(root, 'docDefaults', 'rPrDefault', 'rPr'), 'sz') || 22 };
+}
+// kiểu và các kiểu gốc của nó (basedOn)
+function styleChain(st, sid) {
+  const seen = [];
+  while (sid && st[sid] && !seen.includes(sid) && seen.length < 12) { seen.push(sid); sid = st[sid].based; }
+  return seen.map(s => st[s]);
+}
+// cấp heading 1–9 (0 = đoạn thường): cấp đề cương của đoạn, rồi tên kiểu / cấp đề cương của kiểu và kiểu gốc
+function headLevel(st, sid, pPr) {
+  const o = wInt(pPr, 'outlineLvl');
+  if (o !== null) return o < 9 ? o + 1 : 0;
+  for (const s of styleChain(st, sid)) {
+    const m = s.name.match(HEAD_STYLE_RE);
+    if (m) return +m[1];
+    if (s.outline !== null) return s.outline < 9 ? s.outline + 1 : 0;
+  }
+  return 0;
+}
+// [cả đoạn in đậm, cỡ chữ lớn nhất theo nửa point]
+function paraFmt(el, st, sid, dsz) {
+  const pc = styleChain(st, sid);
+  const pb = (pc.find(s => s.bold !== null) || { bold: false }).bold;
+  const ps = (pc.find(s => s.size) || {}).size || dsz;
+  let allb = true, anyt = false, size = 0;
+  for (const r of el.getElementsByTagName('w:r')) {
+    if (![...r.getElementsByTagName('w:t')].map(x => x.textContent).join('').trim()) continue;
+    anyt = true;
+    const rPr = kid(r, 'rPr');
+    let b = wOnOff(rPr, 'b'), sz = wInt(rPr, 'sz');
+    const rs = kid(rPr, 'rStyle');
+    if (rs) {
+      const cc = styleChain(st, attr(rs, 'w:val'));
+      if (b === null) b = (cc.find(s => s.bold !== null) || { bold: null }).bold;
+      if (!sz) sz = (cc.find(s => s.size) || { size: null }).size;
+    }
+    if (b === null) b = pb;
+    allb = allb && b; size = Math.max(size, sz || ps);
+  }
+  return [anyt && allb, size];
+}
+// độ sâu theo cách đánh số đầu dòng: Chương/Phần, I. => 0; 1. => 1; 1.1. => 2; a) => 5
+function numDepth(t) {
+  if (/^(?:chương|phần|part|chapter)\s+[\dIVXLC]+/iu.test(t) || /^[IVXLC]+[.)]\s/u.test(t)) return 0;
+  const m = t.match(/^(\d+(?:\.\d+)*)\.?\)?\s/u);
+  if (m) return m[1].split('.').length;
+  if (/^[a-zđ][.)]\s/u.test(t)) return 5;
+  return isUpper(t) ? 0 : 1;
+}
+// văn bản không dùng kiểu Heading: dòng in đậm cả dòng, ngắn, không kết thúc bằng dấu chấm, phẩy => tiêu đề;
+// cấp xếp theo cỡ chữ (to trước) rồi theo cách đánh số
+function guessHeads(blocks) {
+  const paras = blocks.filter(b => b.t === 'p');
+  const cands = paras.filter(b => b.bold && !b.list && b.text.length <= 100 && words(b.text).length <= 14 && !/[.;,]$/.test(b.text));
+  if (cands.length < 2 || cands.length > 0.5 * paras.length) return;
+  const key = b => -b.size + ',' + numDepth(b.text);
+  const keys = [...new Set(cands.map(key))].map(k => k.split(',').map(Number)).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(k => k.join(','));
+  for (const b of cands) { b.level = keys.indexOf(key(b)) + 1; b.t = 'h'; b.text = b.text.replace(/\s*[:：]$/u, ''); }
+}
+// mỗi mục: tên (heading), nội dung ngay dưới nó, các mục con
+function docxTree(blocks) {
+  const root = { level: 0, title: '', body: [], kids: [] }, stack = [root];
+  for (const b of blocks) {
+    if (b.t === 'h') {
+      while (stack[stack.length - 1].level >= b.level) stack.pop();
+      const n = { level: b.level, title: b.text, body: [], kids: [] };
+      stack[stack.length - 1].kids.push(n); stack.push(n);
+    } else stack[stack.length - 1].body.push(b);
+  }
+  return root;
+}
+// chữ trong ô bảng như python-docx: nối các mẩu chữ liền nhau (Word hay cắt một từ thành nhiều mẩu), mỗi đoạn một dòng
+const cellText = tc => clean(kids(tc, 'p').map(p => {
+  let t = '';
+  for (const n of p.getElementsByTagName('*')) { if (n.localName === 't') t += n.textContent; else if (n.localName === 'tab') t += ' '; else if (n.localName === 'br' || n.localName === 'cr') t += '\n'; }
+  return t;
+}).join('\n'));
+const coverLike = body => body.length <= 3 && body.every(b => b.t === 'p' && b.text.length < 140);
+// lời dẫn ngắn của chương (tối đa 2 đoạn, 220 ký tự): hiện dưới tên chương trên trang chương
+const isIntro = body => body.length <= 2 && body.every(b => b.t === 'p') && body.reduce((a, b) => a + b.item.text.length, 0) <= 220;
+function bodySlides(title, sub, blocks) {
+  let cur = Slide({ title, subtitle: sub });
+  const out = [cur];
+  for (const b of blocks) {
+    if (b.t === 'table') {
+      if (cur.items.length || cur.table || cur.images.length) { cur = Slide({ title, subtitle: sub, cont: !!title }); out.push(cur); }
+      cur.table = b.rows;
+    } else if (b.t === 'img') cur.images.push(b.img);
+    else cur.items.push(b.item);
+  }
+  return out;
+}
+// mục ngắn: không có mục con, bảng, ảnh; tối đa 4 ý, tổng 300 ký tự
+function isShortSec(n) {
+  if (n.kids.length || n.body.some(b => b.t !== 'p')) return false;
+  const ts = n.body.map(b => b.item.text);
+  return ts.length <= 4 && ts.reduce((a, t) => a + t.length, 0) <= 300 && (ts.length <= 1 || Math.max(...ts.map(t => t.length)) <= 120);
+}
+function emitSec(n, depth, crumb, out) {
+  const ks = n.kids;
+  if (ks.length >= 2 && (depth >= 2 || Math.min(...ks.map(k => k.level)) >= 3) && ks.every(isShortSec)) {
+    const ss = bodySlides(n.title, crumb, n.body);
+    if (ss[ss.length - 1].table) ss.push(Slide({ title: n.title, subtitle: crumb, cont: true }));
+    const last = ss[ss.length - 1];
+    if (ks.every(k => !k.body.length)) last.items.push(...ks.map(k => Item(k.title, 'bullet')));
+    else last.items.push(...ks.map(k => Item(k.body.map(b => b.item.text).join('\n'), 'card', 0, k.title)));
+    out.push(...ss);
+    return;
+  }
+  let sub = '';
+  if (depth === 1 && ks.length && isIntro(n.body)) out.push(Slide({ title: n.title, hint: 'section', items: n.body.map(b => b.item) }));   // chương chỉ có tên hoặc vài dòng dẫn => trang chương
+  else if (n.body.length || !ks.length) out.push(...bodySlides(n.title, crumb, n.body));
+  else sub = crumb ? `${crumb} · ${n.title}` : n.title;   // mục trung gian chỉ có tên: hiện làm phụ đề trên các trang con
+  for (const k of ks) emitSec(k, depth + 1, sub, out);
 }
 
 // ---------- Markdown / văn bản
