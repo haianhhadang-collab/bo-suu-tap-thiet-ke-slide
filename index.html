@@ -270,6 +270,7 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 .tdt-step .tdt-hint{font-weight:500;text-transform:none;letter-spacing:0}
 /* bước 2–5 gập/mở được */
 .tdt-sec{border-top:1px solid var(--line);padding-top:12px}
+.tdt-sec.tdt-sec-1{border-top:0;padding-top:0}
 .tdt-sec>summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;border-radius:6px}
 .tdt-sec>summary::-webkit-details-marker{display:none}
 .tdt-sec>summary::before{content:"▸";flex:none;color:var(--muted);font-size:12px;line-height:1;transition:transform .15s}
@@ -293,7 +294,6 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 .tdt-luu{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--muted)}
 .tdt-forget{font:inherit;font-size:12.5px;color:var(--accent);background:none;border:0;padding:0 0 0 6px;cursor:pointer}
 .tdt-forget:hover{text-decoration:underline}
-.tdt-han{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 .tdt-opts a.tdt-hint{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--accent);text-decoration:none}
 .tdt-opts a.tdt-hint:hover{text-decoration:underline}
 section.ka-sec{padding:34px 0 30px;border-top:1px solid var(--line);margin-top:24px}
@@ -1010,17 +1010,18 @@ window.addEventListener('hashchange', () => { if (wantEdit()) startUI(); });
     </div>
     <div class="tdt-body">
       <div class="tdt-side">
-        <div>
-          <p class="tdt-step">1 · File của bạn</p>
+        <!-- bước 1 gập được nhưng luôn mở sẵn khi mở hộp thoại -->
+        <details class="tdt-sec tdt-sec-1" id="tdt-sec-file" open>
+          <summary><span class="tdt-step">1 · File của bạn</span><span class="tdt-cur" id="tdt-cur-file"></span></summary>
           <div class="tdt-drop" id="tdt-drop" tabindex="0" role="button" aria-label="Chọn file để dàn trang">
             <b>Kéo thả file vào đây</b>
             <span>hoặc bấm để chọn · .pptx, .docx, .pdf, .md, .txt<br>(file .md có ảnh: chọn kèm các file ảnh)</span>
           </div>
           <input type="file" id="tdt-input" multiple accept=".pptx,.docx,.pdf,.md,.markdown,.txt,image/*" hidden>
           <div class="tdt-file" id="tdt-file"></div>
-          <p class="tdt-luu">Đã tải file lên thì có thể đóng hộp thoại để xem mẫu, kho ảnh rồi mở lại chọn tiếp. File được giữ ngay trong trình duyệt của bạn <b>1 giờ</b>, kể cả khi tải lại trang, không gửi đi đâu; bấm “× Bỏ file” để xóa sớm.</p>
+          <p class="tdt-luu">Có thể đóng hộp thoại để xem mẫu, ảnh. File được giữ trong <b>1 giờ</b>, bấm “× Bỏ file” để xóa sớm.</p>
           <label class="tdt-check keep" id="tdt-keep-row" hidden><input type="checkbox" id="tdt-keep" checked> Giữ nguyên bố cục của file PowerPoint (bảng, ảnh, hộp chữ…), chỉ đổi màu, phông, nền, trang trí</label>
-        </div>
+        </details>
         <!-- bước 2–5 gập lại, tiêu đề hiện lựa chọn hiện tại (ui.js syncCur) -->
         <details class="tdt-sec" id="tdt-sec-mau">
           <summary><span class="tdt-step">2 · Chọn màu thiết kế</span><span class="tdt-cur" id="tdt-cur-mau"></span></summary>
@@ -6722,6 +6723,7 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   // tiêu đề các bước đang gập: hiện lựa chọn hiện tại
   function syncCur() {
     const D = TDT.KHO_ANH, a = artCfg(), anim = document.querySelector('input[name="tdt-anim"]:checked');
+    $('tdt-cur-file').textContent = !state.deck ? 'Chưa chọn' : state.demo ? 'File ví dụ' : state.fileName;
     $('tdt-cur-mau').textContent = state.theme.name;
     $('tdt-cur-hoa').textContent = state.motif ? TDT.MOTIFS[state.motif].name : 'Không dùng';
     $('tdt-cur-anh').textContent = a.loai === 'khong' || !D ? 'Không dùng'
@@ -6810,13 +6812,13 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
       state.src = /\.pptx$/i.test(main.name) ? await TDT.loadSource(await main.arrayBuffer()) : null;
       $('tdt-keep-row').hidden = !state.src;
       const extra = files.length - 1;
-      state.demo = !!demo;
+      state.demo = !!demo; state.fileName = main.name;
       const t = saved || Date.now();
       $('tdt-file').innerHTML = '';
       if (demo) $('tdt-file').insertAdjacentHTML('beforeend', '📄 <b>File ví dụ:</b> bộ slide hướng dẫn. Chọn file của bạn ở ô trên để thay.');
       else {
         $('tdt-file').append('📄 ' + main.name + (extra > 0 ? ` + ${extra} file ảnh` : ''));
-        $('tdt-file').insertAdjacentHTML('beforeend', ` <button class="tdt-forget" id="tdt-forget" type="button" title="Xóa file khỏi trình duyệt ngay">× Bỏ file</button><small class="tdt-han">Giữ trong trình duyệt đến ${hhmm(t + LUU.han)}</small>`);
+        $('tdt-file').insertAdjacentHTML('beforeend', ` <button class="tdt-forget" id="tdt-forget" type="button" title="Giữ trong trình duyệt đến ${hhmm(t + LUU.han)}; bấm để xóa ngay">× Bỏ file</button>`);
         if (!saved) luuFile(files, t);
       }
       refresh();
@@ -6828,7 +6830,7 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
     state.deck = state.src = state.result = null;
     $('tdt-file').textContent = ''; $('tdt-keep-row').hidden = true; $('tdt-dl').disabled = true;
     $('tdt-preview').innerHTML = '<div class="tdt-empty">Đã bỏ file. Chọn file khác để xem trước.</div>';
-    status('Đã xóa file khỏi trình duyệt.');
+    status('Đã xóa file khỏi trình duyệt.'); syncCur();
   }
   async function download() {
     if (!state.result) return;
@@ -6862,7 +6864,7 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
       await loadFiles([new File([await r.blob()], VI_DU.ten)], null, true);
     } catch (e) { console.warn('Không mở được file ví dụ', e); } finally { demoLoading = false; }
   }
-  function open() { fillArt(); renderThemes(); if (state.deck) refresh(); else loadDemo(); if (!dlg.open) dlg.showModal(); }
+  function open() { $('tdt-sec-file').open = true; fillArt(); renderThemes(); if (state.deck) refresh(); else loadDemo(); if (!dlg.open) dlg.showModal(); }
   // nút "Áp dụng vào slide" ở mục Kho ảnh: chọn bộ ảnh (gói + loại) của thẻ, lấy chính ảnh đó làm ảnh bìa
   TDT.apDungKhoAnh = it => {
     fillArt();

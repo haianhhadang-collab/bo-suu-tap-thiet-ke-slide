@@ -91,6 +91,7 @@
 .tdt-step .tdt-hint{font-weight:500;text-transform:none;letter-spacing:0}
 /* bước 2–5 gập/mở được */
 .tdt-sec{border-top:1px solid var(--line);padding-top:12px}
+.tdt-sec.tdt-sec-1{border-top:0;padding-top:0}
 .tdt-sec>summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;border-radius:6px}
 .tdt-sec>summary::-webkit-details-marker{display:none}
 .tdt-sec>summary::before{content:"▸";flex:none;color:var(--muted);font-size:12px;line-height:1;transition:transform .15s}
@@ -114,7 +115,6 @@
 .tdt-luu{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--muted)}
 .tdt-forget{font:inherit;font-size:12.5px;color:var(--accent);background:none;border:0;padding:0 0 0 6px;cursor:pointer}
 .tdt-forget:hover{text-decoration:underline}
-.tdt-han{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 .tdt-opts a.tdt-hint{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--accent);text-decoration:none}
 .tdt-opts a.tdt-hint:hover{text-decoration:underline}
 section.ka-sec{padding:34px 0 30px;border-top:1px solid var(--line);margin-top:24px}

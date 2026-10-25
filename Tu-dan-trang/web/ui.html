@@ -6,17 +6,18 @@
     </div>
     <div class="tdt-body">
       <div class="tdt-side">
-        <div>
-          <p class="tdt-step">1 · File của bạn</p>
+        <!-- bước 1 gập được nhưng luôn mở sẵn khi mở hộp thoại -->
+        <details class="tdt-sec tdt-sec-1" id="tdt-sec-file" open>
+          <summary><span class="tdt-step">1 · File của bạn</span><span class="tdt-cur" id="tdt-cur-file"></span></summary>
           <div class="tdt-drop" id="tdt-drop" tabindex="0" role="button" aria-label="Chọn file để dàn trang">
             <b>Kéo thả file vào đây</b>
             <span>hoặc bấm để chọn · .pptx, .docx, .pdf, .md, .txt<br>(file .md có ảnh: chọn kèm các file ảnh)</span>
           </div>
           <input type="file" id="tdt-input" multiple accept=".pptx,.docx,.pdf,.md,.markdown,.txt,image/*" hidden>
           <div class="tdt-file" id="tdt-file"></div>
-          <p class="tdt-luu">Đã tải file lên thì có thể đóng hộp thoại để xem mẫu, kho ảnh rồi mở lại chọn tiếp. File được giữ ngay trong trình duyệt của bạn <b>1 giờ</b>, kể cả khi tải lại trang, không gửi đi đâu; bấm “× Bỏ file” để xóa sớm.</p>
+          <p class="tdt-luu">Có thể đóng hộp thoại để xem mẫu, ảnh. File được giữ trong <b>1 giờ</b>, bấm “× Bỏ file” để xóa sớm.</p>
           <label class="tdt-check keep" id="tdt-keep-row" hidden><input type="checkbox" id="tdt-keep" checked> Giữ nguyên bố cục của file PowerPoint (bảng, ảnh, hộp chữ…), chỉ đổi màu, phông, nền, trang trí</label>
-        </div>
+        </details>
         <!-- bước 2–5 gập lại, tiêu đề hiện lựa chọn hiện tại (ui.js syncCur) -->
         <details class="tdt-sec" id="tdt-sec-mau">
           <summary><span class="tdt-step">2 · Chọn màu thiết kế</span><span class="tdt-cur" id="tdt-cur-mau"></span></summary>

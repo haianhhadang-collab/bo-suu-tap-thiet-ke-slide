@@ -47,6 +47,7 @@
   // tiêu đề các bước đang gập: hiện lựa chọn hiện tại
   function syncCur() {
     const D = TDT.KHO_ANH, a = artCfg(), anim = document.querySelector('input[name="tdt-anim"]:checked');
+    $('tdt-cur-file').textContent = !state.deck ? 'Chưa chọn' : state.demo ? 'File ví dụ' : state.fileName;
     $('tdt-cur-mau').textContent = state.theme.name;
     $('tdt-cur-hoa').textContent = state.motif ? TDT.MOTIFS[state.motif].name : 'Không dùng';
     $('tdt-cur-anh').textContent = a.loai === 'khong' || !D ? 'Không dùng'
@@ -135,13 +136,13 @@
       state.src = /\.pptx$/i.test(main.name) ? await TDT.loadSource(await main.arrayBuffer()) : null;
       $('tdt-keep-row').hidden = !state.src;
       const extra = files.length - 1;
-      state.demo = !!demo;
+      state.demo = !!demo; state.fileName = main.name;
       const t = saved || Date.now();
       $('tdt-file').innerHTML = '';
       if (demo) $('tdt-file').insertAdjacentHTML('beforeend', '📄 <b>File ví dụ:</b> bộ slide hướng dẫn. Chọn file của bạn ở ô trên để thay.');
       else {
         $('tdt-file').append('📄 ' + main.name + (extra > 0 ? ` + ${extra} file ảnh` : ''));
-        $('tdt-file').insertAdjacentHTML('beforeend', ` <button class="tdt-forget" id="tdt-forget" type="button" title="Xóa file khỏi trình duyệt ngay">× Bỏ file</button><small class="tdt-han">Giữ trong trình duyệt đến ${hhmm(t + LUU.han)}</small>`);
+        $('tdt-file').insertAdjacentHTML('beforeend', ` <button class="tdt-forget" id="tdt-forget" type="button" title="Giữ trong trình duyệt đến ${hhmm(t + LUU.han)}; bấm để xóa ngay">× Bỏ file</button>`);
         if (!saved) luuFile(files, t);
       }
       refresh();
@@ -153,7 +154,7 @@
     state.deck = state.src = state.result = null;
     $('tdt-file').textContent = ''; $('tdt-keep-row').hidden = true; $('tdt-dl').disabled = true;
     $('tdt-preview').innerHTML = '<div class="tdt-empty">Đã bỏ file. Chọn file khác để xem trước.</div>';
-    status('Đã xóa file khỏi trình duyệt.');
+    status('Đã xóa file khỏi trình duyệt.'); syncCur();
   }
   async function download() {
     if (!state.result) return;
@@ -187,7 +188,7 @@
       await loadFiles([new File([await r.blob()], VI_DU.ten)], null, true);
     } catch (e) { console.warn('Không mở được file ví dụ', e); } finally { demoLoading = false; }
   }
-  function open() { fillArt(); renderThemes(); if (state.deck) refresh(); else loadDemo(); if (!dlg.open) dlg.showModal(); }
+  function open() { $('tdt-sec-file').open = true; fillArt(); renderThemes(); if (state.deck) refresh(); else loadDemo(); if (!dlg.open) dlg.showModal(); }
   // nút "Áp dụng vào slide" ở mục Kho ảnh: chọn bộ ảnh (gói + loại) của thẻ, lấy chính ảnh đó làm ảnh bìa
   TDT.apDungKhoAnh = it => {
     fillArt();
