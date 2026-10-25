@@ -39,7 +39,17 @@
         <span class="tdt-sw">${c.pal.map(h => `<i style="background:${h}"></i>`).join('')}</span>
         <span><small>Từ bộ sưu tập</small><span class="nm">${c.name}</span></span></div>`;
     } else f.innerHTML = '';
-    renderMotifs();
+    if ($('tdt-sec-hoa').open) renderMotifs();   // ảnh thu nhỏ họa tiết chỉ dựng khi bước 3 đang mở
+    syncCur();
+  }
+  // tiêu đề các bước đang gập: hiện lựa chọn hiện tại
+  function syncCur() {
+    const D = TDT.KHO_ANH, a = artCfg(), anim = document.querySelector('input[name="tdt-anim"]:checked');
+    $('tdt-cur-mau').textContent = state.theme.name;
+    $('tdt-cur-hoa').textContent = state.motif ? TDT.MOTIFS[state.motif].name : 'Không dùng';
+    $('tdt-cur-anh').textContent = a.loai === 'khong' || !D ? 'Không dùng'
+      : (a.loai === 'anh' ? 'Ảnh chụp' : 'Tranh vẽ') + ' · ' + (a.goi === 'tu-dong' ? 'tự đoán' : (D.goi.find(g => g.id === a.goi) || {}).ten);
+    $('tdt-cur-dong').textContent = anim.parentNode.textContent.trim();
   }
   // mỗi họa tiết hiện bằng ảnh thu nhỏ trang bìa dựng thật trên mẫu đang chọn
   function motifButton(id, w, pal) {
@@ -157,6 +167,7 @@
     fillArt();
     document.querySelector(`input[name="tdt-art"][value="${it.loai}"]`).checked = true;
     $('tdt-art-goi').value = it.goi; state.artDau = it.id;
+    $('tdt-art-box').open = true;
     open();
     if (!state.deck) status(`Đã chọn bộ ${it.loai === 'anh' ? 'ảnh chụp' : 'tranh'} “${(TDT.KHO_ANH.goi.find(g => g.id === it.goi) || {}).ten}”. Chọn file để xem trước.`);
   };
@@ -176,6 +187,8 @@
   $('tdt-themes').addEventListener('click', e => { const b = e.target.closest('.tdt-th'); if (!b) return; state.theme = TDT.THEMES[b.dataset.id]; refresh(); });
   $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo, .tdt-none'); if (!b) return; state.motif = b.dataset.id; refresh(); });
   $('tdt-motif-pal').addEventListener('change', () => refresh());
+  $('tdt-sec-hoa').addEventListener('toggle', () => { if ($('tdt-sec-hoa').open) renderMotifs(); });
+  dlg.querySelector('.tdt-side').addEventListener('change', syncCur);
   $('tdt-from').addEventListener('click', e => { if (e.target.closest('#tdt-card')) { state.theme = state.cardTheme; refresh(); } });
   document.querySelectorAll('input[name="tdt-anim"]').forEach(r => r.addEventListener('change', () => state.deck && refresh()));
   $('tdt-trans').addEventListener('change', () => state.deck && refresh());

@@ -74,6 +74,19 @@
 .tdt-note{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
 @media (max-width:820px){.tdt-body{grid-template-columns:1fr}.tdt-side{border-right:0;border-bottom:1px solid var(--line)}.tdt-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
 .tdt-step .tdt-hint{font-weight:500;text-transform:none;letter-spacing:0}
+/* bước 2–5 gập/mở được */
+.tdt-sec{border-top:1px solid var(--line);padding-top:12px}
+.tdt-sec>summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;border-radius:6px}
+.tdt-sec>summary::-webkit-details-marker{display:none}
+.tdt-sec>summary::before{content:"▸";flex:none;color:var(--muted);font-size:12px;line-height:1;transition:transform .15s}
+.tdt-sec[open]>summary::before{transform:rotate(90deg)}
+.tdt-sec>summary .tdt-step{margin:0;flex:none}
+.tdt-sec>summary:hover .tdt-step{color:var(--text)}
+.tdt-sec>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.tdt-sec[open]>summary{margin-bottom:10px}
+.tdt-cur{margin-left:auto;min-width:0;font-size:12.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.tdt-sec[open] .tdt-cur{display:none}
+.tdt-sub{margin:-4px 0 8px;font-size:12.5px;color:var(--muted);line-height:1.45}
 /* nút lên đầu trang */
 .len-dau{position:fixed;right:20px;bottom:20px;z-index:8;width:44px;height:44px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--text);box-shadow:var(--shadow);display:grid;place-items:center;cursor:pointer;opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s,background .15s,color .15s}
 .len-dau.on{opacity:1;visibility:visible;transform:none}

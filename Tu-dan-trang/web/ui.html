@@ -17,26 +17,29 @@
           <p class="tdt-luu">Đã tải file lên thì có thể đóng hộp thoại để xem mẫu, kho ảnh rồi mở lại chọn tiếp. File được giữ ngay trong trình duyệt của bạn <b>1 giờ</b>, kể cả khi tải lại trang, không gửi đi đâu; bấm “× Bỏ file” để xóa sớm.</p>
           <label class="tdt-check keep" id="tdt-keep-row" hidden><input type="checkbox" id="tdt-keep" checked> Giữ nguyên bố cục của file PowerPoint (bảng, ảnh, hộp chữ…), chỉ đổi màu, phông, nền, trang trí</label>
         </div>
-        <div>
-          <p class="tdt-step">2 · Mẫu thiết kế</p>
+        <!-- bước 2–5 gập lại, tiêu đề hiện lựa chọn hiện tại (ui.js syncCur) -->
+        <details class="tdt-sec" id="tdt-sec-mau">
+          <summary><span class="tdt-step">2 · Chọn màu thiết kế</span><span class="tdt-cur" id="tdt-cur-mau"></span></summary>
           <div id="tdt-from"></div>
           <div class="tdt-themes" id="tdt-themes"></div>
-        </div>
-        <div>
-          <p class="tdt-step">3 · Họa tiết theo chủ đề <span class="tdt-hint">(bấm tên gói để mở)</span></p>
+        </details>
+        <details class="tdt-sec" id="tdt-sec-hoa">
+          <summary><span class="tdt-step">3 · Họa tiết theo chủ đề</span><span class="tdt-cur" id="tdt-cur-hoa"></span></summary>
+          <p class="tdt-sub">Bấm tên gói để mở.</p>
           <div class="tdt-motifs" id="tdt-motifs"></div>
           <label class="tdt-check"><input type="checkbox" id="tdt-motif-pal" checked> Dùng bảng màu của họa tiết</label>
-        </div>
-        <div class="tdt-opts" id="tdt-art-box">
-          <p class="tdt-step">4 · Ảnh trang trí <span class="tdt-hint">(nền trang bìa, chương, kết; dùng được cả khi giữ bố cục .pptx)</span></p>
+        </details>
+        <details class="tdt-sec tdt-opts" id="tdt-art-box">
+          <summary><span class="tdt-step">4 · Ảnh trang trí</span><span class="tdt-cur" id="tdt-cur-anh"></span></summary>
+          <p class="tdt-sub">Nền trang bìa, chương, kết; dùng được cả khi giữ bố cục .pptx.</p>
           <label><input type="radio" name="tdt-art" value="khong" checked> Không dùng</label>
           <label><input type="radio" name="tdt-art" value="anh"> Ảnh chụp theo chủ đề</label>
           <label><input type="radio" name="tdt-art" value="tranh"> Tranh vẽ theo màu mẫu</label>
           <select id="tdt-art-goi" aria-label="Chủ đề ảnh"><option value="tu-dong">Chủ đề ảnh: tự đoán theo nội dung</option></select>
           <a class="tdt-hint" href="#kho-anh" id="tdt-art-link">Xem kho ảnh và nguồn ảnh ↗</a>
-        </div>
-        <div class="tdt-opts">
-          <p class="tdt-step">5 · Animation</p>
+        </details>
+        <details class="tdt-sec tdt-opts" id="tdt-sec-dong">
+          <summary><span class="tdt-step">5 · Animation</span><span class="tdt-cur" id="tdt-cur-dong"></span></summary>
           <label><input type="radio" name="tdt-anim" value="auto" checked> Tự chạy khi vào trang</label>
           <label><input type="radio" name="tdt-anim" value="click"> Hiện từng ý khi nhấp chuột</label>
           <label><input type="radio" name="tdt-anim" value="none"> Không animation</label>
@@ -48,7 +51,7 @@
             <option value="wipe">Quét ngang</option>
             <option value="none">Không chuyển trang</option>
           </select>
-        </div>
+        </details>
         <p class="tdt-note">Mọi xử lý diễn ra ngay trong trình duyệt, file không gửi đi đâu. Mẫu chỉ dùng phông có sẵn trên Windows, đủ dấu tiếng Việt. Morph cần PowerPoint 2019/365.</p>
       </div>
       <div class="tdt-main">
