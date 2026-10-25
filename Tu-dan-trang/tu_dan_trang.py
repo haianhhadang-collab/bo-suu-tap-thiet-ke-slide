@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from dantrang import build as B  # noqa: E402
-from dantrang import hoavan  # noqa: E402
+from dantrang import hoavan, khoanh  # noqa: E402
 from dantrang import themes  # noqa: E402
 
 INBOX = ROOT / "Hop-thu-vao"
@@ -54,6 +54,8 @@ DEFAULT_CFG = {
     "hoa_van": "khong",
     "dung_mau_hoa_van": True,
     "giu_bo_cuc_pptx": True,
+    "anh_trang_tri": "khong",
+    "chu_de_anh": "tu-dong",
 }
 
 
@@ -70,9 +72,11 @@ def load_cfg() -> dict:
     return cfg
 
 
-def make_opts(anim: str, trans: str, motif: str = "", palette: bool = True, keep: bool = True) -> dict:
+def make_opts(anim: str, trans: str, motif: str = "", palette: bool = True, keep: bool = True,
+              anh: str = "khong", chu_de_anh: str = "tu-dong") -> dict:
     return {"anim": ANIM.get(anim, anim), "transition": TRANS.get(trans, trans),
-            "motif": hoavan.check(motif), "motif_palette": palette, "keep_layout": keep}
+            "motif": hoavan.check(motif), "motif_palette": palette, "keep_layout": keep,
+            "kho_anh": khoanh.check({"loai": anh, "goi": chu_de_anh})}
 
 
 def resolve(name: str, default_theme: str) -> tuple[str, str | None]:
@@ -116,7 +120,7 @@ def watch(cfg: dict):
     print(f"  • Kết quả lưu ở: {out}      (Ctrl+C để dừng)\n")
     sizes: dict[Path, int] = {}
     opts = make_opts(cfg["animation"], cfg["chuyen_trang"], cfg["hoa_van"], cfg["dung_mau_hoa_van"],
-                     cfg["giu_bo_cuc_pptx"])
+                     cfg["giu_bo_cuc_pptx"], cfg["anh_trang_tri"], cfg["chu_de_anh"])
     while True:
         for f in list(INBOX.glob("*")) + list(INBOX.glob("*/*")):
             if not f.is_file() or f.suffix.lower() not in EXTS or f.name.startswith(("~$", ".")):
@@ -286,6 +290,15 @@ def gui(cfg: dict, preset: str | None = None):
     cb = ttk.Combobox(tf_, values=list(names.values()), state="readonly", width=20)
     cb.set(names.get(trans.get(), "Theo mẫu"))
     cb.pack(side="left", padx=8)
+    # ảnh trang trí theo chủ đề (kho-anh/): nền trang bìa, trang chương, trang kết
+    ttk.Label(tf_, text="Ảnh trang trí:").pack(side="left", padx=(10, 0))
+    acb = ttk.Combobox(tf_, values=list(khoanh.LOAI.values()), state="readonly", width=20)
+    acb.set(khoanh.LOAI.get(cfg["anh_trang_tri"], "Không dùng"))
+    acb.pack(side="left", padx=8)
+    goi_names = {"tu-dong": "Chủ đề: tự đoán"} | {g["id"]: g["ten"] for g in khoanh.goi_list()}
+    gcb = ttk.Combobox(tf_, values=list(goi_names.values()), state="readonly", width=26)
+    gcb.set(goi_names.get(cfg["chu_de_anh"], "Chủ đề: tự đoán"))
+    gcb.pack(side="left")
 
     ttk.Label(top, text="4. Lưu vào", font=FB).grid(row=9, column=0, sticky="w", pady=(12, 2))
     ttk.Entry(top, textvariable=out, font=F).grid(row=10, column=0, columnspan=2, sticky="ew")
@@ -318,7 +331,9 @@ def gui(cfg: dict, preset: str | None = None):
         sel = lb.curselection()
         theme = "tat-ca" if all_themes.get() else ids[sel[0] if sel else start]
         tr = next((k for k, v in names.items() if v == cb.get()), "theo-mau")
-        opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get(), keep.get())
+        anh_ = next((k for k, v in khoanh.LOAI.items() if v == acb.get()), "khong")
+        goi_ = next((k for k, v in goi_names.items() if v == gcb.get()), "tu-dong")
+        opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get(), keep.get(), anh_, goi_)
         go.config(state="disabled")
         status.set("Đang dàn trang… (mẫu “tất cả” mất khoảng 10–30 giây)")
 
@@ -355,6 +370,8 @@ def main():
     ap.add_argument("-c", "--chuyen", default=None, choices=list(TRANS))
     ap.add_argument("-o", "--ra", default=None)
     ap.add_argument("-v", "--hoa-van", default=None, choices=list(hoavan.MOTIFS) + ["khong"])
+    ap.add_argument("--anh", default=None, choices=list(khoanh.LOAI), help="ảnh trang trí: khong, anh (ảnh chụp), tranh")
+    ap.add_argument("--chu-de-anh", default=None, help="gói ảnh (xem --ds), mặc định tu-dong = đoán theo nội dung")
     ap.add_argument("--giu-mau", action="store_true")
     ap.add_argument("--dan-lai", action="store_true")
     ap.add_argument("--theo-doi", action="store_true")
@@ -371,6 +388,10 @@ def main():
             print(f"\n[{pk['name']}] {pk['desc']}")
             for mid in mids:
                 print(f"  {mid:15s} {hoavan.MOTIFS[mid]['name']:30s} {hoavan.MOTIFS[mid]['desc']}")
+        print("\nẢnh trang trí (--anh anh|tranh, --chu-de-anh <gói>, mặc định tu-dong):")
+        for g in khoanh.goi_list():
+            n = [m["loai"] for m in khoanh.data()["muc"] if m["goi"] == g["id"]]
+            print(f"  {g['id']:15s} {g['ten']:30s} {n.count('anh')} ảnh chụp, {n.count('tranh')} tranh")
         return
     if a.theo_doi:
         watch(cfg)
@@ -382,7 +403,8 @@ def main():
     out = Path(a.ra) if a.ra else ROOT / cfg["thu_muc_ket_qua"]
     opts = make_opts(a.animation or cfg["animation"], a.chuyen or cfg["chuyen_trang"],
                      a.hoa_van or cfg["hoa_van"], cfg["dung_mau_hoa_van"] and not a.giu_mau,
-                     cfg["giu_bo_cuc_pptx"] and not a.dan_lai)
+                     cfg["giu_bo_cuc_pptx"] and not a.dan_lai, a.anh or cfg["anh_trang_tri"],
+                     a.chu_de_anh or cfg["chu_de_anh"])
     for o in run(Path(a.file), theme, out, opts, cfg["mau_mac_dinh"]):
         print(o)
 

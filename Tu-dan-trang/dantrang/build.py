@@ -7,7 +7,7 @@ from pathlib import Path
 from pptx import Presentation
 
 from . import layouts as L
-from . import giubocuc, hoavan, readers, themes
+from . import giubocuc, hoavan, khoanh, readers, themes
 from .draw import E, H, W
 from .model import Deck, Item, Slide
 
@@ -48,6 +48,7 @@ def build(src, theme_id: str, out_dir, opts: dict | None = None, deck: Deck | No
         return giubocuc.build(src, th, out_dir, opts)
     deck = deck or readers.read(src)
     _split_closing(deck)
+    opts["_art"] = khoanh.plan(deck, th, opts)
 
     prs = Presentation()
     prs.slide_width, prs.slide_height = E(W), E(H)

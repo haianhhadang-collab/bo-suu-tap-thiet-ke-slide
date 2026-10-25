@@ -6,11 +6,11 @@ import math
 import random
 
 from . import draw as D
-from . import hoavan
+from . import hoavan, khoanh
 from .draw import H, W
 
 
-def paint(slide, th, inv: bool, idx: int, kind: str) -> dict:
+def paint(slide, th, inv: bool, idx: int, kind: str, art=None) -> dict:
     """Vẽ nền + trang trí. Trả về vùng nội dung an toàn {x0,y0,x1,y1} và màu chân trang."""
     rnd = random.Random(idx * 7919 + len(th["id"]))
     fn = globals().get("_" + th["decor"], _minimal)
@@ -21,6 +21,10 @@ def paint(slide, th, inv: bool, idx: int, kind: str) -> dict:
         D.background(slide, [bg])
     info = dict(x0=0.8, y0=0.62, x1=W - 0.8, y1=H - 0.72, foot=th["muted"] if not inv else th["inv_body"],
                 bg=(th["inv"][0] if inv else (th["bg"] if idx % 2 else th["bg2"])))
+    # ảnh trang trí theo chủ đề (khoanh.py): thay trang trí của mẫu và họa tiết ở trang bìa/chương/kết
+    if art:
+        khoanh.draw(slide, th, kind, art)
+        return info
     # họa tiết theo chủ đề (hoavan.py): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
     motif = hoavan.MOTIFS.get(th.get("motif") or "")
     if not (motif and inv and motif["own_inv"]):

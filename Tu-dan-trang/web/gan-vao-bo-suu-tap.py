@@ -22,8 +22,9 @@ def block(text, start, end, content):
 def main(paths):
     css = (WEB / "ui.css").read_text(encoding="utf-8")
     dialog = (WEB / "ui.html").read_text(encoding="utf-8")
+    kho = (WEB / "kho-anh.html").read_text(encoding="utf-8")
     khung = (WEB / "khung.b64.txt").read_text(encoding="utf-8").strip()
-    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "hoa-van.js", "pptx.js", "preview.js", "giu-bo-cuc.js", "ui.js"))
+    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "hoa-van.js", "kho-anh.js", "pptx.js", "preview.js", "giu-bo-cuc.js", "ui.js", "kho-anh-trang.js"))
     assert "</script" not in js.lower()
     head = ('\n<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>\n'
             '<script>window.JSZip||document.write(\'<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\\/script>\')</script>\n')
@@ -31,8 +32,9 @@ def main(paths):
            '      <button class="btn-main" id="tdt-open">✦ Tự dàn trang file của bạn</button>\n'
            '      <p><b>Up file lên:</b> File chấp nhận: .pptx, .docx, .pdf, .md hoặc .txt<br>'
            '<b>Các chức năng tự động:</b> dàn trang, chọn màu chữ, màu nền theo chủ đề; file .pptx giữ nguyên bố cục gốc<br>'
-           '<b>Các chức năng tùy chọn:</b> họa tiết theo chủ đề; tạo chuyển động</p>\n    </div>\n    ')
-    script = f'\n<script>\nwindow.TU_DAN_TRANG_KHUNG="{khung}";\n{js}\n</script>\n'
+           '<b>Các chức năng tùy chọn:</b> họa tiết, ảnh trang trí theo chủ đề (<a href="#kho-anh">xem kho ảnh</a>); tạo chuyển động</p>\n    </div>\n    ')
+    # dữ liệu kho ảnh (~450 KB) nạp từ file riêng, ảnh chụp nạp từng ảnh khi cần (xem web/kho-anh.js)
+    script = f'\n<script src="Tu-dan-trang/kho-anh/kho-anh.js"></script>\n<script>\nwindow.TU_DAN_TRANG_KHUNG="{khung}";\n{js}\n</script>\n'
 
     for p in paths:
         if not p.exists():
@@ -63,7 +65,12 @@ def main(paths):
         s, ok = block(s, "<!--TDT-DIALOG-->", "<!--/TDT-DIALOG-->", "\n" + dialog)
         if not ok:
             s = s.replace('<div class="toast" id="toast"></div>', '<div class="toast" id="toast"></div>\n<!--TDT-DIALOG-->\n' + dialog + '<!--/TDT-DIALOG-->', 1)
-        # 6. bộ máy + giao diện (đặt sau script chính của trang)
+        # 6. mục Kho ảnh trang trí (sau danh sách mẫu)
+        s, ok = block(s, "<!--KHO-ANH-->", "<!--/KHO-ANH-->", "\n" + kho)
+        if not ok:
+            assert "</main>" in s, "không tìm thấy </main>"
+            s = s.replace("</main>", "</main>\n<div class=\"wrap\"><!--KHO-ANH-->\n" + kho + "<!--/KHO-ANH--></div>", 1)
+        # 7. bộ máy + giao diện (đặt sau script chính của trang)
         s, ok = block(s, "<!--TDT-JS-->", "<!--/TDT-JS-->", script)
         if not ok:
             i = s.rindex("</body>")

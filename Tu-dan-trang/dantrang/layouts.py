@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 
 from . import decor
+from . import khoanh
 from . import draw as D
 from . import textfit as TF
 from .animate import add_animations, add_transition
@@ -20,7 +21,7 @@ class Ctx:
     def __init__(self, prs, th, idx, kind, inv, opts):
         self.prs, self.th, self.idx, self.kind, self.inv, self.opts = prs, th, idx, kind, inv, opts
         self.slide = prs.slides.add_slide(prs.slide_layouts[6])
-        self.info = decor.paint(self.slide, th, inv, idx, kind)
+        self.info = decor.paint(self.slide, th, inv, idx, kind, khoanh.next_art(opts.get("_art"), kind))
         bg = self.info["bg"]
         if inv:
             self.ink = D.readable_on(bg, th["inv_ink"], "FFFFFF")

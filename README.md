@@ -5,7 +5,7 @@
 Trang web gồm hai phần:
 
 1. **Bộ sưu tập 463 mẫu slide** (SlidesCarnival, Slidesgo, PresentationGO). Lọc theo chủ đề, phong cách, mẫu ấn tượng, mẫu miễn phí; bấm ô màu để chép mã màu.
-2. **✦ Tự dàn trang**: thả một file **.pptx, .docx, .pdf, .md hoặc .txt** vào trang, chọn một trong 12 mẫu dựng sẵn hoặc bấm **“Áp dụng mẫu này”** trên bất kỳ thẻ nào để dùng bảng màu của thẻ đó, rồi thêm nếu muốn một trong **61 họa tiết theo chủ đề** (12 gói: lịch sử, văn hóa, lễ hội, thiên nhiên, giáo dục, anime, trường học, di sản, y tế, vũ trụ, thể thao, đối ngoại). Bạn xem trước tức thì rồi tải về file PowerPoint đã có sẵn **animation** và **chuyển trang (Morph)**.
+2. **✦ Tự dàn trang**: thả một file **.pptx, .docx, .pdf, .md hoặc .txt** vào trang, chọn một trong 12 mẫu dựng sẵn hoặc bấm **“Áp dụng mẫu này”** trên bất kỳ thẻ nào để dùng bảng màu của thẻ đó, rồi thêm nếu muốn một trong **61 họa tiết theo chủ đề** (12 gói: lịch sử, văn hóa, lễ hội, thiên nhiên, giáo dục, anime, trường học, di sản, y tế, vũ trụ, thể thao, đối ngoại) và **ảnh trang trí** (ảnh chụp hoặc tranh vẽ) cùng 12 gói làm nền trang bìa, trang chương, trang kết. Bạn xem trước tức thì rồi tải về file PowerPoint đã có sẵn **animation** và **chuyển trang (Morph)**.
    - Mọi xử lý chạy ngay trong trình duyệt, file không gửi đi đâu.
    - **File .pptx giữ nguyên bố cục gốc** (bảng, ảnh, hộp chữ, hình khối đúng vị trí, kích thước). Công cụ chỉ đổi màu, phông, nền, trang trí theo mẫu. Bỏ chọn ô "Giữ nguyên bố cục" nếu muốn dàn lại từ đầu.
    - Chữ, ảnh, bảng và ghi chú thuyết trình được giữ nguyên.
@@ -36,5 +36,8 @@ python Tu-dan-trang/tu_dan_trang.py "bai-giang.docx" -m gradient -a nhap-chuot
 | `Sua-chu-giao-dien/` | Công cụ sửa chữ trên trang: mở trang với `#sua`, bấm vào chữ để sửa, lưu thẳng vào file ([hướng dẫn](Sua-chu-giao-dien/HUONG-DAN.md)) |
 | `Tu-dan-trang/dantrang/` | Bộ máy bản Python (`giubocuc.py`: giữ bố cục file .pptx, làm cùng các bước như `giu-bo-cuc.js`) |
 | `Tu-dan-trang/vi-du/` | File mẫu để thử (.md, .docx, .pdf, .txt) |
+| `Tu-dan-trang/kho-anh/` | Kho ảnh trang trí: 36 ảnh chụp, 24 tranh vẽ, 12 gói; nguồn và giấy phép từng ảnh trong [`README.md`](Tu-dan-trang/kho-anh/README.md) |
 
 Trạng thái miễn phí/Premium của các mẫu được ghi lại tại thời điểm sưu tập (10/2026) và có thể thay đổi. Bản quyền mẫu thuộc về các trang nguồn; khi dùng bản miễn phí, hãy giữ trang ghi công theo điều khoản của từng trang.
+
+Ảnh chụp trong kho ảnh trang trí lấy từ Wikimedia Commons với giấy phép CC0, phạm vi công cộng, CC BY hoặc CC BY-SA; tác giả và giấy phép từng ảnh ghi trong [`Tu-dan-trang/kho-anh/README.md`](Tu-dan-trang/kho-anh/README.md) và in trên slide dùng ảnh.

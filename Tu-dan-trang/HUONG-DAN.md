@@ -180,6 +180,29 @@ Cách chọn họa tiết:
 - **Dòng lệnh**: `python tu_dan_trang.py bai-giang.md -m co-dien+dong-son`, hoặc `-m co-dien -v dong-son`. Xem danh sách theo gói bằng `--ds`.
 - **Mặc định cho mọi file**: `"hoa_van": "dong-son"` trong `cau-hinh.json` (`"khong"` = không dùng). Thư mục hộp thư hoặc `-m mẫu+khong` vẫn ghi đè được.
 
+## Ảnh trang trí theo chủ đề
+
+Kho có 36 ảnh chụp và 24 tranh vẽ, chia theo 12 gói như họa tiết (lịch sử, văn hóa, lễ hội, thiên nhiên, giáo dục,
+anime, trường học, di sản, y tế, vũ trụ, thể thao, đối ngoại). Ảnh làm nền trang bìa, trang chương và trang kết; trang
+nội dung giữ trang trí của mẫu. Một lớp phủ màu nền của mẫu đậm dần sang trái để chữ luôn dễ đọc.
+- **Ảnh chụp**: ảnh thật lấy từ Wikimedia Commons (giấy phép CC0, phạm vi công cộng, CC BY, CC BY-SA). Mỗi trang có
+  ảnh in một dòng nhỏ ghi tác giả và giấy phép ở góc phải dưới, đừng xóa dòng này. Danh sách nguồn: `kho-anh\README.md`.
+- **Tranh vẽ**: tranh vector tự vẽ, đổi màu theo mẫu đang chọn.
+- **Chọn gói**: mặc định tự đoán theo nội dung. Thứ tự ưu tiên: gói của họa tiết đang dùng, rồi từ khóa trong tên bài, tên
+  trang, nội dung (vd "Tết", "bệnh viện", "ASEAN"), rồi theo mẫu (Cổ điển → lịch sử, Thiên nhiên → thiên nhiên…). Muốn
+  chắc chắn thì chọn gói cụ thể.
+- Trang bìa và trang kết dùng ảnh đầu của gói, các trang chương lần lượt dùng những ảnh còn lại.
+- File .pptx đang giữ bố cục gốc thì không chèn ảnh (bố cục là của bạn).
+
+Cách chọn:
+- **Trang web**: bước 4 "Ảnh trang trí" trong hộp thoại. Xem cả kho, lọc theo gói và tải từng ảnh ở mục "Kho ảnh
+  trang trí theo chủ đề" cuối trang.
+- **Cửa sổ**: hai ô "Ảnh trang trí" và "Chủ đề" cạnh ô chuyển trang.
+- **Dòng lệnh**: `python tu_dan_trang.py bai-giang.docx --anh anh` (ảnh chụp) hoặc `--anh tranh`; thêm
+  `--chu-de-anh di-san` để chọn gói. Danh sách gói: `--ds`.
+- **Mặc định cho mọi file** (cả hộp thư): `"anh_trang_tri": "anh"` và `"chu_de_anh": "tu-dong"` trong `cau-hinh.json`
+  (`"khong"` = không dùng ảnh).
+
 ## Công cụ tự làm gì
 
 - **Nhận diện nội dung** để chọn bố cục phù hợp:

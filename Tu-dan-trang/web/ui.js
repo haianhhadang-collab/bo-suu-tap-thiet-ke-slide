@@ -8,7 +8,8 @@
   const usedTheme = () => state.motif ? TDT.withMotif(state.theme, state.motif, $('tdt-motif-pal').checked) : state.theme;
   const SAMPLE = { title: 'Tiêu đề bài', subtitle: '', meta: [], slides: [], fileName: '' };
 
-  const opts = () => ({ anim: document.querySelector('input[name="tdt-anim"]:checked').value, transition: $('tdt-trans').value || null });
+  const artCfg = () => ({ loai: document.querySelector('input[name="tdt-art"]:checked').value, goi: $('tdt-art-goi').value });
+  const opts = () => ({ anim: document.querySelector('input[name="tdt-anim"]:checked').value, transition: $('tdt-trans').value || null, khoAnh: artCfg() });
   const status = (msg, err) => { const s = $('tdt-status'); s.textContent = msg; s.classList.toggle('err', !!err); };
 
   function swatches(th) { return [th.inv[0], th.inv[th.inv.length - 1], th.bg, th.accent, th.accent2, th.accent3].map(c => `<i style="background:#${c}"></i>`).join(''); }
@@ -54,10 +55,21 @@
   function refresh() {
     renderThemes();
     if (!state.deck) return;
+    const keep = state.src && $('tdt-keep').checked;
+    // ảnh chụp trang trí nạp riêng từng ảnh khi cần (kho-anh/anh-b64), nạp xong mới dựng lại
+    const need = !keep && TDT.khoAnhCan ? TDT.khoAnhCan(state.deck, usedTheme(), opts()) : [];
+    if (need.length) {
+      status('Đang tải ảnh trang trí…');
+      TDT.khoAnhTai(need).then(refresh, e => {
+        console.error(e); document.querySelector('input[name="tdt-art"][value="khong"]').checked = true; refresh();
+        status('Không tải được ảnh trang trí (' + e.message + '), đã chuyển về không dùng ảnh.', true);
+      });
+      return;
+    }
     const t0 = performance.now();
     try {
       // file .pptx: mặc định giữ nguyên bố cục gốc (giu-bo-cuc.js); bỏ chọn thì dàn lại từ đầu như file Word, Markdown
-      state.result = state.src && $('tdt-keep').checked ? TDT.keepBuild(state.src, state.deck, usedTheme(), opts()) : TDT.build(state.deck, usedTheme(), opts());
+      state.result = keep ? TDT.keepBuild(state.src, state.deck, usedTheme(), opts()) : TDT.build(state.deck, usedTheme(), opts());
     } catch (e) { console.error(e); status('Lỗi khi dàn trang: ' + e.message, true); return; }
     const box = $('tdt-preview');
     const grid = document.createElement('div'); grid.className = 'tdt-grid';
@@ -70,7 +82,9 @@
     });
     box.replaceChildren(grid);
     const miss = state.deck.missingImages && state.deck.missingImages.length ? ` · Thiếu ảnh: ${state.deck.missingImages.join(', ')} (chọn kèm file ảnh)` : '';
-    status(`${state.result.slides.length} trang · mẫu “${state.result.theme.name}”${state.result.keep ? ' · giữ bố cục gốc' : ''} · ${Math.round(performance.now() - t0)} ms${miss}`);
+    const a = artCfg(), D = TDT.KHO_ANH;
+    const art = a.loai !== 'khong' && D && !state.result.keep ? ` · ${a.loai === 'anh' ? 'ảnh' : 'tranh'} chủ đề “${(D.goi.find(g => g.id === (a.goi === 'tu-dong' ? TDT.khoAnhGoi(state.deck, usedTheme()) : a.goi)) || {}).ten}”${a.goi === 'tu-dong' ? ' (tự đoán)' : ''}` : '';
+    status(`${state.result.slides.length} trang · mẫu “${state.result.theme.name}”${state.result.keep ? ' · giữ bố cục gốc' : ''}${art} · ${Math.round(performance.now() - t0)} ms${miss}`);
     $('tdt-dl').disabled = false;
   }
   async function loadFiles(files) {
@@ -101,7 +115,13 @@
     } catch (e) { console.error(e); status('Lỗi khi tạo file: ' + e.message, true); }
     $('tdt-dl').disabled = false;
   }
-  function open() { renderThemes(); if (state.deck) refresh(); if (!dlg.open) dlg.showModal(); }
+  // danh sách gói ảnh lấy từ kho-anh/kho-anh.js (nạp riêng); thiếu dữ liệu thì ẩn bước ảnh trang trí
+  function fillArt() {
+    const D = TDT.KHO_ANH, sel = $('tdt-art-goi');
+    $('tdt-art-box').hidden = !D;
+    if (D && sel.options.length === 1) D.goi.forEach(g => sel.add(new Option('Chủ đề ảnh: ' + g.ten, g.id)));
+  }
+  function open() { fillArt(); renderThemes(); if (state.deck) refresh(); if (!dlg.open) dlg.showModal(); }
 
   // nút mở
   document.getElementById('tdt-open').addEventListener('click', () => open());
@@ -121,6 +141,9 @@
   $('tdt-from').addEventListener('click', e => { if (e.target.closest('#tdt-card')) { state.theme = state.cardTheme; refresh(); } });
   document.querySelectorAll('input[name="tdt-anim"]').forEach(r => r.addEventListener('change', () => state.deck && refresh()));
   $('tdt-trans').addEventListener('change', () => state.deck && refresh());
+  document.querySelectorAll('input[name="tdt-art"]').forEach(r => r.addEventListener('change', () => state.deck && refresh()));
+  $('tdt-art-goi').addEventListener('change', () => state.deck && refresh());
+  $('tdt-art-link').addEventListener('click', () => dlg.close());
   $('tdt-keep').addEventListener('change', () => state.deck && refresh());
   $('tdt-dl').addEventListener('click', download);
   const drop = $('tdt-drop'), inp = $('tdt-input');

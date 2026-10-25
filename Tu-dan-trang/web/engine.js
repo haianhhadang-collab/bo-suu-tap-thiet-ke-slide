@@ -1206,6 +1206,9 @@ function paint(ctx, th, inv, idx, kind) {
   const bgc = idx % 2 ? th.bg : th.bg2;
   if (inv) ctx.background(th.inv, 135); else ctx.background([bgc]);
   const info = { x0: 0.8, y0: 0.62, x1: SW - 0.8, y1: SH - 0.72, foot: inv ? th.inv_body : th.muted, bg: inv ? th.inv[0] : bgc };
+  // ảnh trang trí theo chủ đề (kho-anh.js): thay trang trí của mẫu và họa tiết ở trang bìa/chương/kết
+  const art = ctx.opts && ctx.opts._art && G.TuDanTrang.khoAnhNext ? G.TuDanTrang.khoAnhNext(ctx.opts._art, kind) : null;
+  if (art) { G.TuDanTrang.khoAnhVe(ctx, th, kind, art); return info; }
   // họa tiết theo chủ đề (hoa-van.js): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
   const motif = th.motif && G.TuDanTrang && G.TuDanTrang.MOTIFS ? G.TuDanTrang.MOTIFS[th.motif] : null;
   if (!(motif && inv && motif.ownInv)) (DECOR[th.decor] || DECOR.minimal)(ctx, th, inv, idx, kind, r, info);
@@ -1852,6 +1855,7 @@ function cloneDeck(d) { return Object.assign({}, d, { meta: [...d.meta], slides:
 function build(deckIn, th, opts = {}) {
   const deck = cloneDeck(deckIn); splitClosing(deck);
   const out = [];
+  if (opts.khoAnh && G.TuDanTrang.khoAnhPlan) opts = Object.assign({}, opts, { _art: G.TuDanTrang.khoAnhPlan(deck, th, opts) });
   cover(out, th, deck, opts);
   const queue = deck.slides.slice();
   let idx = 1, page = 2, secnum = 0, guard = 0;
