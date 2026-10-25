@@ -29,7 +29,7 @@ def main(paths):
             '<script>window.JSZip||document.write(\'<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\\/script>\')</script>\n')
     cta = ('\n    <div class="tdt-cta">\n'
            '      <button class="btn-main" id="tdt-open">✦ Tự dàn trang file của bạn</button>\n'
-           '      <p><b>Up file lên:</b> File chấp nhận: .pptx, .docx, .md hoặc .txt<br>'
+           '      <p><b>Up file lên:</b> File chấp nhận: .pptx, .docx, .pdf, .md hoặc .txt<br>'
            '<b>Các chức năng tự động:</b> dàn trang, chọn màu chữ, màu nền theo chủ đề; file .pptx giữ nguyên bố cục gốc<br>'
            '<b>Các chức năng tùy chọn:</b> họa tiết theo chủ đề; tạo chuyển động</p>\n    </div>\n    ')
     script = f'\n<script>\nwindow.TU_DAN_TRANG_KHUNG="{khung}";\n{js}\n</script>\n'

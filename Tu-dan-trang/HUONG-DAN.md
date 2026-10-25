@@ -1,6 +1,6 @@
 # Tự dàn trang slide
 
-Công cụ nhận một file **.pptx, .docx, .md hoặc .txt**, tự dàn lại thành bộ slide PowerPoint theo một trong **12 mẫu thiết kế**. Bộ slide được thêm sẵn **animation** và **hiệu ứng chuyển trang** của PowerPoint. Nội dung, ảnh và ghi chú thuyết trình được giữ nguyên.
+Công cụ nhận một file **.pptx, .docx, .pdf, .md hoặc .txt**, tự dàn lại thành bộ slide PowerPoint theo một trong **12 mẫu thiết kế**. Bộ slide được thêm sẵn **animation** và **hiệu ứng chuyển trang** của PowerPoint. Nội dung, ảnh và ghi chú thuyết trình được giữ nguyên.
 
 **File PowerPoint (.pptx) được giữ nguyên bố cục gốc**: bảng, ảnh, hộp chữ, hình khối vẫn đúng vị trí và kích thước, công cụ chỉ đổi màu, phông, nền và trang trí theo mẫu (xem [Giữ bố cục file PowerPoint](#giữ-bố-cục-file-powerpoint)). Muốn dàn lại từ đầu như file Word thì bỏ chọn ô "giữ nguyên bố cục gốc" trong cửa sổ, thêm `--dan-lai` ở dòng lệnh, hoặc đặt `"giu_bo_cuc_pptx": false` trong `cau-hinh.json`.
 
@@ -229,6 +229,14 @@ Ghi chú: lời thuyết trình     ← vào ghi chú (notes) của trang
 - Văn bản không dùng kiểu Heading nào: dòng in đậm cả dòng, ngắn, không kết thúc bằng dấu chấm được coi là heading. Cấp xếp theo cỡ chữ rồi theo cách đánh số (I. → 1. → 1.1. → a)).
 - Mục lục của Word được bỏ qua. List Bullet: gạch đầu dòng. Bảng và ảnh chèn trong văn bản đều được giữ lại.
 
+**PDF (.pdf)**: chỉ đọc PDF có lớp chữ (PDF xuất từ Word, PowerPoint, Google Docs…, bôi đen được chữ). Xem `vi-du	ai-lieu-nhieu-cap.pdf`.
+- PDF không lưu đoạn văn hay heading, chỉ lưu từng dòng chữ và vị trí, nên công cụ dựng lại: nối dòng thành đoạn, nhận gạch đầu dòng, bảng (các cột thẳng hàng), ảnh; bỏ đầu trang, chân trang, số trang, mục lục.
+- **Heading** lấy từ mục lục điều hướng (bookmark) của file nếu có. Khi lưu PDF trong Word, bấm *Options…* (Tùy chọn) và bật tạo bookmark theo *Headings* thì kết quả gần như đọc thẳng file Word. Không có bookmark thì công cụ đoán heading theo cỡ chữ và chữ in đậm.
+- Sau đó tách trang theo Heading như file Word. Khác một chút: PDF không giữ được cấp Heading gốc, nên các mục con ngắn từ cấp 2 trở xuống đã gộp thành thẻ.
+- PDF trang ngang không có bookmark (thường xuất từ PowerPoint): mỗi trang một slide, dòng chữ to trên cùng là tiêu đề, trang đầu là trang bìa. Bố cục gốc không giữ được vì PDF không còn hộp chữ; muốn giữ bố cục thì dùng file .pptx.
+- **Chưa đọc được**: PDF scan hoặc ảnh chụp (không có lớp chữ, cần nhận dạng chữ OCR), PDF có mật khẩu. Công cụ báo lỗi rõ ràng. PDF dùng phông cũ (VNI, TCVN3) có thể ra chữ lỗi; trang chia hai cột có thể bị đọc lẫn cột.
+- Bản web nạp thư viện đọc PDF (pdf.js) từ mạng ở lần đầu mở file PDF. Bản Python cần thêm gói `pymupdf`.
+
 **Văn bản (.txt)**: xem `vi-du\ghi-chu-nhanh.txt`. Khối đầu tiên là tên bài, phụ đề và thông tin. Mỗi khối cách nhau một dòng trống là một trang; dòng đầu ngắn của khối là tiêu đề trang.
 
 **PowerPoint (.pptx)**: mặc định giữ nguyên bố cục (mục dưới). Khi chọn dàn lại (`--dan-lai`), công cụ đọc tiêu đề, khối chữ, nhãn đi kèm nội dung, ảnh, bảng và ghi chú. Slide gốc có sơ đồ vẽ tay phức tạp (hình tròn nối nhau, mũi tên…) sẽ được chuyển thành thẻ hoặc danh sách. Nên xem lại các trang đó.
@@ -254,7 +262,7 @@ Với file .pptx, công cụ mở chính file gốc và khoác mẫu lên, khôn
 Cần Python 3.10 trở lên và ba thư viện:
 
 ```
-pip install python-pptx python-docx pillow
+pip install python-pptx python-docx pillow pymupdf
 ```
 
 Cấu hình trong `cau-hinh.json` (file tự tạo ở lần chạy đầu):

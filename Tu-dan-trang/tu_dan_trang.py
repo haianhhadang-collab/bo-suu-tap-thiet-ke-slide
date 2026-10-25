@@ -1,4 +1,4 @@
-"""TỰ DÀN TRANG — biến .pptx / .docx / .md / .txt thành bộ slide đẹp theo mẫu, có sẵn animation.
+"""TỰ DÀN TRANG — biến .pptx / .docx / .pdf / .md / .txt thành bộ slide đẹp theo mẫu, có sẵn animation.
 File .pptx được giữ nguyên bố cục gốc (bảng, ảnh, hộp chữ…), chỉ đổi màu, phông, nền, trang trí theo mẫu.
 
 Cách dùng:
@@ -40,7 +40,7 @@ OUTBOX = ROOT / "Ket-qua"
 DONE = INBOX / "Da-xu-ly"
 ERR = INBOX / "Loi"
 CONFIG = ROOT / "cau-hinh.json"
-EXTS = {".pptx", ".docx", ".md", ".markdown", ".txt"}
+EXTS = {".pptx", ".docx", ".pdf", ".md", ".markdown", ".txt"}
 
 ANIM = {"tu-chay": "auto", "nhap-chuot": "click", "khong": "none"}
 TRANS = {"theo-mau": None, "morph": "morph", "fade": "fade", "push": "push", "wipe": "wipe", "khong": "none"}
@@ -186,11 +186,11 @@ def gui(cfg: dict, preset: str | None = None):
     top = ttk.Frame(root, padding=14)
     top.pack(fill="both", expand=True)
 
-    ttk.Label(top, text="1. File cần dàn trang (.pptx, .docx, .md, .txt)", font=FB).grid(row=0, column=0, columnspan=3, sticky="w")
+    ttk.Label(top, text="1. File cần dàn trang (.pptx, .docx, .pdf, .md, .txt)", font=FB).grid(row=0, column=0, columnspan=3, sticky="w")
     ttk.Entry(top, textvariable=src, font=F).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 10))
 
     def pick():
-        f = filedialog.askopenfilename(filetypes=[("Tài liệu", "*.pptx *.docx *.md *.txt"), ("Tất cả", "*.*")])
+        f = filedialog.askopenfilename(filetypes=[("Tài liệu", "*.pptx *.docx *.pdf *.md *.txt"), ("Tất cả", "*.*")])
         if f:
             src.set(f)
     ttk.Button(top, text="Chọn file…", command=pick).grid(row=1, column=2, sticky="e", padx=(8, 0), pady=(4, 10))
@@ -313,7 +313,7 @@ def gui(cfg: dict, preset: str | None = None):
     def work():
         f = Path(src.get().strip().strip('"'))
         if not f.is_file():
-            messagebox.showwarning("Thiếu file", "Hãy chọn một file .pptx, .docx, .md hoặc .txt.")
+            messagebox.showwarning("Thiếu file", "Hãy chọn một file .pptx, .docx, .pdf, .md hoặc .txt.")
             return
         sel = lb.curselection()
         theme = "tat-ca" if all_themes.get() else ids[sel[0] if sel else start]

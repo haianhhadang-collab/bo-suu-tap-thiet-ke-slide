@@ -1,5 +1,5 @@
 /* Tự dàn trang — bộ máy chạy trong trình duyệt (bản chuyển từ công cụ Python Tu-dan-trang).
-   Đọc .pptx / .docx / .md / .txt -> mô hình nội dung -> bố cục theo mẫu (IR) -> PowerPoint + xem trước. */
+   Đọc .pptx / .docx / .pdf / .md / .txt -> mô hình nội dung -> bố cục theo mẫu (IR) -> PowerPoint + xem trước. */
 (function (G) {
 'use strict';
 
@@ -223,13 +223,14 @@ async function makeImg(data, ext, ratioHint, caption = '') {
 // ============================================================ đọc file
 async function readFiles(files) {
   const list = [...files];
-  const doc = list.find(f => /\.(pptx|docx|md|markdown|txt)$/i.test(f.name));
-  if (!doc) throw new Error('Hãy chọn một file .pptx, .docx, .md hoặc .txt');
+  const doc = list.find(f => /\.(pptx|docx|pdf|md|markdown|txt)$/i.test(f.name));
+  if (!doc) throw new Error('Hãy chọn một file .pptx, .docx, .pdf, .md hoặc .txt');
   const ext = doc.name.split('.').pop().toLowerCase();
   const extras = new Map(list.filter(f => f !== doc).map(f => [f.name.toLowerCase(), f]));
   let deck;
   if (ext === 'pptx') deck = await readPptx(await JSZip.loadAsync(await doc.arrayBuffer()));
   else if (ext === 'docx') deck = await readDocx(await JSZip.loadAsync(await doc.arrayBuffer()));
+  else if (ext === 'pdf') deck = await readPdf(await doc.arrayBuffer());
   else {
     const text = (await doc.text()).replace(/^﻿/, '');
     deck = ext === 'txt' ? readTxt(text) : await readMd(text, extras);
@@ -542,6 +543,12 @@ async function readDocx(zip) {
   }
 
   if (!blocks.some(b => b.t === 'h')) guessHeads(blocks);
+  blocksToDeck(deck, blocks);
+  return deck;
+}
+// khối nội dung (h / p / table / img) -> cây mục theo heading -> trang bìa và các trang (dùng cho Word và PDF);
+// cardLevel: các mục con từ cấp này trở xuống mà đều ngắn thì gộp thành thẻ
+function blocksToDeck(deck, blocks, cardLevel = 3) {
   const root = docxTree(blocks);
   let pre = root.body, tops = root.kids;
   if (!deck.title && !pre.some(b => b.t === 'p') && tops.length) {
@@ -559,10 +566,9 @@ async function readDocx(zip) {
   }
   if (rest.length && rest.length <= 4 && rest.every(b => b.t === 'p' && b.text.length < 140)) deck.meta = rest.map(b => b.item.text);
   else if (rest.length) slides.push(...bodySlides(deck.title, '', rest));
-  for (const n of tops) emitSec(n, 1, '', slides);
+  for (const n of tops) emitSec(n, 1, '', slides, cardLevel);
   deck.slides = slides.filter(s => s.title || s.items.length || s.images.length || s.table);
   if (!deck.slides.some(s => s.title)) autoTitles(deck);
-  return deck;
 }
 // styleId -> tên, kiểu gốc, cấp đề cương, đậm, cỡ chữ; kèm kiểu đoạn mặc định và cỡ chữ mặc định
 function docxStyles(root) {
@@ -672,9 +678,9 @@ function isShortSec(n) {
   const ts = n.body.map(b => b.item.text);
   return ts.length <= 4 && ts.reduce((a, t) => a + t.length, 0) <= 300 && (ts.length <= 1 || Math.max(...ts.map(t => t.length)) <= 120);
 }
-function emitSec(n, depth, crumb, out) {
+function emitSec(n, depth, crumb, out, cardLevel = 3) {
   const ks = n.kids;
-  if (ks.length >= 2 && (depth >= 2 || Math.min(...ks.map(k => k.level)) >= 3) && ks.every(isShortSec)) {
+  if (ks.length >= 2 && (depth >= 2 || Math.min(...ks.map(k => k.level)) >= cardLevel) && ks.every(isShortSec)) {
     const ss = bodySlides(n.title, crumb, n.body);
     if (ss[ss.length - 1].table) ss.push(Slide({ title: n.title, subtitle: crumb, cont: true }));
     const last = ss[ss.length - 1];
@@ -687,7 +693,339 @@ function emitSec(n, depth, crumb, out) {
   if (depth === 1 && ks.length && isIntro(n.body)) out.push(Slide({ title: n.title, hint: 'section', items: n.body.map(b => b.item) }));   // chương chỉ có tên hoặc vài dòng dẫn => trang chương
   else if (n.body.length || !ks.length) out.push(...bodySlides(n.title, crumb, n.body));
   else sub = crumb ? `${crumb} · ${n.title}` : n.title;   // mục trung gian chỉ có tên: hiện làm phụ đề trên các trang con
-  for (const k of ks) emitSec(k, depth + 1, sub, out);
+  for (const k of ks) emitSec(k, depth + 1, sub, out, cardLevel);
+}
+
+// ---------- PDF có lớp chữ (thư viện pdf.js, nạp khi cần)
+// Dựng lại dòng, đoạn, gạch đầu dòng, bảng, ảnh; heading lấy từ mục lục điều hướng (bookmark), không có thì đoán
+// theo cỡ chữ, chữ đậm; rồi tách trang theo heading như file Word. PDF xuất từ PowerPoint (trang ngang, không
+// bookmark): mỗi trang một slide, dòng chữ to trên cùng là tiêu đề. Phải khớp read_pdf trong readers.py.
+const SPACE_GAP = 0.102;   // khoảng trống giữa hai chữ (theo cỡ chữ) coi là dấu cách, như pdf.js
+const BOLD_FONT_RE = /bold|black|heavy|semibold|demibold/i;
+const ITALIC_FONT_RE = /italic|oblique/i;
+const PDF_BULLET_RE = /^[-•●▪■◦○◆►▶✓✔→]\s*/u;
+const PAGENUM_RE = /^(?:trang|page)?\s*#(?:\s*(?:\/|của|of)\s*#)?$|^-\s*#\s*-$/u;
+const TOC_TAIL_RE = /^(.*?)[\s.…·_]+\d{1,4}$/u;
+const TOC_TITLE_RE = /^(?:mục lục|contents|table of contents)$/iu;
+const PDF_PASS_MSG = 'File PDF có mật khẩu. Hãy lưu lại một bản không đặt mật khẩu rồi thử lại.';
+const PDF_SCAN_MSG = 'File PDF này là ảnh chụp hoặc bản scan, không có lớp chữ để đọc. Công cụ chưa hỗ trợ loại này (cần nhận dạng chữ OCR).';
+const PDF_EMPTY_MSG = 'Không tìm thấy chữ nào trong file PDF.';
+const PDFJS_URLS = ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/'];
+const half = v => Math.floor(v * 2 + 0.5) / 2;
+const normT = t => t.normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase();
+
+let _pdfjs = null;
+function loadPdfJs() {
+  if (G.pdfjsLib) return Promise.resolve(G.pdfjsLib);
+  if (_pdfjs) return _pdfjs;
+  const load = base => new Promise((ok, no) => {
+    const s = document.createElement('script'); s.src = base + 'pdf.min.js';
+    s.onload = () => G.pdfjsLib ? ok(base) : no(); s.onerror = () => { s.remove(); no(); };
+    document.head.appendChild(s);
+  });
+  _pdfjs = load(PDFJS_URLS[0]).catch(() => load(PDFJS_URLS[1])).then(base => {
+    G.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.js';
+    return G.pdfjsLib;
+  }, () => { _pdfjs = null; throw new Error('Không tải được thư viện đọc PDF (pdf.js, cần mạng Internet ở lần đầu). Hãy kiểm tra kết nối rồi thử lại.'); });
+  return _pdfjs;
+}
+
+async function readPdf(buf) {
+  const lib = await loadPdfJs();
+  let doc;
+  try { doc = await lib.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise; }
+  catch (e) { if (e && e.name === 'PasswordException') throw new Error(PDF_PASS_MSG); throw e; }
+  const pages = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p), vp = page.getViewport({ scale: 1 });
+    const ol = await page.getOperatorList();   // nạp phông (để biết chữ đậm) và lấy khung ảnh
+    const tc = await page.getTextContent();
+    const pieces = [];
+    let pend = null;   // vị trí dấu cách đứng một mình (mẩu kế tiếp cùng dòng có dấu cách đứng trước)
+    for (const it of tc.items) {
+      const str = it.str || '';
+      const t = it.transform;
+      if (!str.trim()) { if (str) pend = t[5]; continue; }
+      if (Math.abs(t[1]) > 0.01 * Math.hypot(t[0], t[1]) || t[0] <= 0) continue;   // bỏ chữ xoay
+      const [x, y] = vp.convertToViewportPoint(t[4], t[5]);
+      const cw = it.width / str.length, lead = str.length - str.trimStart().length, trail = str.length - str.trimEnd().length;
+      const f = page.commonObjs.has(it.fontName) ? page.commonObjs.get(it.fontName) : null;
+      const fn = (f && f.name) || '';
+      const size = half(Math.hypot(t[2], t[3]));
+      pieces.push({ text: str.trim(), x0: x + lead * cw, x1: x + it.width - trail * cw, y, size,
+        bold: BOLD_FONT_RE.test(fn), italic: ITALIC_FONT_RE.test(fn), pre: lead > 0 || (pend !== null && Math.abs(pend - t[5]) <= 0.3 * size), post: trail > 0 });
+      pend = null;
+    }
+    const W = vp.width, H = vp.height, imgs = [], seen = new Set();
+    for (const b of pdfImageBoxes(ol, vp)) {
+      const x0 = Math.max(b[0], 0), y0 = Math.max(b[1], 0), x1 = Math.min(b[2], W), y1 = Math.min(b[3], H);
+      const key = [x0, y0, x1, y1].map(Math.round).join(',');
+      // bỏ ảnh nhỏ, ảnh nền cả trang, dải trang trí dài mảnh
+      if (x1 - x0 >= 40 && y1 - y0 >= 40 && (x1 - x0) * (y1 - y0) <= 0.85 * W * H
+        && Math.max(x1 - x0, y1 - y0) <= 6 * Math.min(x1 - x0, y1 - y0) && !seen.has(key)) {
+        seen.add(key);
+        imgs.push({ x0, y0, x1, y1, get: () => pdfClip(page, [x0, y0, x1, y1]) });
+      }
+    }
+    pages.push({ w: W, h: H, pieces, imgs });
+  }
+  const outline = [];
+  const walk = async (items, lvl) => {
+    for (const o of items || []) {
+      let pno = -1;
+      try {
+        const dest = typeof o.dest === 'string' ? await doc.getDestination(o.dest) : o.dest;
+        if (dest && dest[0] != null) pno = typeof dest[0] === 'number' ? dest[0] : await doc.getPageIndex(dest[0]);
+      } catch (e) { /* bookmark không trỏ tới trang */ }
+      outline.push([lvl, o.title || '', pno]);
+      await walk(o.items, lvl + 1);
+    }
+  };
+  await walk(await doc.getOutline(), 1);
+  const blocks = pdfBlocks(pages, outline);
+  for (const b of blocks) if (b.t === 'img') { b.img = await b.get(); delete b.get; }
+  const deck = { title: '', subtitle: '', meta: [], slides: [], coverNotes: '' };
+  blocksToDeck(deck, blocks.filter(b => b.t !== 'img' || b.img), 2);
+  return deck;
+}
+// khung ảnh trên trang: đi theo danh sách lệnh vẽ, nhân ma trận biến đổi tới lệnh vẽ ảnh
+function pdfImageBoxes(ol, vp) {
+  const O = G.pdfjsLib.OPS, out = [], st = [];
+  let m = [1, 0, 0, 1, 0, 0];
+  const mul = (a, b) => [a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1], a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3],
+    a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5]];
+  const paint = new Set([O.paintImageXObject, O.paintInlineImageXObject, O.paintJpegXObject, O.paintImageXObjectRepeat].filter(v => v !== undefined));
+  for (let i = 0; i < ol.fnArray.length; i++) {
+    const fn = ol.fnArray[i], a = ol.argsArray[i];
+    if (fn === O.save) st.push(m);
+    else if (fn === O.restore) m = st.pop() || m;
+    else if (fn === O.transform) m = mul(m, a);
+    else if (fn === O.paintFormXObjectBegin) { st.push(m); if (a && a[0]) m = mul(m, a[0]); }
+    else if (fn === O.paintFormXObjectEnd) m = st.pop() || m;
+    else if (paint.has(fn)) {
+      const pts = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([u, v]) => vp.convertToViewportPoint(m[0] * u + m[2] * v + m[4], m[1] * u + m[3] * v + m[5]));
+      out.push([Math.min(...pts.map(q => q[0])), Math.min(...pts.map(q => q[1])), Math.max(...pts.map(q => q[0])), Math.max(...pts.map(q => q[1]))]);
+    }
+  }
+  return out;
+}
+// cắt vùng ảnh: vẽ đúng phần đó của trang ra canvas (150 dpi) rồi lấy PNG
+async function pdfClip(page, b) {
+  try {
+    const s = 150 / 72, vp = page.getViewport({ scale: s });
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round((b[2] - b[0]) * s)); c.height = Math.max(1, Math.round((b[3] - b[1]) * s));
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: g, viewport: vp, transform: [1, 0, 0, 1, -b[0] * s, -b[1] * s] }).promise;
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    return blob ? await makeImg(new Uint8Array(await blob.arrayBuffer()), 'png', (b[2] - b[0]) / (b[3] - b[1])) : null;
+  } catch (e) { console.warn('Không cắt được ảnh trong PDF', e); return null; }
+}
+// mẩu chữ -> dòng (cùng đường chân chữ) -> các đoạn trong dòng (cách nhau quá 2 lần cỡ chữ: cột, ô bảng)
+function pdfLines(pieces) {
+  const rows = [];
+  for (const p of [...pieces].sort((a, b) => a.y - b.y || a.x0 - b.x0)) {
+    const r = rows[rows.length - 1];
+    if (r && Math.abs(p.y - r.y) <= 0.3 * Math.max(p.size, r.size)) { r.ps.push(p); r.size = Math.max(r.size, p.size); }
+    else rows.push({ y: p.y, size: p.size, ps: [p] });
+  }
+  const out = [];
+  for (const r of rows) {
+    let segs = [], cur = null;
+    for (const p of [...r.ps].sort((a, b) => a.x0 - b.x0)) {
+      const gap = cur ? p.x0 - cur.x1 : 0;
+      if (cur && gap > 2 * Math.max(p.size, cur.size)) { segs.push(cur); cur = null; }
+      if (!cur) { cur = Object.assign({}, p); continue; }
+      if (cur.post || p.pre || gap > SPACE_GAP * p.size) cur.text += ' ';
+      cur.text += p.text; cur.post = p.post;
+      cur.x1 = Math.max(cur.x1, p.x1); cur.size = Math.max(cur.size, p.size);
+      cur.bold = cur.bold && p.bold; cur.italic = cur.italic && p.italic;
+    }
+    segs.push(cur);
+    for (const s of segs) s.text = clean(s.text.normalize('NFC'));
+    segs = segs.filter(s => s.text);
+    if (segs.length) out.push({ y: r.y, size: Math.max(...segs.map(s => s.size)), bold: segs.every(s => s.bold), italic: segs.every(s => s.italic),
+      segs, x0: segs[0].x0, x1: Math.max(...segs.map(s => s.x1)), text: segs.map(s => s.text).join(' ') });
+  }
+  return out;
+}
+// các trang PDF (mẩu chữ, khung ảnh) -> khối nội dung h / p / table / img như file Word
+function pdfBlocks(pages, outline) {
+  const n = pages.length;
+  pages.forEach((pg, i) => { pg.lines = pdfLines(pg.pieces); for (const l of pg.lines) l.page = i; });
+  const chars = pages.reduce((a, pg) => a + pg.lines.reduce((b, l) => b + l.text.length, 0), 0);
+  const anyImg = pages.some(pg => pg.imgs.length);
+  if (!chars || (chars < 10 * n && anyImg)) throw new Error(anyImg ? PDF_SCAN_MSG : PDF_EMPTY_MSG);
+
+  // đầu trang, chân trang: lặp lại ở nửa số trang trở lên, hoặc chỉ là số trang
+  const hf = t => t.toLowerCase().replace(/\d+/g, '#').trim();
+  const edge = (l, pg) => l.y < 0.08 * pg.h || l.y > 0.93 * pg.h;
+  const cnt = new Map();
+  for (const pg of pages) for (const k of new Set(pg.lines.filter(l => edge(l, pg)).map(l => hf(l.text)))) cnt.set(k, (cnt.get(k) || 0) + 1);
+  for (const pg of pages) pg.lines = pg.lines.filter(l => !(edge(l, pg) && (PAGENUM_RE.test(hf(l.text)) || (n >= 2 && cnt.get(hf(l.text)) >= Math.max(2, 0.5 * n)))));
+  const L = pages.flatMap(pg => pg.lines);
+  for (const l of L) if (TOC_TITLE_RE.test(l.text)) l.drop = true;
+  const sizes = new Map();
+  for (const l of L) sizes.set(l.size, (sizes.get(l.size) || 0) + l.text.length);
+  let body = 11, best = -1;
+  for (const [s, c] of sizes) if (c > best || (c === best && s < body)) { body = s; best = c; }
+
+  // bảng: từ 2 dòng liền nhau trở lên có cùng số cột, các cột thẳng hàng
+  let tid = 0;
+  for (const pg of pages) {
+    const ls = pg.lines;
+    let i = 0;
+    while (i < ls.length) {
+      let j = i + 1;
+      if (ls[i].segs.length >= 2) {
+        while (j < ls.length && ls[j].segs.length === ls[i].segs.length
+          && ls[j].y - ls[j - 1].y <= 3 * Math.max(ls[j].size, ls[j - 1].size)
+          && ls[i].segs.every((s, k) => Math.abs(s.x0 - ls[j].segs[k].x0) <= Math.max(4, 0.8 * ls[i].size))) j++;
+        if (j - i >= 2) { tid++; for (let k = i; k < j; k++) ls[k].table = tid; }
+      }
+      i = j;
+    }
+  }
+
+  // heading: theo mục lục điều hướng (bookmark) của file
+  let found = 0, i0 = 0;
+  for (const [lvl, title, pno] of outline) {
+    const nt = normT(title);
+    const hit = nt ? pdfFind(L, i0, nt, pno) : null;
+    if (hit) {
+      const [i, k] = hit;
+      L[i].head = lvl; L[i].text = L.slice(i, k + 1).map(l => l.text).join(' ');
+      for (let j = i + 1; j <= k; j++) L[j].drop = true;
+      i0 = k + 1; found++;
+    }
+  }
+  if (!found && pages.every(pg => pg.w > 1.2 * pg.h)) {
+    // trang chiếu (PDF xuất từ PowerPoint): dòng chữ to trên cùng mỗi trang là tiêu đề (bỏ số chương "01")
+    pages.forEach((pg, p) => {
+      const ls = pg.lines.filter(l => !l.table && !l.drop);
+      const s = ls.findIndex(l => l.size >= body + 2 && !/^\d{1,3}$/.test(l.text));
+      if (s < 0) return;
+      const top = ls[s].size;
+      let e = s + 1;
+      while (e < ls.length && ls[e].size === top && ls[e].y - ls[e - 1].y <= 1.6 * top) e++;
+      if (p) ls[s].head = 1;
+      else ls[s].cover = true;   // trang đầu là trang bìa: tiêu đề thành tên bài, các dòng sau thành phụ đề, thông tin
+      ls[s].key = -1;   // tiêu đề đứng đầu trang, trước cả các dòng nằm trên nó
+      ls[s].text = ls.slice(s, e).map(l => l.text).join(' ');
+      for (const l of ls.slice(s + 1, e)) l.drop = true;
+      for (const l of ls.slice(0, s)) if (/^\d{1,3}$/.test(l.text)) l.drop = true;   // số chương "01" trang trí
+    });
+  } else if (!found) pdfGuessHeads(L, body);
+  const heads = new Set([...L.filter(l => l.head).map(l => normT(l.text)), ...outline.map(o => normT(o[1]))]);
+  for (const l of L) {   // dòng mục lục: tên heading + số trang
+    const m = l.text.match(TOC_TAIL_RE);
+    if (!l.head && m && heads.has(normT(m[1]))) l.drop = true;
+  }
+
+  // dựng đoạn, gạch đầu dòng, bảng, ảnh theo thứ tự trên trang
+  const blocks = [];
+  let cur = null;
+  const flush = () => {
+    if (cur) blocks.push({ t: 'p', item: Item(cur.text, cur.kind, cur.level), text: cur.text, bold: cur.bold, size: cur.size, list: cur.kind === 'bullet' });
+    cur = null;
+  };
+  for (const pg of pages) {
+    pg.imgs = pg.imgs.filter(im => pg.lines.reduce((a, l) => a + l.segs.filter(g => im.x0 - 2 <= g.x0 && g.x1 <= im.x1 + 2 && im.y0 <= l.y && l.y <= im.y1).length, 0) < 2);
+    const seq = [...pg.lines.filter(l => !l.drop).map(l => [l.key !== undefined ? l.key : l.y, 0, l]), ...pg.imgs.map(im => [im.y1, 1, im])];
+    seq.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const rmax = pg.lines.length ? Math.max(...pg.lines.map(l => l.x1)) : pg.w;
+    const lmin = pg.lines.length ? Math.min(...pg.lines.map(l => l.x0)) : 0;
+    for (const [, kind, e] of seq) {
+      if (kind) { flush(); blocks.push({ t: 'img', get: e.get }); continue; }
+      const l = e;
+      if (l.head) { flush(); blocks.push({ t: 'h', level: l.head, text: l.text }); continue; }
+      if (l.table) {
+        flush();
+        const row = l.segs.map(s => s.text), last = blocks[blocks.length - 1];
+        let tb = last && last.t === 'table' && last.tid === l.table ? last : null;
+        if (tb && l.y - tb.y <= 1.35 * l.size && row.every(c => isLowerChar(c[0]))) tb.rows[tb.rows.length - 1] = tb.rows[tb.rows.length - 1].map((a, k) => a + ' ' + row[k]);   // chữ trong ô xuống dòng
+        else if (tb) tb.rows.push(row);
+        else { tb = { t: 'table', tid: l.table, rows: [row] }; blocks.push(tb); }
+        tb.y = l.y;
+        continue;
+      }
+      const bt = pdfBullet(l.text);
+      if (cur && bt === null && !l.cover && !cur.cover && pdfCont(cur, l, rmax)) { cur.text += ' ' + l.text; cur.last = l; cur.bold = cur.bold && l.bold; continue; }
+      flush();
+      const d = l.x0 - lmin;
+      cur = { kind: bt === null ? 'para' : 'bullet', text: bt === null ? l.text : bt,
+        level: bt === null || d < 2.5 * l.size ? 0 : (d < 5.5 * l.size ? 1 : 2), bold: l.bold, size: l.size, first: l, last: l, cover: !!l.cover };
+    }
+  }
+  flush();
+  for (const b of blocks) if (b.t === 'table' && b.rows.length < 2) {   // bảng còn một dòng (phần còn lại là mục lục) => đoạn thường
+    const t = b.rows[0].join(' ');
+    Object.assign(b, { t: 'p', item: Item(t, 'para'), text: t, bold: false, size: body, list: false });
+  }
+  return blocks;
+}
+// tìm dòng (hoặc 2–3 dòng liền nhau) có chữ đúng bằng tên mục trong bookmark, từ trang ghi trong bookmark
+function pdfFind(L, i0, nt, pno) {
+  for (let i = i0; i < L.length; i++) {
+    const l = L[i];
+    if (pno >= 0 && l.page < pno) continue;
+    if (pno >= 0 && l.page > pno + 1) return null;
+    if (l.table || l.drop) continue;
+    let acc = '';
+    for (let k = i; k < Math.min(i + 3, L.length); k++) {
+      acc = (acc + ' ' + normT(L[k].text)).trim();
+      if (acc === nt) return [i, k];
+      if (!nt.startsWith(acc)) break;
+    }
+  }
+  return null;
+}
+// không có bookmark: dòng ngắn, chữ to hơn chữ thân bài hoặc in đậm, không kết thúc bằng dấu chấm, phẩy => heading;
+// dòng chữ to đứng đầu trang 1 với kiểu chữ chỉ xuất hiện một lần => tên bài, phụ đề (trang bìa)
+function pdfGuessHeads(L, body) {
+  const cand = l => !l.table && !l.drop && l.text.length <= 120 && words(l.text).length <= 16 && !/[.;,]$/.test(l.text)
+    && (l.size >= body + 1.5 || (l.bold && l.size >= body - 0.5));
+  let groups = [], i = 0;
+  while (i < L.length) {
+    if (!cand(L[i])) { i++; continue; }
+    let j = i + 1;
+    while (j < L.length && cand(L[j]) && L[j].page === L[i].page && L[j].size === L[i].size && L[j].bold === L[i].bold
+      && L[j].italic === L[i].italic && L[j].y - L[j - 1].y <= 1.6 * L[i].size
+      && L.slice(i, j + 1).reduce((a, l) => a + l.text.length, 0) <= 150) j++;
+    groups.push([i, j - 1]); i = j;
+  }
+  const plain = L.filter(l => !l.table && !l.drop).length;
+  if (groups.filter(([a]) => L[a].size < body + 1.5).length > 0.4 * plain) groups = groups.filter(([a]) => L[a].size >= body + 1.5);   // in đậm tràn lan: chỉ tin cỡ chữ
+  const sk = l => `${l.size}|${l.bold}|${l.italic}`, style = new Map();
+  for (const [a] of groups) style.set(sk(L[a]), (style.get(sk(L[a])) || 0) + 1);
+  let first = groups.findIndex(([a]) => style.get(sk(L[a])) >= 2);
+  if (first < 0) first = groups.length;
+  const heads = [];
+  groups.forEach(([a, z], k) => {
+    L[a].text = L.slice(a, z + 1).map(l => l.text).join(' ');
+    for (let q = a + 1; q <= z; q++) L[q].drop = true;
+    if (k < first && L[a].page === 0) L[a].cover = true; else heads.push(L[a]);
+  });
+  const key = l => [-l.size, numDepth(l.text), l.italic ? 1 : 0];
+  const keys = [...new Set(heads.map(l => key(l).join(',')))].map(k => k.split(',').map(Number)).sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]).map(k => k.join(','));
+  for (const l of heads) l.head = keys.indexOf(key(l).join(',')) + 1;
+}
+// chữ sau dấu đầu dòng, hoặc null nếu dòng không bắt đầu bằng dấu đầu dòng
+function pdfBullet(t) {
+  if (PDF_BULLET_RE.test(t)) return t.replace(PDF_BULLET_RE, '').trim();
+  if (BULLET_RE.test(t)) return stripBullet(t);
+  return null;
+}
+// dòng l có viết tiếp đoạn đang dựng không
+function pdfCont(cur, l, rmax) {
+  const a = cur.last;
+  if (Math.abs(l.size - cur.size) > 1) return false;
+  if (l.page !== a.page) return l.page === a.page + 1 && !/[.!?:;]$/.test(cur.text);
+  const gap = l.y - a.y;
+  if (gap <= 0 || gap > 1.6 * Math.max(l.size, a.size)) return false;
+  if (/[.!?:;]$/.test(a.text) && a.x1 < rmax - 2 * a.size) return false;   // dòng trước ngắn và hết câu
+  if (cur.kind === 'bullet') return l.x0 >= cur.first.x0 + 0.3 * l.size;
+  return l.x0 <= a.x0 + 0.8 * l.size;
 }
 
 // ---------- Markdown / văn bản

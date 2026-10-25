@@ -79,7 +79,7 @@
     status('Đang đọc file…'); $('tdt-dl').disabled = true;
     try {
       state.deck = await TDT.readFiles(files);
-      const main = [...files].find(f => /\.(pptx|docx|md|markdown|txt)$/i.test(f.name));
+      const main = [...files].find(f => /\.(pptx|docx|pdf|md|markdown|txt)$/i.test(f.name));
       if (state.src) Object.values(state.src.media).forEach(u => u && URL.revokeObjectURL(u));
       state.src = /\.pptx$/i.test(main.name) ? await TDT.loadSource(await main.arrayBuffer()) : null;
       $('tdt-keep-row').hidden = !state.src;

@@ -1,7 +1,9 @@
-"""Đọc .pptx / .docx / .md / .txt thành mô hình Deck chung."""
+"""Đọc .pptx / .docx / .pdf / .md / .txt thành mô hình Deck chung."""
 from __future__ import annotations
 
+import math
 import re
+import unicodedata
 from pathlib import Path
 
 from .model import BULLET_RE, Deck, Img, Item, Slide, clean, strip_bullet
@@ -18,11 +20,13 @@ def read(path: str | Path) -> Deck:
         return read_pptx(p)
     if ext == ".docx":
         return read_docx(p)
+    if ext == ".pdf":
+        return read_pdf(p)
     if ext in (".md", ".markdown"):
         return read_md(p.read_text(encoding="utf-8-sig"), p.parent)
     if ext == ".txt":
         return read_txt(p.read_text(encoding="utf-8-sig"))
-    raise ValueError(f"Chưa hỗ trợ loại file {ext} (dùng .pptx, .docx, .md, .txt)")
+    raise ValueError(f"Chưa hỗ trợ loại file {ext} (dùng .pptx, .docx, .pdf, .md, .txt)")
 
 
 # ======================================================================
@@ -353,6 +357,15 @@ def read_docx(path: Path) -> Deck:
 
     if not any(b["t"] == "h" for b in blocks):
         _guess_heads(blocks)
+    _blocks_deck(deck, blocks)
+    if not deck.title:
+        deck.title = path.stem
+    return deck
+
+
+def _blocks_deck(deck: Deck, blocks: list[dict], card_level: int = 3):
+    """Khối nội dung (h / p / table / img) -> cây mục theo heading -> trang bìa và các trang (dùng cho Word và PDF).
+    card_level: các mục con từ cấp này trở xuống mà đều ngắn thì gộp thành thẻ."""
     root = _tree(blocks)
     pre, tops = root.body, root.kids
     if not deck.title and not any(b["t"] == "p" for b in pre) and tops:
@@ -376,13 +389,10 @@ def read_docx(path: Path) -> Deck:
     elif rest:
         slides += _body_slides(deck.title, "", rest)
     for n in tops:
-        _emit(n, 1, "", slides)
-    if not deck.title:
-        deck.title = path.stem
+        _emit(n, 1, "", slides, card_level)
     deck.slides = [s for s in slides if s.title or s.items or s.images or s.table]
     if not any(s.title for s in deck.slides):
         _auto_titles(deck)
-    return deck
 
 
 def _int(el, tag):
@@ -551,9 +561,9 @@ def _short(n: _Sec) -> bool:
     return len(ts) <= 4 and sum(len(t) for t in ts) <= 300 and (len(ts) <= 1 or max(len(t) for t in ts) <= 120)
 
 
-def _emit(n: _Sec, depth: int, crumb: str, out: list[Slide]):
+def _emit(n: _Sec, depth: int, crumb: str, out: list[Slide], card_level: int = 3):
     kids = n.kids
-    if len(kids) >= 2 and (depth >= 2 or min(k.level for k in kids) >= 3) and all(_short(k) for k in kids):
+    if len(kids) >= 2 and (depth >= 2 or min(k.level for k in kids) >= card_level) and all(_short(k) for k in kids):
         ss = _body_slides(n.title, crumb, n.body)
         if ss[-1].table:
             ss.append(Slide(title=n.title, subtitle=crumb, cont=True))
@@ -572,7 +582,389 @@ def _emit(n: _Sec, depth: int, crumb: str, out: list[Slide]):
     else:   # mục trung gian chỉ có tên: hiện làm phụ đề trên các trang con
         sub = f"{crumb} · {n.title}" if crumb else n.title
     for k in kids:
-        _emit(k, depth + 1, sub, out)
+        _emit(k, depth + 1, sub, out, card_level)
+
+
+# ======================================================================
+# PDF có lớp chữ
+# ======================================================================
+
+SPACE_GAP = 0.102   # khoảng trống giữa hai chữ (theo cỡ chữ) coi là dấu cách, như pdf.js
+BOLD_FONT_RE = re.compile(r"bold|black|heavy|semibold|demibold", re.I)
+ITALIC_FONT_RE = re.compile(r"italic|oblique", re.I)
+PDF_BULLET_RE = re.compile(r"^[-•●▪■◦○◆►▶✓✔→]\s*")
+PAGENUM_RE = re.compile(r"^(?:trang|page)?\s*#(?:\s*(?:/|của|of)\s*#)?$|^-\s*#\s*-$")
+TOC_TAIL_RE = re.compile(r"^(.*?)[\s.…·_]+\d{1,4}$")
+TOC_TITLE_RE = re.compile(r"^(?:mục lục|contents|table of contents)$", re.I)
+PDF_PASS_MSG = "File PDF có mật khẩu. Hãy lưu lại một bản không đặt mật khẩu rồi thử lại."
+PDF_SCAN_MSG = ("File PDF này là ảnh chụp hoặc bản scan, không có lớp chữ để đọc. "
+                "Công cụ chưa hỗ trợ loại này (cần nhận dạng chữ OCR).")
+PDF_EMPTY_MSG = "Không tìm thấy chữ nào trong file PDF."
+
+
+def _half(v: float) -> float:
+    return math.floor(v * 2 + 0.5) / 2
+
+
+def _norm(t: str) -> str:
+    return re.sub(r"\s+", " ", unicodedata.normalize("NFC", t)).strip().lower()
+
+
+def read_pdf(path: Path) -> Deck:
+    """PDF có lớp chữ: dựng lại dòng, đoạn, gạch đầu dòng, bảng, ảnh; heading lấy từ mục lục điều hướng (bookmark),
+    không có thì đoán theo cỡ chữ, chữ đậm; rồi tách trang theo heading như file Word.
+    PDF xuất từ PowerPoint (trang ngang, không bookmark): mỗi trang một slide, dòng chữ to nhất là tiêu đề."""
+    import pymupdf
+    doc = pymupdf.open(str(path))
+    if doc.needs_pass:
+        raise ValueError(PDF_PASS_MSG)
+    pages = []
+    for pg in doc:
+        pieces = []
+        for b in pg.get_text("rawdict")["blocks"]:
+            for ln in b.get("lines", []):
+                if abs(ln["dir"][1]) > 0.01 or ln["dir"][0] <= 0:   # bỏ chữ xoay
+                    continue
+                pend = False   # có dấu cách đứng trước mẩu kế tiếp
+                for sp in ln["spans"]:
+                    size, y = _half(sp["size"]), sp["origin"][1]
+                    bold, it = bool(BOLD_FONT_RE.search(sp["font"])), bool(ITALIC_FONT_RE.search(sp["font"]))
+                    cur, last = None, 0.0
+                    for ch in sp["chars"]:
+                        x0, x1 = ch["bbox"][0], ch["bbox"][2]
+                        if cur and x0 - last > SPACE_GAP * size:   # khoảng trống giữa hai ký tự: tách mẩu như pdf.js
+                            pieces.append(_piece(cur))
+                            cur = None
+                        last = x1
+                        if ch["c"].isspace():
+                            if cur:
+                                cur["text"] += " "
+                            else:
+                                pend = True
+                            continue
+                        if cur is None:
+                            cur = dict(text=ch["c"], x0=x0, x1=x1, y=y, size=size, bold=bold, italic=it, pre=pend)
+                            pend = False
+                        else:
+                            cur["text"] += ch["c"]
+                            cur["x1"] = x1
+                    if cur:
+                        pieces.append(_piece(cur))
+        W, H = pg.rect.width, pg.rect.height
+        imgs, seen = [], set()
+        for info in pg.get_image_info():
+            x0, y0, x1, y1 = info["bbox"]
+            x0, y0, x1, y1 = max(x0, 0), max(y0, 0), min(x1, W), min(y1, H)
+            key = (round(x0), round(y0), round(x1), round(y1))
+            # bỏ ảnh nhỏ, ảnh nền cả trang, dải trang trí dài mảnh
+            if (x1 - x0 >= 40 and y1 - y0 >= 40 and (x1 - x0) * (y1 - y0) <= 0.85 * W * H
+                    and max(x1 - x0, y1 - y0) <= 6 * min(x1 - x0, y1 - y0) and key not in seen):
+                seen.add(key)
+                imgs.append(dict(x0=x0, y0=y0, x1=x1, y1=y1, get=lambda pg=pg, r=(x0, y0, x1, y1): Img.from_bytes(
+                    pg.get_pixmap(clip=pymupdf.Rect(*r), dpi=150).tobytes("png"), "png")))
+        pages.append(dict(w=W, h=H, pieces=pieces, imgs=imgs))
+    outline = [(lvl, title, p - 1) for lvl, title, p in doc.get_toc(simple=True)]
+    blocks = _pdf_blocks(pages, outline)
+    for b in blocks:
+        if b["t"] == "img":
+            b["img"] = b.pop("get")()
+    deck = Deck()
+    _blocks_deck(deck, [b for b in blocks if b["t"] != "img" or b["img"]], card_level=2)
+    if not deck.title:
+        deck.title = path.stem
+    return deck
+
+
+def _piece(p):
+    """Mẩu chữ: bỏ dấu cách hai đầu, nhớ lại là có dấu cách đứng trước / sau."""
+    p["post"] = p["text"].endswith(" ")
+    p["text"] = p["text"].strip()
+    return p
+
+
+def _pdf_lines(pieces):
+    """Mẩu chữ -> dòng (cùng đường chân chữ) -> các đoạn trong dòng (cách nhau quá 2 lần cỡ chữ: cột, ô bảng)."""
+    rows = []
+    for p in sorted(pieces, key=lambda p: (p["y"], p["x0"])):
+        r = rows[-1] if rows else None
+        if r and abs(p["y"] - r["y"]) <= 0.3 * max(p["size"], r["size"]):
+            r["ps"].append(p)
+            r["size"] = max(r["size"], p["size"])
+        else:
+            rows.append(dict(y=p["y"], size=p["size"], ps=[p]))
+    out = []
+    for r in rows:
+        segs, cur = [], None
+        for p in sorted(r["ps"], key=lambda p: p["x0"]):
+            gap = p["x0"] - cur["x1"] if cur else 0
+            if cur and gap > 2 * max(p["size"], cur["size"]):
+                segs.append(cur)
+                cur = None
+            if cur is None:
+                cur = dict(p)
+                continue
+            if cur["post"] or p["pre"] or gap > SPACE_GAP * p["size"]:
+                cur["text"] += " "
+            cur["text"] += p["text"]
+            cur["post"] = p["post"]
+            cur["x1"] = max(cur["x1"], p["x1"])
+            cur["size"] = max(cur["size"], p["size"])
+            cur["bold"] = cur["bold"] and p["bold"]
+            cur["italic"] = cur["italic"] and p["italic"]
+        segs.append(cur)
+        for s in segs:
+            s["text"] = clean(unicodedata.normalize("NFC", s["text"]))
+        segs = [s for s in segs if s["text"]]
+        if segs:
+            out.append(dict(y=r["y"], size=max(s["size"] for s in segs), bold=all(s["bold"] for s in segs),
+                            italic=all(s["italic"] for s in segs), segs=segs,
+                            x0=segs[0]["x0"], x1=max(s["x1"] for s in segs), text=" ".join(s["text"] for s in segs)))
+    return out
+
+
+def _pdf_blocks(pages, outline) -> list[dict]:
+    """Các trang PDF (mẩu chữ, khung ảnh) -> khối nội dung h / p / table / img như file Word."""
+    n = len(pages)
+    for i, pg in enumerate(pages):
+        pg["lines"] = _pdf_lines(pg["pieces"])
+        for l in pg["lines"]:
+            l["page"] = i
+    chars = sum(len(l["text"]) for pg in pages for l in pg["lines"])
+    if not chars or chars < 10 * n and any(pg["imgs"] for pg in pages):
+        raise ValueError(PDF_SCAN_MSG if any(pg["imgs"] for pg in pages) else PDF_EMPTY_MSG)
+
+    # đầu trang, chân trang: lặp lại ở nửa số trang trở lên, hoặc chỉ là số trang
+    def hf(t):
+        return re.sub(r"\d+", "#", t.lower()).strip()
+
+    def edge(l, pg):
+        return l["y"] < 0.08 * pg["h"] or l["y"] > 0.93 * pg["h"]
+
+    cnt: dict[str, int] = {}
+    for pg in pages:
+        for k in {hf(l["text"]) for l in pg["lines"] if edge(l, pg)}:
+            cnt[k] = cnt.get(k, 0) + 1
+    for pg in pages:
+        pg["lines"] = [l for l in pg["lines"] if not (edge(l, pg) and (
+            PAGENUM_RE.match(hf(l["text"])) or n >= 2 and cnt[hf(l["text"])] >= max(2, 0.5 * n)))]
+    L = [l for pg in pages for l in pg["lines"]]
+    for l in L:
+        if TOC_TITLE_RE.match(l["text"]):
+            l["drop"] = True
+    sizes: dict[float, int] = {}
+    for l in L:
+        sizes[l["size"]] = sizes.get(l["size"], 0) + len(l["text"])
+    body = max(sizes, key=lambda s: (sizes[s], -s))
+
+    # bảng: từ 2 dòng liền nhau trở lên có cùng số cột, các cột thẳng hàng
+    tid = 0
+    for pg in pages:
+        ls, i = pg["lines"], 0
+        while i < len(ls):
+            j = i + 1
+            if len(ls[i]["segs"]) >= 2:
+                while (j < len(ls) and len(ls[j]["segs"]) == len(ls[i]["segs"])
+                       and ls[j]["y"] - ls[j - 1]["y"] <= 3 * max(ls[j]["size"], ls[j - 1]["size"])
+                       and all(abs(s["x0"] - t["x0"]) <= max(4, 0.8 * ls[i]["size"])
+                               for s, t in zip(ls[i]["segs"], ls[j]["segs"]))):
+                    j += 1
+                if j - i >= 2:
+                    tid += 1
+                    for k in range(i, j):
+                        ls[k]["table"] = tid
+            i = j
+
+    # heading: theo mục lục điều hướng (bookmark) của file
+    found = 0
+    i0 = 0
+    for lvl, title, pno in outline:
+        nt = _norm(title)
+        hit = _pdf_find(L, i0, nt, pno) if nt else None
+        if hit:
+            i, k = hit
+            L[i]["head"] = lvl
+            L[i]["text"] = " ".join(L[j]["text"] for j in range(i, k + 1))
+            for j in range(i + 1, k + 1):
+                L[j]["drop"] = True
+            i0, found = k + 1, found + 1
+    if not found and all(pg["w"] > 1.2 * pg["h"] for pg in pages):
+        # trang chiếu (PDF xuất từ PowerPoint): dòng chữ to trên cùng mỗi trang là tiêu đề (bỏ số chương "01")
+        for p, pg in enumerate(pages):
+            ls = [l for l in pg["lines"] if not l.get("table") and not l.get("drop")]
+            s = next((k for k, l in enumerate(ls) if l["size"] >= body + 2 and not re.fullmatch(r"\d{1,3}", l["text"])), None)
+            if s is None:
+                continue
+            top = ls[s]["size"]
+            e = s + 1
+            while e < len(ls) and ls[e]["size"] == top and ls[e]["y"] - ls[e - 1]["y"] <= 1.6 * top:
+                e += 1
+            if p:
+                ls[s]["head"] = 1
+            else:   # trang đầu là trang bìa: tiêu đề thành tên bài, các dòng sau thành phụ đề, thông tin
+                ls[s]["cover"] = True
+            ls[s]["key"] = -1.0   # tiêu đề đứng đầu trang, trước cả các dòng nằm trên nó
+            ls[s]["text"] = " ".join(l["text"] for l in ls[s:e])
+            for l in ls[s + 1:e]:
+                l["drop"] = True
+            for l in ls[:s]:
+                if re.fullmatch(r"\d{1,3}", l["text"]):   # số chương "01" trang trí
+                    l["drop"] = True
+    elif not found:
+        _pdf_guess_heads(L, body)
+    heads = {_norm(l["text"]) for l in L if l.get("head")} | {_norm(t) for _, t, _ in outline}
+    for l in L:   # dòng mục lục: tên heading + số trang
+        m = TOC_TAIL_RE.match(l["text"])
+        if not l.get("head") and m and _norm(m.group(1)) in heads:
+            l["drop"] = True
+
+    # dựng đoạn, gạch đầu dòng, bảng, ảnh theo thứ tự trên trang
+    blocks: list[dict] = []
+    cur = None
+
+    def flush():
+        nonlocal cur
+        if cur:
+            blocks.append(dict(t="p", item=Item(text=cur["text"], kind=cur["kind"], level=cur["level"]), text=cur["text"],
+                               bold=cur["bold"], size=cur["size"], list=cur["kind"] == "bullet"))
+        cur = None
+
+    for pg in pages:
+        pg["imgs"] = [im for im in pg["imgs"] if sum(
+            1 for l in pg["lines"] for g in l["segs"]
+            if im["x0"] - 2 <= g["x0"] and g["x1"] <= im["x1"] + 2 and im["y0"] <= l["y"] <= im["y1"]) < 2]
+        seq = [(l.get("key", l["y"]), 0, l) for l in pg["lines"] if not l.get("drop")] + [(im["y1"], 1, im) for im in pg["imgs"]]
+        seq.sort(key=lambda t: (t[0], t[1]))
+        rmax = max((l["x1"] for l in pg["lines"]), default=pg["w"])
+        lmin = min((l["x0"] for l in pg["lines"]), default=0)
+        for _, kind, e in seq:
+            if kind:
+                flush()
+                blocks.append(dict(t="img", get=e["get"]))
+                continue
+            l = e
+            if l.get("head"):
+                flush()
+                blocks.append(dict(t="h", level=l["head"], text=l["text"]))
+                continue
+            if l.get("table"):
+                flush()
+                row = [s["text"] for s in l["segs"]]
+                tb = blocks[-1] if blocks and blocks[-1]["t"] == "table" and blocks[-1]["tid"] == l["table"] else None
+                if tb and l["y"] - tb["y"] <= 1.35 * l["size"] and all(c[:1].islower() for c in row):
+                    tb["rows"][-1] = [a + " " + c for a, c in zip(tb["rows"][-1], row)]   # chữ trong ô xuống dòng
+                elif tb:
+                    tb["rows"].append(row)
+                else:
+                    tb = dict(t="table", tid=l["table"], rows=[row])
+                    blocks.append(tb)
+                tb["y"] = l["y"]
+                continue
+            bt = _pdf_bullet(l["text"])
+            if cur and bt is None and not l.get("cover") and not cur["cover"] and _pdf_cont(cur, l, rmax):
+                cur["text"] += " " + l["text"]
+                cur["last"] = l
+                cur["bold"] = cur["bold"] and l["bold"]
+                continue
+            flush()
+            d = l["x0"] - lmin
+            cur = dict(kind="para" if bt is None else "bullet", text=l["text"] if bt is None else bt,
+                       level=0 if bt is None or d < 2.5 * l["size"] else (1 if d < 5.5 * l["size"] else 2),
+                       bold=l["bold"], size=l["size"], first=l, last=l, cover=bool(l.get("cover")))
+    flush()
+    for b in blocks:
+        if b["t"] == "table" and len(b["rows"]) < 2:   # bảng còn một dòng (phần còn lại là mục lục) => đoạn thường
+            t = " ".join(b["rows"][0])
+            b.update(t="p", item=Item(text=t, kind="para"), text=t, bold=False, size=body, list=False)
+    return blocks
+
+
+def _pdf_find(L, i0, nt, pno):
+    """Tìm dòng (hoặc 2–3 dòng liền nhau) có chữ đúng bằng tên mục trong bookmark, từ trang ghi trong bookmark."""
+    for i in range(i0, len(L)):
+        l = L[i]
+        if pno >= 0 and l["page"] < pno:
+            continue
+        if pno >= 0 and l["page"] > pno + 1:
+            return None
+        if l.get("table") or l.get("drop"):
+            continue
+        acc = ""
+        for k in range(i, min(i + 3, len(L))):
+            acc = (acc + " " + _norm(L[k]["text"])).strip()
+            if acc == nt:
+                return i, k
+            if not nt.startswith(acc):
+                break
+    return None
+
+
+def _pdf_guess_heads(L, body):
+    """Không có bookmark: dòng ngắn, chữ to hơn chữ thân bài hoặc in đậm, không kết thúc bằng dấu chấm, phẩy => heading.
+    Dòng chữ to đứng đầu trang 1 với kiểu chữ chỉ xuất hiện một lần => tên bài, phụ đề (trang bìa)."""
+    def cand(l):
+        return (not l.get("table") and not l.get("drop") and len(l["text"]) <= 120 and len(l["text"].split()) <= 16
+                and not re.search(r"[.;,]$", l["text"])
+                and (l["size"] >= body + 1.5 or l["bold"] and l["size"] >= body - 0.5))
+
+    groups, i = [], 0
+    while i < len(L):
+        if not cand(L[i]):
+            i += 1
+            continue
+        j = i + 1
+        while (j < len(L) and cand(L[j]) and L[j]["page"] == L[i]["page"] and L[j]["size"] == L[i]["size"]
+               and L[j]["bold"] == L[i]["bold"] and L[j]["italic"] == L[i]["italic"] and L[j]["y"] - L[j - 1]["y"] <= 1.6 * L[i]["size"]
+               and sum(len(L[k]["text"]) for k in range(i, j + 1)) <= 150):
+            j += 1
+        groups.append((i, j - 1))
+        i = j
+    plain = sum(1 for l in L if not l.get("table") and not l.get("drop"))
+    if sum(1 for a, _ in groups if L[a]["size"] < body + 1.5) > 0.4 * plain:   # in đậm tràn lan: chỉ tin cỡ chữ
+        groups = [g for g in groups if L[g[0]]["size"] >= body + 1.5]
+    style: dict[tuple, int] = {}
+    for a, _ in groups:
+        k = (L[a]["size"], L[a]["bold"], L[a]["italic"])
+        style[k] = style.get(k, 0) + 1
+    first = next((n for n, (a, _) in enumerate(groups) if style[(L[a]["size"], L[a]["bold"], L[a]["italic"])] >= 2),
+                 len(groups))
+    heads = []
+    for n, (a, z) in enumerate(groups):
+        L[a]["text"] = " ".join(L[k]["text"] for k in range(a, z + 1))
+        for k in range(a + 1, z + 1):
+            L[k]["drop"] = True
+        if n < first and L[a]["page"] == 0:
+            L[a]["cover"] = True
+        else:
+            heads.append(L[a])
+    keys = sorted({(-l["size"], _num_depth(l["text"]), l["italic"]) for l in heads})
+    for l in heads:
+        l["head"] = keys.index((-l["size"], _num_depth(l["text"]), l["italic"])) + 1
+
+
+def _pdf_bullet(t: str) -> str | None:
+    """Chữ sau dấu đầu dòng, hoặc None nếu dòng không bắt đầu bằng dấu đầu dòng."""
+    if PDF_BULLET_RE.match(t):
+        return PDF_BULLET_RE.sub("", t, count=1).strip()
+    if BULLET_RE.match(t):
+        return strip_bullet(t)
+    return None
+
+
+def _pdf_cont(cur, l, rmax) -> bool:
+    """Dòng l có viết tiếp đoạn đang dựng không."""
+    a = cur["last"]
+    if abs(l["size"] - cur["size"]) > 1:
+        return False
+    if l["page"] != a["page"]:
+        return l["page"] == a["page"] + 1 and not re.search(r"[.!?:;]$", cur["text"])
+    gap = l["y"] - a["y"]
+    if gap <= 0 or gap > 1.6 * max(l["size"], a["size"]):
+        return False
+    if re.search(r"[.!?:;]$", a["text"]) and a["x1"] < rmax - 2 * a["size"]:   # dòng trước ngắn và hết câu
+        return False
+    if cur["kind"] == "bullet":
+        return l["x0"] >= cur["first"]["x0"] + 0.3 * l["size"]
+    return l["x0"] <= a["x0"] + 0.8 * l["size"]
 
 
 # ======================================================================
