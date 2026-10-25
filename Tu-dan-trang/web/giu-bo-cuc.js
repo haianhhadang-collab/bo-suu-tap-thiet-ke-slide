@@ -344,11 +344,29 @@ class Restyler {
   constructor(src, th, opts) {
     this.src = src; this.th = th; this.opts = opts; this.SW = src.sw; this.SH = src.sh;
     this.docs = {};
+    this.media = {};      // ảnh trang trí thêm vào gói: đường dẫn trong gói -> dữ liệu
+    this.extraRels = {};  // trang -> { rId mới: đường dẫn ảnh }
     this.themes = {};
     for (const s of src.slides) if (!this.themes[s.theme]) { const root = this.doc(s.theme).documentElement; this.themes[s.theme] = { scheme: readScheme(root), fonts: readFonts(root) }; }
     this.mapper = new Mapper(th, this.bucketOrder());
   }
   doc(p) { return this.docs[p] || (this.docs[p] = parse(this.src.files[p])); }
+  relsPath(s) { const i = s.path.lastIndexOf('/'); return s.path.slice(0, i) + '/_rels/' + s.path.slice(i + 1) + '.rels'; }
+  /** Ảnh trang trí (kho-anh.js) vào trang gốc: thêm file ảnh vào gói và một quan hệ mới; trả về rId. */
+  addMedia(s, img) {
+    const target = 'ppt/media/' + img.id + '.' + img.ext, rels = this.doc(this.relsPath(s)), root = rels.documentElement;
+    const ids = new Set(desc(root, 'Relationship').map(r => at(r, 'Id')));
+    let n = 1; while (ids.has('rIdKA' + n)) n++;
+    const r = rels.createElementNS(root.namespaceURI, 'Relationship');
+    r.setAttribute('Id', 'rIdKA' + n);
+    r.setAttribute('Type', R + '/image');
+    r.setAttribute('Target', '../media/' + img.id + '.' + img.ext);
+    root.appendChild(r);
+    this.media[target] = img.data;
+    (this.extraRels[s.path] = this.extraRels[s.path] || {})['rIdKA' + n] = target;
+    this.src.media[target] = img.url;   // cho bản xem trước
+    return 'rIdKA' + n;
+  }
   root(p) { return this.doc(p).documentElement; }
   scheme(s) {
     const cm = kid(this.root(s.master), 'clrMap'), ov = path(this.root(s.path), 'clrMapOvr', 'overrideClrMapping');
@@ -379,7 +397,11 @@ class Restyler {
     const out = { slides: [], files: {} };
     this.src.slides.forEach((s, i) => out.slides.push(this.slide(s, i, kinds[i] || 'content')));
     for (const p in this.themes) { this.restyleTheme(this.doc(p)); out.files[p] = serialize(this.doc(p)); }
-    for (const s of this.src.slides) out.files[s.path] = serialize(this.doc(s.path));
+    for (const s of this.src.slides) {
+      out.files[s.path] = serialize(this.doc(s.path));
+      if (this.extraRels[s.path]) out.files[this.relsPath(s)] = serialize(this.doc(this.relsPath(s)));
+    }
+    out.media = this.media;
     const core = this.src.files['docProps/core.xml'];
     if (core) {
       const sub = `<dc:subject>${T.pptxXml.esc('Giữ bố cục gốc – mẫu ' + this.th.name)}</dc:subject>`;
@@ -415,7 +437,7 @@ class Restyler {
     const oldBg = kid(cSld, 'bg'); if (oldBg) oldBg.remove();
     cSld.insertBefore(bgEl, cSld.firstElementChild);
     let id = Math.max(1, ...desc(sld, 'cNvPr').map(e => int(e, 'id')));
-    const added = frag(doc, ctx.sl.els.map(el => T.pptxXml.shapeXml(el, ++id, null)).join(''));
+    const added = frag(doc, ctx.sl.els.map(el => T.pptxXml.shapeXml(el, ++id, el.t === 'pic' ? this.addMedia(s, el.img) : null)).join(''));
     const ext = kid(tree, 'extLst');
     for (const el of added) tree.insertBefore(el, ext);
     this.placeDecor(tree, added);
@@ -434,7 +456,7 @@ class Restyler {
     }
     // 4. họa tiết chạm vào chữ, ảnh thì làm mờ (ảnh phủ kín trang che hết họa tiết nên bỏ qua)
     const full = 0.85 * this.SW * this.SH;
-    this.softenDecor(added, recs.filter(r => r.text || (r.pic && r.box[2] * r.box[3] < full)).map(r => r.box));
+    if (!ctx.info.art) this.softenDecor(added, recs.filter(r => r.text || (r.pic && r.box[2] * r.box[3] < full)).map(r => r.box));   // ảnh trang trí đã có lớp phủ đều cả trang
     // 5. animation (giữ animation có sẵn) + chuyển trang
     if (!hadTiming && (opts.anim || 'auto') !== 'none') {
       const steps = this.steps(tree, recs, added), ids = new Map();
@@ -783,7 +805,7 @@ class Restyler {
       if (r.tag === 'grpSp') continue;
       const xf = xfrmOf(el), rot = xf ? int(xf, 'rot') / 60000 : 0;
       if (r.tag === 'pic' || (r.tag === 'sp' && kid(kid(el, 'spPr'), 'blipFill'))) {
-        const blip = desc(el, 'blip')[0], rid = blip ? (blip.getAttributeNS(R, 'embed') || at(blip, 'r:embed')) : null, url = rid ? this.src.media[s.rels[rid]] : null;
+        const blip = desc(el, 'blip')[0], rid = blip ? (blip.getAttributeNS(R, 'embed') || at(blip, 'r:embed')) : null, url = rid ? this.src.media[s.rels[rid] || (this.extraRels[s.path] || {})[rid]] : null;
         const sr = desc(el, 'srcRect')[0];
         const crop = sr ? { l: int(sr, 'l') / 100000, t: int(sr, 't') / 100000, r: int(sr, 'r') / 100000, b: int(sr, 'b') / 100000 } : null;
         els.push({ t: 'pic', img: { url }, x, y, w, h, crop: crop && (crop.l || crop.t || crop.r || crop.b) ? crop : null, radius: 0 });
@@ -844,12 +866,19 @@ function slideKinds(rs, deck) {
 
 /** Khoác mẫu lên file gốc: trả về { keep: true, slides (IR xem trước), files (XML đã đổi), theme, title }. */
 function keepBuild(src, deck, th, opts = {}) {
+  if (opts.khoAnh && T.khoAnhPlan) opts = Object.assign({}, opts, { _art: T.khoAnhPlan(deck, th, opts, src.sw / src.sh) });
   const rs = new Restyler(src, th, opts), out = rs.run(slideKinds(rs, deck));
-  return { keep: true, title: deck.title, fileName: deck.fileName, theme: th, slides: out.slides, files: out.files };
+  return { keep: true, title: deck.title, fileName: deck.fileName, theme: th, slides: out.slides, files: out.files, media: out.media };
 }
 async function keepToPptx(src, result) {
   const zip = await JSZip.loadAsync(src.buf);
   for (const [p, xml] of Object.entries(result.files)) zip.file(p, xml);
+  const media = Object.entries(result.media || {});
+  for (const [p, data] of media) zip.file(p, data);
+  if (media.length) {   // khai báo kiểu ảnh .jpg nếu file gốc chưa có
+    const ctp = '[Content_Types].xml', ct = await zip.file(ctp).async('string');
+    if (!/Extension="jpg"/i.test(ct)) zip.file(ctp, ct.replace(/(<Types[^>]*>)/, '$1<Default Extension="jpg" ContentType="image/jpeg"/>'));
+  }
   return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', compression: 'DEFLATE' });
 }
 

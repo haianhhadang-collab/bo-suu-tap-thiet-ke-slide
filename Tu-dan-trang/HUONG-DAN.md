@@ -192,11 +192,15 @@ nội dung giữ trang trí của mẫu. Một lớp phủ màu nền của mẫ
   trang, nội dung (vd "Tết", "bệnh viện", "ASEAN"), rồi theo mẫu (Cổ điển → lịch sử, Thiên nhiên → thiên nhiên…). Muốn
   chắc chắn thì chọn gói cụ thể.
 - Trang bìa và trang kết dùng ảnh đầu của gói, các trang chương lần lượt dùng những ảnh còn lại.
-- File .pptx đang giữ bố cục gốc thì không chèn ảnh (bố cục là của bạn).
+- File .pptx giữ bố cục gốc vẫn nhận ảnh (không phải bỏ tích "Giữ nguyên bố cục"): ảnh nằm lớp dưới cùng của trang bìa, chương, kết,
+  lớp phủ đều cả trang vì chữ của bạn có thể nằm bất kỳ đâu; trang khổ 4:3 thì ảnh được cắt theo khổ cho khỏi méo.
 
 Cách chọn:
-- **Trang web**: bước 4 "Ảnh trang trí" trong hộp thoại. Xem cả kho, lọc theo gói và tải từng ảnh ở mục "Kho ảnh
-  trang trí theo chủ đề" cuối trang.
+- **Trang web**: bước 4 "Ảnh trang trí" trong hộp thoại. Hoặc ở mục "Kho ảnh trang trí theo chủ đề" cuối trang, bấm
+  "✦ Áp dụng vào slide" trên một ảnh: hộp thoại mở với bộ ảnh của gói đó, ảnh đã bấm làm nền trang bìa. Mục này chỉ để xem
+  và áp dụng, không tải ảnh về.
+- **File đã tải lên được giữ 1 giờ** ngay trong trình duyệt (kể cả khi tải lại trang, không gửi đi đâu), nên có thể đóng
+  hộp thoại để xem mẫu, kho ảnh rồi quay lại chọn tiếp. Bấm "× Bỏ file" để xóa sớm.
 - **Cửa sổ**: hai ô "Ảnh trang trí" và "Chủ đề" cạnh ô chuyển trang.
 - **Dòng lệnh**: `python tu_dan_trang.py bai-giang.docx --anh anh` (ảnh chụp) hoặc `--anh tranh`; thêm
   `--chu-de-anh di-san` để chọn gói. Danh sách gói: `--ds`.

@@ -23,6 +23,8 @@ THEME_GOI = {"song-bien": "thien-nhien", "gradient": "vu-tru", "toi-gian": "giao
 # lớp phủ trái -> phải: [độ đục ở mép trái, giữa, mép phải]
 PHU = {"anh": {"cover": [0.9, 0.7, 0.2], "section": [0.92, 0.75, 0.15], "closing": [0.8, 0.8, 0.8]},
        "tranh": {"cover": [0.88, 0.6, 0], "section": [0.9, 0.65, 0], "closing": [0.72, 0.72, 0.72]}}
+# file .pptx giữ bố cục gốc: chữ có thể nằm bất kỳ đâu nên phủ đều cả trang
+PHU_GIU = {"anh": [0.8, 0.8, 0.8], "tranh": [0.62, 0.62, 0.62]}
 LOAI = {"khong": "Không dùng", "anh": "Ảnh chụp", "tranh": "Tranh vẽ theo màu mẫu"}
 _data = None
 _imgs: dict[str, Img] = {}
@@ -68,16 +70,20 @@ def check(cfg) -> dict:
     goi = (cfg.get("goi") or "tu-dong").strip().lower()
     if goi != "tu-dong" and goi not in {g["id"] for g in goi_list()}:
         raise KeyError(f"Không có gói ảnh '{goi}'. Các gói: tu-dong, {', '.join(g['id'] for g in goi_list())}")
-    return {"loai": loai, "goi": goi}
+    return {"loai": loai, "goi": goi, "dau": cfg.get("dau") or ""}
 
 
-def plan(deck, th, opts) -> dict | None:
+def plan(deck, th, opts, giu=None) -> dict | None:
+    """giu = khung trang (rộng/cao) khi khoác lên file .pptx giữ bố cục gốc; cfg["dau"] = mã ảnh bìa (tùy chọn)."""
     cfg = (opts or {}).get("kho_anh") or {}
     if not data() or cfg.get("loai") not in ("anh", "tranh"):
         return None
     goi = cfg["goi"] if cfg.get("goi") and cfg["goi"] != "tu-dong" else goi_tu_dong(deck, th)
     items = [m for m in data()["muc"] if m["goi"] == goi and m["loai"] == cfg["loai"]]
-    return {"loai": cfg["loai"], "goi": goi, "items": items, "n": 0} if items else None
+    k = next((i for i, m in enumerate(items) if m["id"] == cfg.get("dau")), -1)
+    if k > 0:
+        items.insert(0, items.pop(k))
+    return {"loai": cfg["loai"], "goi": goi, "items": items, "n": 0, "giu": giu} if items else None
 
 
 def _img(aid: str) -> Img | None:
@@ -97,7 +103,7 @@ def next_art(p, kind):
         p["n"] += 1
     if it["loai"] == "anh" and _img(it["id"]) is None:  # thiếu file ảnh: dùng trang trí thường
         return None
-    return it
+    return dict(it, giu=p["giu"]) if p.get("giu") else it
 
 
 def color(th, role: str) -> str:
@@ -111,7 +117,12 @@ def draw(slide, th, kind, it):
     """Vẽ ảnh/tranh nền và lớp phủ; gọi từ decor.paint() thay cho trang trí của mẫu."""
     c0, c1 = th["inv"][0], th["inv"][-1]
     if it["loai"] == "anh":
-        D.picture(slide, _img(it["id"]), 0, 0, W, H)
+        img = _img(it["id"])
+        pic = D.picture(slide, img, 0, 0, W, H)
+        if it.get("giu"):  # trang gốc khác 16:9 (vd 4:3): khung ảnh kéo theo khổ trang, nên cắt ảnh theo khổ thật cho khỏi méo
+            r, g = img.ratio, it["giu"]
+            c = (1 - g / r) / 2 if r > g else (1 - r / g) / 2
+            pic.crop_left, pic.crop_right, pic.crop_top, pic.crop_bottom = (c, c, 0, 0) if r > g else (0, 0, c * 0.6, c * 1.4)
     else:
         for s in it["hinh"]:
             rings = [[(r[i], r[i + 1]) for i in range(0, len(r), 2)] for r in s["p"]]
@@ -120,8 +131,9 @@ def draw(slide, th, kind, it):
                 D.paths(slide, rings[0], closed=False, line_color=col, line_w=s["w"], line_alpha=a)
             else:
                 D.paths(slide, rings if len(rings) > 1 else rings[0], color=col, alpha=a)
-    D.box(slide, 0, 0, W, H, gradient=[c0, c0, c0] if kind == "closing" else [c0, c0, c1], angle=0,
-          galphas=PHU[it["loai"]][kind], name="!!phu-anh")
+    deu = it.get("giu") or kind == "closing"
+    D.box(slide, 0, 0, W, H, gradient=[c0, c0, c0] if deu else [c0, c0, c1], angle=0,
+          galphas=PHU_GIU[it["loai"]] if it.get("giu") else PHU[it["loai"]][kind], name="!!phu-anh")
     if it["loai"] == "anh":
         D.text(slide, W - 6.4, H - 0.36, 6.1, 0.28, it["ghi_cong"], font=th["body_font"], size=8, color=th["inv_body"],
                align="r", anchor="b", name="!!nguon-anh")

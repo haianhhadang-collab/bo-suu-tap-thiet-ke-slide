@@ -12,6 +12,8 @@ const THEME_GOI = { 'song-bien': 'thien-nhien', 'gradient': 'vu-tru', 'toi-gian'
 // lớp phủ trái -> phải: [độ đục ở mép trái, giữa, mép phải]
 const PHU = { anh: { cover: [0.9, 0.7, 0.2], section: [0.92, 0.75, 0.15], closing: [0.8, 0.8, 0.8] },
   tranh: { cover: [0.88, 0.6, 0], section: [0.9, 0.65, 0], closing: [0.72, 0.72, 0.72] } };
+// file .pptx giữ bố cục gốc: chữ có thể nằm bất kỳ đâu nên phủ đều cả trang
+const PHU_GIU = { anh: [0.8, 0.8, 0.8], tranh: [0.62, 0.62, 0.62] };
 const cache = {};
 
 const data = () => T.KHO_ANH || null;
@@ -33,13 +35,16 @@ function goiTuDong(deck, th) {
   return best || THEME_GOI[th.id] || THEME_GOI[th.base] || 'thien-nhien';
 }
 
-/** Kế hoạch ảnh cho một bộ slide: opts.khoAnh = { loai: 'khong' | 'anh' | 'tranh', goi: 'tu-dong' | mã gói }. */
-function plan(deck, th, opts) {
+/** Kế hoạch ảnh cho một bộ slide: opts.khoAnh = { loai: 'khong' | 'anh' | 'tranh', goi: 'tu-dong' | mã gói, dau: mã ảnh bìa (tùy chọn) }.
+    giu = khung trang (rộng/cao) khi khoác lên file .pptx giữ bố cục gốc. */
+function plan(deck, th, opts, giu) {
   const D = data(), cfg = (opts && opts.khoAnh) || {};
   if (!D || !['anh', 'tranh'].includes(cfg.loai)) return null;
   const goi = cfg.goi && cfg.goi !== 'tu-dong' ? cfg.goi : goiTuDong(deck, th);
   const items = D.muc.filter(m => m.goi === goi && m.loai === cfg.loai);
-  return items.length ? { loai: cfg.loai, goi, items, n: 0 } : null;
+  const k = items.findIndex(m => m.id === cfg.dau);
+  if (k > 0) items.unshift(items.splice(k, 1)[0]);   // ảnh được bấm "Áp dụng" làm ảnh bìa
+  return items.length ? { loai: cfg.loai, goi, items, n: 0, giu: giu || null } : null;
 }
 
 /** Ảnh cho trang kế tiếp: bìa và trang kết dùng ảnh đầu, các trang chương lần lượt dùng những ảnh còn lại. */
@@ -48,7 +53,7 @@ function next(p, kind) {
   let it = p.items[0];
   if (kind === 'section' && p.items.length > 1) it = p.items[1 + (p.n++ % (p.items.length - 1))];
   if (it.loai === 'anh' && !cache[it.id]) return null;   // ảnh chưa nạp được: dùng trang trí thường
-  return it;
+  return p.giu ? Object.assign({}, it, { giu: p.giu }) : it;
 }
 
 function color(th, role) {
@@ -60,8 +65,13 @@ function color(th, role) {
 /** Vẽ ảnh/tranh nền và lớp phủ; gọi từ paint() thay cho trang trí của mẫu. */
 function draw(ctx, th, kind, it) {
   const c0 = th.inv[0], c1 = th.inv[th.inv.length - 1];
-  if (it.loai === 'anh') ctx.picture(cache[it.id], 0, 0, SW, SH);
-  else {
+  if (it.loai === 'anh') {
+    const img = cache[it.id], el = ctx.picture(img, 0, 0, SW, SH);
+    if (it.giu) {   // trang gốc khác 16:9 (vd 4:3): khung ảnh sẽ kéo theo khổ trang, nên cắt ảnh theo khổ thật cho khỏi méo
+      const r = img.ratio, c = r > it.giu ? (1 - it.giu / r) / 2 : (1 - r / it.giu) / 2;
+      el.crop = r > it.giu ? { l: c, r: c, t: 0, b: 0 } : { l: 0, r: 0, t: c * 0.6, b: c * 1.4 };
+    }
+  } else {
     for (const s of it.hinh) {
       const rings = s.p.map(r => { const pts = []; for (let i = 0; i < r.length; i += 2) pts.push([r[i], r[i + 1]]); return pts; });
       const col = color(th, s.r), a = s.a < 1 ? s.a : null;
@@ -69,7 +79,8 @@ function draw(ctx, th, kind, it) {
       else ctx.poly(rings.length > 1 ? rings : rings[0], { color: col, alpha: a });
     }
   }
-  ctx.box(0, 0, SW, SH, { gradient: kind === 'closing' ? [c0, c0, c0] : [c0, c0, c1], angle: 0, galphas: PHU[it.loai][kind], name: '!!phu-anh' });
+  const deu = it.giu || kind === 'closing';
+  ctx.box(0, 0, SW, SH, { gradient: deu ? [c0, c0, c0] : [c0, c0, c1], angle: 0, galphas: it.giu ? PHU_GIU[it.loai] : PHU[it.loai][kind], name: '!!phu-anh' });
   if (it.loai === 'anh') ctx.text(SW - 6.4, SH - 0.36, 6.1, 0.28, it.ghi_cong, { font: th.body_font, size: 8, color: th.inv_body, align: 'r', anchor: 'b', name: '!!nguon-anh' });
 }
 
@@ -98,7 +109,7 @@ function load1(id) {
 }
 /** Mã các ảnh chụp mà bộ slide cần nhưng chưa nạp. */
 function need(deck, th, opts) {
-  const p = plan(deck, th, opts);
+  const p = plan(deck, th, opts, null);
   return p && p.loai === 'anh' ? p.items.map(i => i.id).filter(id => !cache[id]) : [];
 }
 

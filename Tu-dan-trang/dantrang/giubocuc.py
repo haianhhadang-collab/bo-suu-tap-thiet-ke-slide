@@ -21,7 +21,7 @@ from pptx import Presentation
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.oxml.ns import qn
 
-from . import decor, readers
+from . import decor, khoanh, readers
 from . import draw as D
 from . import textfit as TF
 from .animate import add_animations, add_transition
@@ -707,7 +707,8 @@ class Restyler:
 
         # 1. nền + trang trí của mẫu (vẽ xong thì dời xuống lớp dưới cùng)
         before = list(tree)
-        info = decor.paint(slide, th, inv, idx, kind if inv else "content")
+        art = khoanh.next_art(opts.get("_art"), kind) if inv else None   # ảnh trang trí theo chủ đề (khoanh.py)
+        info = decor.paint(slide, th, inv, idx, kind if inv else "content", art)
         added = [c for c in tree if c not in before]
         self._place_decor(tree, added)
         bn = info["bg"]
@@ -733,7 +734,8 @@ class Restyler:
                 r.text = True   # biểu đồ, SmartArt: không đổi gì, chỉ tránh để họa tiết đè lên
         # 4. họa tiết chạm vào chữ, ảnh thì làm mờ (ảnh phủ kín trang che hết họa tiết nên bỏ qua)
         full = 0.85 * self.SW * self.SH
-        self._soften_decor(added, [r.box for r in recs if r.text or (r.pic and r.box[2] * r.box[3] < full)])
+        if not info.get("art"):   # ảnh trang trí đã có lớp phủ đều cả trang, không làm mờ
+            self._soften_decor(added, [r.box for r in recs if r.text or (r.pic and r.box[2] * r.box[3] < full)])
         # 5. animation (giữ animation có sẵn) + chuyển trang
         if not had_timing and opts.get("anim", "auto") != "none":
             add_animations(slide, self._steps(slide, recs, added), opts.get("anim", "auto"))
@@ -1169,6 +1171,9 @@ def slide_kinds(path, prs, restyler: Restyler) -> list[str]:
 
 def build(src, th: dict, out_dir, opts: dict) -> Path:
     prs = Presentation(str(src))
+    opts = dict(opts)
+    if (opts.get("kho_anh") or {}).get("loai") in ("anh", "tranh"):
+        opts["_art"] = khoanh.plan(readers.read_pptx(Path(src)), th, opts, prs.slide_width / prs.slide_height)
     rs = Restyler(prs, th, opts)
     rs.run(slide_kinds(src, prs, rs))
     out_dir = Path(out_dir)

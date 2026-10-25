@@ -89,6 +89,8 @@ ANH = {
 def tac_gia(s):
     s = re.sub(r'^This Photo was taken by\s+', '', s or '')
     s = re.sub(r'\s*\((more photos|www\.[^)]*)\)', '', s)
+    if len(s) > 60:  # tên kèm lời nhắn của tác giả (vd "Tên. Feel free to use…"): giữ phần tên
+        s = re.split(r'\.\s|\s\(', s)[0]
     return s.strip() or 'không rõ'
 
 

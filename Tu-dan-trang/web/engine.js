@@ -1208,7 +1208,7 @@ function paint(ctx, th, inv, idx, kind) {
   const info = { x0: 0.8, y0: 0.62, x1: SW - 0.8, y1: SH - 0.72, foot: inv ? th.inv_body : th.muted, bg: inv ? th.inv[0] : bgc };
   // ảnh trang trí theo chủ đề (kho-anh.js): thay trang trí của mẫu và họa tiết ở trang bìa/chương/kết
   const art = ctx.opts && ctx.opts._art && G.TuDanTrang.khoAnhNext ? G.TuDanTrang.khoAnhNext(ctx.opts._art, kind) : null;
-  if (art) { G.TuDanTrang.khoAnhVe(ctx, th, kind, art); return info; }
+  if (art) { G.TuDanTrang.khoAnhVe(ctx, th, kind, art); info.art = true; return info; }
   // họa tiết theo chủ đề (hoa-van.js): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
   const motif = th.motif && G.TuDanTrang && G.TuDanTrang.MOTIFS ? G.TuDanTrang.MOTIFS[th.motif] : null;
   if (!(motif && inv && motif.ownInv)) (DECOR[th.decor] || DECOR.minimal)(ctx, th, inv, idx, kind, r, info);

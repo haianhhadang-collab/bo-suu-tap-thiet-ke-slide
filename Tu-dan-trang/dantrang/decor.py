@@ -24,6 +24,7 @@ def paint(slide, th, inv: bool, idx: int, kind: str, art=None) -> dict:
     # ảnh trang trí theo chủ đề (khoanh.py): thay trang trí của mẫu và họa tiết ở trang bìa/chương/kết
     if art:
         khoanh.draw(slide, th, kind, art)
+        info["art"] = True
         return info
     # họa tiết theo chủ đề (hoavan.py): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
     motif = hoavan.MOTIFS.get(th.get("motif") or "")

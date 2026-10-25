@@ -1,4 +1,4 @@
-/* Mục "Kho ảnh trang trí" trên trang Bộ sưu tập: xem, lọc theo gói, tải ảnh chụp (.jpg) và tranh vector (.svg). */
+/* Mục "Kho ảnh trang trí" trên trang Bộ sưu tập: xem, lọc theo gói, bấm "Áp dụng vào slide" để dùng bộ ảnh trong Tự dàn trang. */
 (function () {
   const TDT = window.TuDanTrang, D = TDT && TDT.KHO_ANH, box = document.getElementById('kho-anh');
   if (!box) return;
@@ -21,16 +21,18 @@
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13.333 7.5" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g-${it.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#${c0}"/><stop offset="1" stop-color="#${c1}"/></linearGradient></defs><rect width="13.333" height="7.5" fill="url(#g-${it.id})"/>${paths}</svg>`;
   }
 
+  // thẻ ảnh: bấm ảnh hoặc nút "Áp dụng vào slide" để mở Tự dàn trang với bộ ảnh của gói này (ảnh đã bấm làm ảnh bìa)
   function card(it) {
     const goiTxt = `<span class="ka-goi">${esc(tenGoi(it.goi))}</span>`;
+    const btn = `<button class="ka-dl" type="button" data-ap="${it.id}" title="Mở Tự dàn trang với bộ ${it.loai === 'anh' ? 'ảnh chụp' : 'tranh'} của gói này, ảnh này làm ảnh bìa">✦ Áp dụng vào slide</button>`;
     if (it.loai === 'anh') {
-      return `<figure class="ka-card"><a class="ka-pic" href="${goc()}anh/${it.id}.jpg" target="_blank" rel="noopener"><img loading="lazy" src="${goc()}thu-nho/${it.id}.jpg" alt="${esc(it.ten)}"></a>
+      return `<figure class="ka-card"><div class="ka-pic" data-ap="${it.id}"><img loading="lazy" src="${goc()}thu-nho/${it.id}.jpg" alt="${esc(it.ten)}"></div>
         <figcaption><b>${esc(it.ten)}</b>${goiTxt}<small>Ảnh: ${esc(it.tac_gia)} · <a href="${esc(it.giay_phep_url || it.nguon)}" target="_blank" rel="noopener">${esc(it.giay_phep)}</a> · <a href="${esc(it.nguon)}" target="_blank" rel="noopener">Wikimedia Commons</a></small>
-        <a class="ka-dl" href="${goc()}anh/${it.id}.jpg" download="${it.id}.jpg">⬇ Tải ảnh 1600×900</a></figcaption></figure>`;
+        ${btn}</figcaption></figure>`;
     }
-    return `<figure class="ka-card"><div class="ka-pic" data-tranh="${it.id}">${svg(it, TDT.THEMES[st.mau])}</div>
-      <figcaption><b>${esc(it.ten)}</b>${goiTxt}<small>Tranh vector tự vẽ cho Tự dàn trang, đổi màu theo mẫu · dùng tự do</small>
-      <button class="ka-dl" type="button" data-svg="${it.id}">⬇ Tải tranh .svg</button></figcaption></figure>`;
+    return `<figure class="ka-card"><div class="ka-pic" data-ap="${it.id}">${svg(it, TDT.THEMES[st.mau])}</div>
+      <figcaption><b>${esc(it.ten)}</b>${goiTxt}<small>Tranh vector tự vẽ cho Tự dàn trang, màu đổi theo mẫu bạn chọn khi dàn trang</small>
+      ${btn}</figcaption></figure>`;
   }
 
   function render() {
@@ -51,12 +53,8 @@
   $('ka-loai').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { st.loai = b.dataset.v; render(); } });
   $('ka-mau').addEventListener('change', e => { st.mau = e.target.value; render(); });
   $('ka-grid').addEventListener('click', e => {
-    const b = e.target.closest('[data-svg]'); if (!b) return;
-    const it = D.muc.find(m => m.id === b.dataset.svg);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([svg(it, TDT.THEMES[st.mau])], { type: 'image/svg+xml' }));
-    a.download = `${it.id}-${st.mau}.svg`; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    const b = e.target.closest('[data-ap]'); if (!b || !TDT.apDungKhoAnh) return;
+    TDT.apDungKhoAnh(D.muc.find(m => m.id === b.dataset.ap));
   });
   const tog = $('ka-tog');
   tog.addEventListener('click', () => {
