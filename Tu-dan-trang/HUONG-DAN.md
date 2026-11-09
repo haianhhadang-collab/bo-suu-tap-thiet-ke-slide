@@ -210,9 +210,11 @@ Cách chọn:
 Dùng ảnh của bạn thay cho kho ảnh: ảnh đầu làm nền trang bìa và trang kết, các ảnh sau lần lượt làm nền trang chương, có cùng lớp
 phủ như ảnh trong kho và không in dòng ghi nguồn. Ảnh khác khổ trang được cắt cho đầy trang, ảnh điện thoại chụp xoay được xoay lại đúng chiều.
 - **Trang web**: bước 4, chọn "Ảnh của tôi" rồi kéo thả hoặc bấm chọn ảnh (thả ảnh vào ô file ở bước 1 cũng được). Ảnh được giữ 1 giờ trong trình duyệt, bấm × trên ảnh để bỏ.
-- **Cửa sổ**: bấm "Chọn ảnh…" ở dòng "Ảnh của tôi".
+- **Đặt ảnh theo trang**: mỗi trang, kể cả trang nội dung, có thể có ảnh nền riêng. Trên web, gõ số trang vào ô cạnh từng ảnh (`1, 3, 5` hoặc `2-4`), hoặc bấm chọn một ảnh rồi tích ở từng trang xem trước. Đã đặt theo trang thì chỉ những trang đó có ảnh; để trống hết thì công cụ tự đặt như trên. Trang nội dung có lớp phủ màu nền sáng để chữ dễ đọc.
+- **Cửa sổ**: bấm "Chọn ảnh…" ở dòng "Ảnh của tôi"; ô "Theo trang" ghi như `1,3,5=1; 2-4=2` (số sau dấu = là thứ tự ảnh).
 - **Dòng lệnh**: `python tu_dan_trang.py bai-giang.docx --anh-rieng bia.jpg --anh-rieng chuong-1.png`, hoặc ghi một thư mục (lấy mọi ảnh, xếp theo tên).
-- **Mặc định cho mọi file**: `"anh_trang_tri": "tu-chon"` và `"anh_tu_chon": ["D:\\Anh\\bia.jpg"]` trong `cau-hinh.json`.
+- **Dòng lệnh, theo trang**: thêm `--anh-trang "1,3,5=bia.jpg" --anh-trang "2-4=2"` (bên phải dấu = là file ảnh hoặc số thứ tự ảnh).
+- **Mặc định cho mọi file**: `"anh_trang_tri": "tu-chon"`, `"anh_theo_trang": ["1,3,5=1"]` (không bắt buộc) và `"anh_tu_chon": ["D:\\Anh\\bia.jpg"]` trong `cau-hinh.json`.
 
 ## Công cụ tự làm gì
 

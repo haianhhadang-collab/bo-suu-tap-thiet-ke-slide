@@ -17,6 +17,7 @@ Tùy chọn:
   -o, --ra <thư mục>      nơi lưu kết quả (mặc định: Ket-qua)
   --dan-lai               file .pptx: dàn lại từ đầu theo nội dung thay vì giữ bố cục gốc
   --anh-rieng <ảnh>       dùng ảnh của bạn làm nền trang bìa, chương, kết (ghi nhiều lần, hoặc ghi một thư mục)
+  --anh-trang <t=ảnh>     đặt ảnh nền theo số trang, vd "1,3,5=bia.jpg", "2-4=2" (ảnh thứ 2); ghi nhiều lần được
 """
 from __future__ import annotations
 
@@ -58,6 +59,7 @@ DEFAULT_CFG = {
     "anh_trang_tri": "khong",
     "chu_de_anh": "tu-dong",
     "anh_tu_chon": [],
+    "anh_theo_trang": [],
 }
 
 
@@ -75,10 +77,10 @@ def load_cfg() -> dict:
 
 
 def make_opts(anim: str, trans: str, motif: str = "", palette: bool = True, keep: bool = True,
-              anh: str = "khong", chu_de_anh: str = "tu-dong", anh_rieng: list | None = None) -> dict:
+              anh: str = "khong", chu_de_anh: str = "tu-dong", anh_rieng: list | None = None, anh_trang: list | None = None) -> dict:
     return {"anim": ANIM.get(anim, anim), "transition": TRANS.get(trans, trans),
             "motif": hoavan.check(motif), "motif_palette": palette, "keep_layout": keep,
-            "kho_anh": khoanh.check({"loai": anh, "goi": chu_de_anh, "tep": anh_rieng})}
+            "kho_anh": khoanh.check({"loai": anh, "goi": chu_de_anh, "tep": anh_rieng, "gan": anh_trang})}
 
 
 def resolve(name: str, default_theme: str) -> tuple[str, str | None]:
@@ -122,7 +124,7 @@ def watch(cfg: dict):
     print(f"  • Kết quả lưu ở: {out}      (Ctrl+C để dừng)\n")
     sizes: dict[Path, int] = {}
     opts = make_opts(cfg["animation"], cfg["chuyen_trang"], cfg["hoa_van"], cfg["dung_mau_hoa_van"],
-                     cfg["giu_bo_cuc_pptx"], cfg["anh_trang_tri"], cfg["chu_de_anh"], cfg["anh_tu_chon"])
+                     cfg["giu_bo_cuc_pptx"], cfg["anh_trang_tri"], cfg["chu_de_anh"], cfg["anh_tu_chon"], cfg["anh_theo_trang"])
     while True:
         for f in list(INBOX.glob("*")) + list(INBOX.glob("*/*")):
             if not f.is_file() or f.suffix.lower() not in EXTS or f.name.startswith(("~$", ".")):
@@ -313,9 +315,12 @@ def gui(cfg: dict, preset: str | None = None):
             anh_rieng[:] = fs
             acb.set(khoanh.LOAI["tu-chon"])
             rieng_txt.set(f"Đã chọn {len(fs)} ảnh")
-    ttk.Label(rf, text="Ảnh của tôi (ảnh đầu làm bìa và trang kết, các ảnh sau làm trang chương):").pack(side="left")
+    ttk.Label(rf, text="Ảnh của tôi:").pack(side="left")
     ttk.Button(rf, text="Chọn ảnh…", command=pick_rieng).pack(side="left", padx=8)
     ttk.Label(rf, textvariable=rieng_txt).pack(side="left")
+    gan_txt = tk.StringVar(value="; ".join(cfg["anh_theo_trang"]))
+    ttk.Label(rf, text="Theo trang:").pack(side="left", padx=(12, 4))
+    ttk.Entry(rf, textvariable=gan_txt, font=F, width=18).pack(side="left")
 
     ttk.Label(top, text="4. Lưu vào", font=FB).grid(row=10, column=0, sticky="w", pady=(12, 2))
     ttk.Entry(top, textvariable=out, font=F).grid(row=11, column=0, columnspan=2, sticky="ew")
@@ -354,7 +359,7 @@ def gui(cfg: dict, preset: str | None = None):
             messagebox.showwarning("Thiếu ảnh", "Hãy bấm “Chọn ảnh…” để chọn ảnh của bạn.")
             return
         try:
-            opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get(), keep.get(), anh_, goi_, anh_rieng)
+            opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get(), keep.get(), anh_, goi_, anh_rieng, [x for x in gan_txt.get().split(";") if x.strip()])
         except KeyError as e:
             messagebox.showwarning("Không dùng được ảnh", e.args[0])
             return
@@ -397,6 +402,7 @@ def main():
     ap.add_argument("--anh", default=None, choices=list(khoanh.LOAI), help="ảnh trang trí: khong, anh (ảnh chụp), tranh")
     ap.add_argument("--chu-de-anh", default=None, help="gói ảnh (xem --ds), mặc định tu-dong = đoán theo nội dung")
     ap.add_argument("--anh-rieng", action="append", default=None, metavar="ẢNH", help="ảnh của bạn hoặc thư mục ảnh (ghi nhiều lần được), tự chọn --anh tu-chon")
+    ap.add_argument("--anh-trang", action="append", default=None, metavar="TRANG=ẢNH", help='đặt ảnh theo số trang, vd "1,3,5=bia.jpg" hoặc "2-4=2" (ảnh thứ 2)')
     ap.add_argument("--giu-mau", action="store_true")
     ap.add_argument("--dan-lai", action="store_true")
     ap.add_argument("--theo-doi", action="store_true")
@@ -428,8 +434,8 @@ def main():
     out = Path(a.ra) if a.ra else ROOT / cfg["thu_muc_ket_qua"]
     opts = make_opts(a.animation or cfg["animation"], a.chuyen or cfg["chuyen_trang"],
                      a.hoa_van or cfg["hoa_van"], cfg["dung_mau_hoa_van"] and not a.giu_mau,
-                     cfg["giu_bo_cuc_pptx"] and not a.dan_lai, a.anh or ("tu-chon" if a.anh_rieng else cfg["anh_trang_tri"]),
-                     a.chu_de_anh or cfg["chu_de_anh"], a.anh_rieng or cfg["anh_tu_chon"])
+                     cfg["giu_bo_cuc_pptx"] and not a.dan_lai, a.anh or ("tu-chon" if a.anh_rieng or a.anh_trang else cfg["anh_trang_tri"]),
+                     a.chu_de_anh or cfg["chu_de_anh"], a.anh_rieng or cfg["anh_tu_chon"], a.anh_trang or cfg["anh_theo_trang"])
     for o in run(Path(a.file), theme, out, opts, cfg["mau_mac_dinh"]):
         print(o)
 

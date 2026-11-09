@@ -142,11 +142,17 @@ section.ka-sec.collapsed .tcaret{transform:rotate(-90deg)}
 #tdt-anh-rieng{margin-top:6px}
 .tdt-drop-anh{padding:12px 10px}
 .tdt-drop-anh b{font-size:13.5px;margin-bottom:2px}
-.tdt-ar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.tdt-ar{display:flex;flex-direction:column;gap:5px;margin-top:8px}
 .tdt-ar:empty{display:none}
-.tdt-ar-i{position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:var(--surface-2)}
-.tdt-ar-i img{display:block;width:100%;height:100%;object-fit:cover}
-.tdt-ar-i b{position:absolute;left:4px;bottom:4px;font-size:10.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.6);border-radius:4px;padding:0 5px}
-.tdt-ar-i button{position:absolute;top:3px;right:3px;width:22px;height:22px;padding:0;border:0;border-radius:50%;font-size:15px;line-height:1;color:#fff;background:rgba(0,0,0,.6);cursor:pointer}
-.tdt-ar-i button:hover{background:#c0392b}
-.tdt-ar-i button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tdt-ar-i{display:flex;align-items:center;gap:7px;padding:3px;border:1.5px solid transparent;border-radius:9px}
+.tdt-ar-i.on{border-color:var(--accent);background:var(--accent-soft)}
+.tdt-ar-pic{position:relative;flex:none;width:72px;aspect-ratio:16/9;padding:0;border:0;border-radius:6px;overflow:hidden;background:var(--surface-2);cursor:pointer}
+.tdt-ar-pic img{display:block;width:100%;height:100%;object-fit:cover}
+.tdt-ar-pic b{position:absolute;left:3px;bottom:3px;min-width:15px;font-size:10.5px;font-weight:700;line-height:15px;text-align:center;color:#fff;background:rgba(0,0,0,.65);border-radius:4px;padding:0 3px}
+.tdt-ar-so{flex:1;min-width:0;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--text)}
+.tdt-ar-bo{flex:none;width:24px;height:24px;padding:0;border:0;border-radius:50%;font-size:16px;line-height:1;color:var(--muted);background:transparent;cursor:pointer}
+.tdt-ar-bo:hover{color:#fff;background:#c0392b}
+.tdt-ar-pic:focus-visible,.tdt-ar-bo:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tdt-tich{position:absolute;right:6px;top:6px;z-index:2;display:flex;align-items:center;gap:4px;min-height:24px;padding:1px 7px 1px 4px;border-radius:6px;font-size:11.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);cursor:pointer}
+.tdt-tich.on{background:var(--accent)}
+.tdt-tich input{margin:0;width:15px;height:15px;cursor:pointer}

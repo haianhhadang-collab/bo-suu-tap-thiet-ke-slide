@@ -26,7 +26,7 @@ def paint(slide, th, inv: bool, idx: int, kind: str, art=None) -> dict:
     # ảnh trang trí theo chủ đề (khoanh.py): thay trang trí của mẫu ở trang bìa/chương/kết; họa tiết vẫn vẽ đè lên ảnh
     if art:
         n0 = len(slide.shapes)
-        khoanh.draw(slide, th, kind, art)
+        khoanh.draw(slide, th, kind, art, info["bg"])
         info["art"], info["art_n"] = True, len(slide.shapes) - n0
     elif not (motif and inv and motif["own_inv"]):
         fn(slide, th, inv, idx, kind, rnd, info)

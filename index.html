@@ -321,14 +321,20 @@ section.ka-sec.collapsed .tcaret{transform:rotate(-90deg)}
 #tdt-anh-rieng{margin-top:6px}
 .tdt-drop-anh{padding:12px 10px}
 .tdt-drop-anh b{font-size:13.5px;margin-bottom:2px}
-.tdt-ar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.tdt-ar{display:flex;flex-direction:column;gap:5px;margin-top:8px}
 .tdt-ar:empty{display:none}
-.tdt-ar-i{position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:var(--surface-2)}
-.tdt-ar-i img{display:block;width:100%;height:100%;object-fit:cover}
-.tdt-ar-i b{position:absolute;left:4px;bottom:4px;font-size:10.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.6);border-radius:4px;padding:0 5px}
-.tdt-ar-i button{position:absolute;top:3px;right:3px;width:22px;height:22px;padding:0;border:0;border-radius:50%;font-size:15px;line-height:1;color:#fff;background:rgba(0,0,0,.6);cursor:pointer}
-.tdt-ar-i button:hover{background:#c0392b}
-.tdt-ar-i button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tdt-ar-i{display:flex;align-items:center;gap:7px;padding:3px;border:1.5px solid transparent;border-radius:9px}
+.tdt-ar-i.on{border-color:var(--accent);background:var(--accent-soft)}
+.tdt-ar-pic{position:relative;flex:none;width:72px;aspect-ratio:16/9;padding:0;border:0;border-radius:6px;overflow:hidden;background:var(--surface-2);cursor:pointer}
+.tdt-ar-pic img{display:block;width:100%;height:100%;object-fit:cover}
+.tdt-ar-pic b{position:absolute;left:3px;bottom:3px;min-width:15px;font-size:10.5px;font-weight:700;line-height:15px;text-align:center;color:#fff;background:rgba(0,0,0,.65);border-radius:4px;padding:0 3px}
+.tdt-ar-so{flex:1;min-width:0;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--text)}
+.tdt-ar-bo{flex:none;width:24px;height:24px;padding:0;border:0;border-radius:50%;font-size:16px;line-height:1;color:var(--muted);background:transparent;cursor:pointer}
+.tdt-ar-bo:hover{color:#fff;background:#c0392b}
+.tdt-ar-pic:focus-visible,.tdt-ar-bo:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tdt-tich{position:absolute;right:6px;top:6px;z-index:2;display:flex;align-items:center;gap:4px;min-height:24px;padding:1px 7px 1px 4px;border-radius:6px;font-size:11.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);cursor:pointer}
+.tdt-tich.on{background:var(--accent)}
+.tdt-tich input{margin:0;width:15px;height:15px;cursor:pointer}
 /*/TDT-CSS*/
 /* Màn hình máy tính rộng: nới khung trang, chữ và thẻ to hơn */
 .card{container-type:inline-size}
@@ -1060,7 +1066,7 @@ window.addEventListener('hashchange', () => { if (wantEdit()) startUI(); });
             </div>
             <input type="file" id="tdt-anh-input" multiple accept="image/*" hidden>
             <div class="tdt-ar" id="tdt-anh-list"></div>
-            <p class="tdt-luu">Ảnh đầu làm nền trang bìa và trang kết, các ảnh sau làm nền trang chương. Ảnh chỉ nằm trong trình duyệt, được giữ <b>1 giờ</b>.</p>
+            <p class="tdt-luu">Gõ số trang cho từng ảnh (vd: 1, 3, 5 hoặc 2-4), hoặc bấm chọn một ảnh rồi tích ở từng trang xem trước; mỗi trang một ảnh nền. Để trống hết thì ảnh đầu làm nền trang bìa và trang kết, các ảnh sau làm nền trang chương. Ảnh chỉ nằm trong trình duyệt, được giữ <b>1 giờ</b>.</p>
           </div>
           <select id="tdt-art-goi" aria-label="Chủ đề ảnh"><option value="tu-dong">Chủ đề ảnh: tự đoán theo nội dung</option></select>
           <a class="tdt-hint" href="#kho-anh" id="tdt-art-link">Xem kho ảnh và nguồn ảnh ↗</a>
@@ -2918,10 +2924,12 @@ function autoTitles(deck) {
 const KIND = { rect: 'rect', round: 'roundRect', ellipse: 'ellipse', chevron: 'chevron', arrow: 'rightArrow', diamond: 'diamond', triangle: 'triangle' };
 
 class Ctx {
-  constructor(out, th, idx, kind, inv, opts) {
+  /** so = số trang hiện cho người dùng (1, 2, …); mặc định là vị trí trong out. */
+  constructor(out, th, idx, kind, inv, opts, so) {
     this.th = th; this.idx = idx; this.kind = kind; this.inv = inv; this.opts = opts;
     this.sl = { bg: null, els: [], steps: [], transition: null, notes: '' };
     out.push(this.sl);
+    this.so = so || out.length;
     this.info = paint(this, th, inv, idx, kind);
     const bg = this.info.bg;
     if (inv) {
@@ -2989,8 +2997,8 @@ function paint(ctx, th, inv, idx, kind) {
   // họa tiết theo chủ đề (hoa-van.js): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
   const motif = th.motif && G.TuDanTrang && G.TuDanTrang.MOTIFS ? G.TuDanTrang.MOTIFS[th.motif] : null;
   // ảnh trang trí theo chủ đề (kho-anh.js): thay trang trí của mẫu ở trang bìa/chương/kết; họa tiết vẫn vẽ đè lên ảnh
-  const art = ctx.opts && ctx.opts._art && G.TuDanTrang.khoAnhNext ? G.TuDanTrang.khoAnhNext(ctx.opts._art, kind) : null;
-  if (art) { G.TuDanTrang.khoAnhVe(ctx, th, kind, art); info.art = true; info.artN = ctx.sl.els.length; }
+  const art = ctx.opts && ctx.opts._art && G.TuDanTrang.khoAnhNext ? G.TuDanTrang.khoAnhNext(ctx.opts._art, kind, ctx.so) : null;
+  if (art) { G.TuDanTrang.khoAnhVe(ctx, th, kind, art, info.bg); info.art = true; info.artN = ctx.sl.els.length; }
   else if (!(motif && inv && motif.ownInv)) (DECOR[th.decor] || DECOR.minimal)(ctx, th, inv, idx, kind, r, info);
   if (motif) motif.draw(ctx, th, inv, idx, kind, info);
   return info;
@@ -5425,7 +5433,7 @@ const THEME_GOI = { 'song-bien': 'thien-nhien', 'gradient': 'vu-tru', 'toi-gian'
   'co-dien': 'lich-su', 'de-thuong': 'truong-hoc', 'nghe-thuat': 'van-hoa', 'thien-nhien': 'thien-nhien', 'chuyen-nghiep': 'doi-ngoai',
   'truyen-tranh': 'anime', 'manga': 'anime' };
 // lớp phủ trái -> phải: [độ đục ở mép trái, giữa, mép phải]
-const PHU = { anh: { cover: [0.9, 0.7, 0.2], section: [0.92, 0.75, 0.15], closing: [0.8, 0.8, 0.8] },
+const PHU = { anh: { cover: [0.9, 0.7, 0.2], section: [0.92, 0.75, 0.15], closing: [0.8, 0.8, 0.8], content: [0.8, 0.8, 0.8] },
   tranh: { cover: [0.88, 0.6, 0], section: [0.9, 0.65, 0], closing: [0.72, 0.72, 0.72] } };
 // file .pptx giữ bố cục gốc: chữ có thể nằm bất kỳ đâu nên phủ đều cả trang
 const PHU_GIU = { anh: [0.8, 0.8, 0.8], tranh: [0.62, 0.62, 0.62] };
@@ -5451,11 +5459,12 @@ function goiTuDong(deck, th) {
 }
 
 /** Kế hoạch ảnh cho một bộ slide: opts.khoAnh = { loai: 'khong' | 'anh' | 'tranh' | 'tu-chon', goi: 'tu-dong' | mã gói, dau: mã ảnh bìa (tùy chọn),
-    anh: danh sách ảnh của người dùng (loai 'tu-chon', đọc bằng docRieng) }.
+    anh: danh sách ảnh của người dùng (loai 'tu-chon', đọc bằng docRieng), trang: { số trang: ảnh } (có thì chỉ những trang này có ảnh) }.
     giu = khung trang (rộng/cao) khi khoác lên file .pptx giữ bố cục gốc. */
 function plan(deck, th, opts, giu) {
   const D = data(), cfg = (opts && opts.khoAnh) || {};
   if (cfg.loai === 'tu-chon') {   // ảnh người dùng gửi: dùng như một gói ảnh chụp, đúng thứ tự đã chọn, không có dòng ghi nguồn
+    if (cfg.trang && Object.keys(cfg.trang).length) return { loai: 'tu-chon', goi: '', items: [], n: 0, giu: giu || null, theoTrang: cfg.trang };
     const mine = (cfg.anh || []).map(img => ({ id: img.id, loai: 'anh', ghi_cong: '', img }));
     return mine.length ? { loai: 'tu-chon', goi: '', items: mine, n: 0, giu: giu || null } : null;
   }
@@ -5468,7 +5477,11 @@ function plan(deck, th, opts, giu) {
 }
 
 /** Ảnh cho trang kế tiếp: bìa và trang kết dùng ảnh đầu, các trang chương lần lượt dùng những ảnh còn lại. */
-function next(p, kind) {
+function next(p, kind, so) {
+  if (p && p.theoTrang) {   // người dùng chỉ định từng trang, kể cả trang nội dung
+    const img = p.theoTrang[so];
+    return img ? { id: img.id, loai: 'anh', ghi_cong: '', img, giu: p.giu || undefined } : null;
+  }
   if (!p || !['cover', 'section', 'closing'].includes(kind)) return null;
   let it = p.items[0];
   if (kind === 'section' && p.items.length > 1) it = p.items[1 + (p.n++ % (p.items.length - 1))];
@@ -5483,8 +5496,9 @@ function color(th, role) {
 }
 
 /** Vẽ ảnh/tranh nền và lớp phủ; gọi từ paint() thay cho trang trí của mẫu. */
-function draw(ctx, th, kind, it) {
-  const c0 = th.inv[0], c1 = th.inv[th.inv.length - 1];
+function draw(ctx, th, kind, it, nen) {
+  // trang nội dung nền sáng, chữ tối: lớp phủ dùng màu nền của trang; bìa, chương, kết dùng màu nền đậm của mẫu
+  const c0 = kind === 'content' ? nen : th.inv[0], c1 = kind === 'content' ? nen : th.inv[th.inv.length - 1];
   if (it.loai === 'anh') {
     const img = it.img || cache[it.id], el = ctx.picture(img, 0, 0, SW, SH);
     if (it.giu) {   // trang gốc khác 16:9 (vd 4:3): khung ảnh sẽ kéo theo khổ trang, nên cắt ảnh theo khổ thật cho khỏi méo
@@ -5499,7 +5513,7 @@ function draw(ctx, th, kind, it) {
       else ctx.poly(rings.length > 1 ? rings : rings[0], { color: col, alpha: a });
     }
   }
-  const deu = it.giu || kind === 'closing';
+  const deu = it.giu || kind === 'closing' || kind === 'content';
   ctx.box(0, 0, SW, SH, { gradient: deu ? [c0, c0, c0] : [c0, c0, c1], angle: 0, galphas: it.giu ? PHU_GIU[it.loai] : PHU[it.loai][kind], name: '!!phu-anh' });
   if (it.loai === 'anh' && it.ghi_cong) ctx.text(SW - 6.4, SH - 0.36, 6.1, 0.28, it.ghi_cong, { font: th.body_font, size: 8, color: th.inv_body, align: 'r', anchor: 'b', name: '!!nguon-anh' });
 }
@@ -5547,6 +5561,16 @@ function exifXoay(b) {
   }
   return 1;
 }
+/** Đọc chuỗi số trang: "1, 3, 5", "2-4"; trả về { so: số trang tăng dần, sai: phần không đọc được } (giống khoanh.so_trang). */
+function soTrang(s) {
+  const so = new Set(), sai = [];
+  for (const t of String(s || '').replace(/\s*[-–]\s*/g, '-').split(/[\s,;]+/).filter(Boolean)) {
+    const m = t.match(/^([0-9]{1,4})(?:-([0-9]{1,4}))?$/);
+    if (!m || +m[1] < 1 || (m[2] && +m[2] < +m[1])) { sai.push(t); continue; }
+    for (let i = +m[1]; i <= +(m[2] || m[1]); i++) so.add(i);
+  }
+  return { so: [...so].sort((a, b) => a - b), sai };
+}
 let soRieng = 0;
 /** Đọc một ảnh người dùng gửi thành ảnh dùng được trong slide (giống khoanh.doc_rieng).
     JPEG, PNG giữ nguyên; ảnh xoay bằng EXIF được xoay thật; định dạng khác đổi sang PNG. Ảnh trình duyệt không đọc được thì báo lỗi. */
@@ -5573,7 +5597,7 @@ function need(deck, th, opts) {
 }
 
 Object.assign(T, { khoAnhPlan: plan, khoAnhNext: next, khoAnhVe: draw, khoAnhGoi: goiTuDong, khoAnhCan: need,
-  khoAnhTai: ids => Promise.all(ids.map(load1)), khoAnhNhan: nhan, khoAnhMau: color, khoAnhDocRieng: docRieng });
+  khoAnhTai: ids => Promise.all(ids.map(load1)), khoAnhNhan: nhan, khoAnhMau: color, khoAnhDocRieng: docRieng, khoAnhSoTrang: soTrang });
 })(window);
 
 /* Tự dàn trang — ghi IR thành file .pptx (dựa trên gói khung tối giản sinh từ python-pptx). */
@@ -6284,11 +6308,12 @@ class Restyler {
     const layout = this.root(s.layout), master = this.root(s.master);
     const styles = new Styles(this.root(this.src.pres), layout, master, this.themes[s.theme].fonts);
     const hadTiming = !!kid(sld, 'timing');
-    if (inv && opts._art) boAnhCu(sld, tree);
+    const art = opts._art;   // trang này sắp có ảnh trang trí (tự đặt: bìa, chương, kết; theo số trang: đúng các trang đã chọn)
+    if (art && (art.theoTrang ? art.theoTrang[idx + 1] : inv)) boAnhCu(sld, tree);
     const recs = walk(tree, layout, master);
 
     // 1. nền + trang trí của mẫu (vẽ xong thì dời xuống lớp dưới cùng)
-    const ctx = new T.Ctx([], th, idx, inv ? kind : 'content', inv, opts);
+    const ctx = new T.Ctx([], th, idx, inv ? kind : 'content', inv, opts, idx + 1);
     const bgEl = frag(doc, `<p:bg><p:bgPr>${T.pptxXml.fillXml(ctx.sl.bg.color ? { color: ctx.sl.bg.color } : { grad: ctx.sl.bg.grad, angle: ctx.sl.bg.angle, radial: ctx.sl.bg.radial })}<a:effectLst/></p:bgPr></p:bg>`)[0];
     const oldBg = kid(cSld, 'bg'); if (oldBg) oldBg.remove();
     cSld.insertBefore(bgEl, cSld.firstElementChild);
@@ -6761,27 +6786,29 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   const TDT = window.TuDanTrang;
   const $ = id => document.getElementById(id);
   const dlg = $('tdt');
-  const state = { deck: null, src: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false, artDau: '', demo: false, picked: false, zoom: -1, anhRieng: [] };
+  const state = { deck: null, src: null, theme: TDT.THEMES['song-bien'], cardTheme: null, cardInfo: null, motif: '', open: null, result: null, busy: false, artDau: '', demo: false, picked: false, zoom: -1, anhRieng: [], anhOn: 0 };
   // file ví dụ hiện sẵn trong phần xem trước khi chưa chọn file (bộ slide hướng dẫn, dàn bằng mẫu Dễ thương pastel + Lũy tre)
   const VI_DU = { url: 'Tu-dan-trang/vi-du/huong-dan-mau.pptx', ten: 'huong-dan-mau.pptx', mau: 'de-thuong', hoaTiet: 'luy-tre' };
   // mẫu thực dùng = mẫu đã chọn + họa tiết theo chủ đề (nếu có)
   const usedTheme = () => state.motif ? TDT.withMotif(state.theme, state.motif, $('tdt-motif-pal').checked) : state.theme;
   const SAMPLE = { title: 'Tiêu đề bài', subtitle: '', meta: [], slides: [], fileName: '' };
 
+  // ảnh của người dùng gán theo số trang: { số trang: ảnh }; rỗng = để công cụ tự đặt
+  const ganTrang = () => { const m = {}; state.anhRieng.forEach(x => x.trang.forEach(so => { m[so] = x.img; })); return m; };
   // dau = ảnh bìa khi bấm "Áp dụng vào slide" trên một thẻ ở mục Kho ảnh
-  const artCfg = () => ({ loai: document.querySelector('input[name="tdt-art"]:checked').value, goi: $('tdt-art-goi').value, dau: state.artDau, anh: state.anhRieng.map(x => x.img) });
+  const artCfg = () => ({ loai: document.querySelector('input[name="tdt-art"]:checked').value, goi: $('tdt-art-goi').value, dau: state.artDau, anh: state.anhRieng.map(x => x.img), trang: ganTrang() });
   // file đã tải lên được giữ trong trình duyệt (IndexedDB) 1 giờ, để đóng hộp thoại, tải lại trang vẫn chọn tiếp được
   const LUU = { db: 'tu-dan-trang', store: 'file', key: 'cuoi', anh: 'anh-rieng', han: 60 * 60 * 1000 };
   const idb = () => new Promise((ok, no) => { const r = indexedDB.open(LUU.db, 1); r.onupgradeneeded = () => r.result.createObjectStore(LUU.store); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
   const req = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
-  async function luuFile(files, t, key = LUU.key) {
+  async function luuFile(files, t, key = LUU.key, meta = null) {
     try { const items = await Promise.all([...files].map(async f => ({ name: f.name, type: f.type, buf: await f.arrayBuffer() })));
-      await req((await idb()).transaction(LUU.store, 'readwrite').objectStore(LUU.store).put({ t, items }, key)); } catch (e) { console.warn('Không lưu được file vào trình duyệt', e); }
+      await req((await idb()).transaction(LUU.store, 'readwrite').objectStore(LUU.store).put({ t, items, meta }, key)); } catch (e) { console.warn('Không lưu được file vào trình duyệt', e); }
   }
   async function docFile(key = LUU.key) {
     try { const v = await req((await idb()).transaction(LUU.store).objectStore(LUU.store).get(key));
       if (!v) return null; if (Date.now() - v.t > LUU.han) { xoaFile(key); return null; }
-      return { t: v.t, files: v.items.map(i => new File([i.buf], i.name, { type: i.type })) }; } catch (e) { return null; }
+      return { t: v.t, meta: v.meta, files: v.items.map(i => new File([i.buf], i.name, { type: i.type })) }; } catch (e) { return null; }
   }
   async function xoaFile(key = LUU.key) { try { await req((await idb()).transaction(LUU.store, 'readwrite').objectStore(LUU.store).delete(key)); } catch (e) { /* trình duyệt chặn lưu trữ */ } }
   const hhmm = t => new Date(t).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -6866,11 +6893,13 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
     const cw = box.clientWidth, narrow = cw && cw < 560, inner = narrow ? cw - 34 : cw - 2;
     const w = narrow ? Math.max(200, inner) : Math.max(240, Math.floor((cw - 14) / 2) - 2);
     if (state.zoom >= state.result.slides.length) state.zoom = -1;
+    const coTich = artCfg().loai === 'tu-chon' && state.anhRieng.length > 0;   // ô tích ảnh nền trên từng trang xem trước
     state.result.slides.forEach((sl, i) => {
       const cell = document.createElement('div'); cell.className = 'cell' + (i === state.zoom ? ' to' : ''); cell.dataset.i = i;
       cell.title = i === state.zoom ? 'Bấm để thu nhỏ' : 'Bấm để phóng to';
       cell.innerHTML = `<span class="no">${i + 1}</span>`;
       cell.appendChild(TDT.renderSlide(sl, i === state.zoom ? Math.max(w, inner) : w));
+      if (coTich) cell.appendChild(nutTich(i + 1));
       grid.appendChild(cell);
     });
     box.replaceChildren(grid);
@@ -6879,7 +6908,8 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
     const dau = a.dau && D ? D.muc.find(m => m.id === a.dau) : null;
     const urls = new Set(a.anh.map(i => i.url));   // đếm số ảnh của người dùng thực sự lên trang
     const dung = new Set(state.result.slides.flatMap(s => s.els.filter(e => e.t === 'pic' && urls.has(e.img.url)).map(e => e.img.url))).size;
-    const art = a.loai === 'tu-chon' ? (a.anh.length ? ` · ảnh của bạn: dùng ${dung}/${a.anh.length} ảnh` : ' · chưa chọn ảnh nào') : a.loai !== 'khong' && D ? ` · ${a.loai === 'anh' ? 'ảnh' : 'tranh'} chủ đề “${(D.goi.find(g => g.id === (a.goi === 'tu-dong' ? TDT.khoAnhGoi(state.deck, usedTheme()) : a.goi)) || {}).ten}”${a.goi === 'tu-dong' ? ' (tự đoán)' : ''}${dau && dau.loai === a.loai ? `, bìa “${dau.ten}”` : ''}` : '';
+    const soGan = Object.keys(a.trang).map(Number), ngoai = soGan.filter(so => so > state.result.slides.length);
+    const art = a.loai === 'tu-chon' ? (!a.anh.length ? ' · chưa chọn ảnh nào' : soGan.length ? ` · ảnh nền ở ${soGan.length - ngoai.length} trang đã chọn${ngoai.length ? ` (không có trang ${ngoai.sort((x, y) => x - y).join(', ')})` : ''}` : ` · ảnh của bạn: dùng ${dung}/${a.anh.length} ảnh`) : a.loai !== 'khong' && D ? ` · ${a.loai === 'anh' ? 'ảnh' : 'tranh'} chủ đề “${(D.goi.find(g => g.id === (a.goi === 'tu-dong' ? TDT.khoAnhGoi(state.deck, usedTheme()) : a.goi)) || {}).ten}”${a.goi === 'tu-dong' ? ' (tự đoán)' : ''}${dau && dau.loai === a.loai ? `, bìa “${dau.ten}”` : ''}` : '';
     status(`${state.demo ? 'File ví dụ · ' : ''}${state.result.slides.length} trang · mẫu “${state.result.theme.name}”${state.result.keep ? ' · giữ bố cục gốc' : ''}${art} · ${Math.round(performance.now() - t0)} ms${miss}`);
     $('tdt-dl').disabled = false;
   }
@@ -6913,22 +6943,40 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   }
   // ảnh của người dùng (bước 4): đọc, giữ trong trình duyệt 1 giờ như file, hiện thành dãy ảnh nhỏ
   const laAnh = f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i.test(f.name);
-  function luuAnh() { if (state.anhRieng.length) luuFile(state.anhRieng.map(x => x.file), Date.now(), LUU.anh); else xoaFile(LUU.anh); }
+  function luuAnh() { if (state.anhRieng.length) luuFile(state.anhRieng.map(x => x.file), Date.now(), LUU.anh, state.anhRieng.map(x => x.trang)); else xoaFile(LUU.anh); }
   function veAnh() {
     $('tdt-anh-list').replaceChildren(...state.anhRieng.map((x, i) => {
-      const d = document.createElement('div'); d.className = 'tdt-ar-i'; d.title = x.img.ten;
-      const pic = document.createElement('img'); pic.src = x.img.url; pic.alt = x.img.ten;
-      const del = document.createElement('button'); del.type = 'button'; del.textContent = '×'; del.dataset.i = i; del.setAttribute('aria-label', 'Bỏ ảnh ' + x.img.ten);
-      d.append(pic, del);
-      if (!i) { const b = document.createElement('b'); b.textContent = 'Bìa'; d.append(b); }
+      const d = document.createElement('div'); d.className = 'tdt-ar-i' + (i === state.anhOn ? ' on' : ''); d.title = x.img.ten;
+      const chon = document.createElement('button'); chon.type = 'button'; chon.className = 'tdt-ar-pic'; chon.dataset.on = i; chon.setAttribute('aria-pressed', String(i === state.anhOn)); chon.setAttribute('aria-label', `Chọn ảnh ${i + 1} (${x.img.ten}) để tích ở trang xem trước`);
+      const pic = document.createElement('img'); pic.src = x.img.url; pic.alt = '';
+      const so = document.createElement('b'); so.textContent = i + 1;
+      chon.append(pic, so);
+      const trang = document.createElement('input'); trang.type = 'text'; trang.inputMode = 'numeric'; trang.className = 'tdt-ar-so'; trang.dataset.i = i; trang.placeholder = 'Trang: 1, 3, 5'; trang.value = x.trang.join(', '); trang.setAttribute('aria-label', `Số trang dùng ảnh ${i + 1}`);
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'tdt-ar-bo'; del.textContent = '×'; del.dataset.i = i; del.setAttribute('aria-label', 'Bỏ ảnh ' + x.img.ten);
+      d.append(chon, trang, del);
       return d;
     }));
   }
-  async function themAnh(files, saved) {
+  // ô tích trên một trang xem trước: đã có ảnh thì hiện số ảnh đó, chưa có thì hiện số ảnh đang chọn
+  function nutTich(so) {
+    const k = state.anhRieng.findIndex(x => x.trang.includes(so));
+    const l = document.createElement('label'); l.className = 'tdt-tich' + (k >= 0 ? ' on' : ''); l.title = 'Dùng ảnh đang chọn làm nền trang này';
+    const c = document.createElement('input'); c.type = 'checkbox'; c.checked = k >= 0; c.dataset.so = so; c.setAttribute('aria-label', `Ảnh nền trang ${so}`);
+    const t = document.createElement('span'); t.textContent = 'Ảnh ' + ((k >= 0 ? k : state.anhOn) + 1);
+    l.append(c, t); return l;
+  }
+  // tích: gán trang cho ảnh đang chọn; trang đang dùng ảnh khác thì đổi sang ảnh đang chọn; tích lại đúng ảnh đó thì bỏ
+  function doiTich(so) {
+    const on = state.anhRieng[state.anhOn], cu = state.anhRieng.find(x => x.trang.includes(so));
+    if (cu) cu.trang = cu.trang.filter(v => v !== so);
+    if (cu !== on) on.trang = [...on.trang, so].sort((a, b) => a - b);
+    luuAnh(); veAnh(); syncCur(); refresh();
+  }
+  async function themAnh(files, saved, meta) {
     const list = [...files].filter(laAnh), loi = [];
     if (!list.length) { status('Chỉ nhận file ảnh (JPG, PNG, WEBP…).', true); return; }
     status('Đang đọc ảnh…');
-    for (const f of list) { try { state.anhRieng.push({ img: await TDT.khoAnhDocRieng(f), file: f }); } catch (e) { console.error(e); loi.push(f.name); } }
+    for (const [i, f] of list.entries()) { try { state.anhRieng.push({ img: await TDT.khoAnhDocRieng(f), file: f, trang: (meta && meta[i]) || [] }); } catch (e) { console.error(e); loi.push(f.name); } }
     if (!saved) { luuAnh(); $('tdt-art-box').open = true; }
     if (state.anhRieng.length) { document.querySelector('input[name="tdt-art"][value="tu-chon"]').checked = true; state.artDau = ''; }
     veAnh(); syncCur();
@@ -6938,6 +6986,7 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   }
   function boAnh(i) {
     const [x] = state.anhRieng.splice(i, 1); URL.revokeObjectURL(x.img.url);
+    state.anhOn = Math.max(0, Math.min(state.anhRieng.length - 1, state.anhOn > i ? state.anhOn - 1 : state.anhOn));
     luuAnh(); veAnh(); syncCur();
     if (state.deck) refresh();
   }
@@ -7008,7 +7057,9 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   $('tdt-themes').addEventListener('click', e => { const b = e.target.closest('.tdt-th'); if (!b) return; state.theme = TDT.THEMES[b.dataset.id]; state.picked = true; refresh(); });
   $('tdt-motifs').addEventListener('click', e => { const b = e.target.closest('.tdt-mo, .tdt-none'); if (!b) return; state.motif = b.dataset.id; state.picked = true; refresh(); });
   // bấm một trang xem trước: phóng to hết khung / thu nhỏ lại
+  $('tdt-preview').addEventListener('change', e => { const c = e.target.closest('.tdt-tich input'); if (c) doiTich(+c.dataset.so); });
   $('tdt-preview').addEventListener('click', e => {
+    if (e.target.closest('.tdt-tich')) return;   // ô tích ảnh nền, không phóng to trang
     const c = e.target.closest('.tdt-grid .cell'); if (!c) return;
     state.zoom = state.zoom === +c.dataset.i ? -1 : +c.dataset.i; refresh();
     const z = $('tdt-preview').querySelector(`.cell[data-i="${c.dataset.i}"]`); if (z) z.scrollIntoView({ block: 'nearest' });
@@ -7033,7 +7084,19 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   ['dragenter', 'dragover'].forEach(ev => aDrop.addEventListener(ev, e => { e.preventDefault(); aDrop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(ev => aDrop.addEventListener(ev, e => { e.preventDefault(); aDrop.classList.remove('over'); }));
   aDrop.addEventListener('drop', e => { e.stopPropagation(); if (e.dataTransfer.files.length) themAnh([...e.dataTransfer.files]); });
-  $('tdt-anh-list').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) boAnh(+b.dataset.i); });
+  $('tdt-anh-list').addEventListener('click', e => {
+    const b = e.target.closest('button[data-i]'); if (b) { boAnh(+b.dataset.i); return; }
+    const c = e.target.closest('button[data-on]'); if (c) { state.anhOn = +c.dataset.on; veAnh(); if (state.deck) refresh(); }
+  });
+  // gõ số trang cho một ảnh: trang nào đang thuộc ảnh khác thì chuyển sang ảnh này
+  $('tdt-anh-list').addEventListener('change', e => {
+    const o = e.target.closest('.tdt-ar-so'); if (!o) return;
+    const i = +o.dataset.i, { so, sai } = TDT.khoAnhSoTrang(o.value);
+    state.anhRieng.forEach((x, k) => { x.trang = k === i ? so : x.trang.filter(v => !so.includes(v)); });
+    state.anhOn = i; luuAnh(); veAnh(); syncCur();
+    if (state.deck) refresh();
+    if (sai.length) status(`Bỏ qua phần không phải số trang: ${sai.join(', ')}. Hãy gõ như 1, 3, 5 hoặc 2-4.`, true);
+  });
   const drop = $('tdt-drop'), inp = $('tdt-input');
   drop.addEventListener('click', () => inp.click());
   drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
@@ -7046,7 +7109,7 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   dlg.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files.length) loadFiles([...e.dataTransfer.files]); });
   // mở lại file đã giữ trong trình duyệt (chưa quá 1 giờ)
   restored = docFile().then(v => { if (v && !state.deck) return loadFiles(v.files, v.t); });
-  docFile(LUU.anh).then(v => { if (v) themAnh(v.files, v.t); });
+  docFile(LUU.anh).then(v => { if (v) themAnh(v.files, v.t, v.meta); });
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => dlg.open && state.deck && refresh(), 200); });
 })();
 

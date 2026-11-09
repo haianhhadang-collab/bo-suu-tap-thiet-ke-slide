@@ -703,7 +703,7 @@ class Restyler:
         styles = Styles(self.prs._element, slide.slide_layout._element, slide.slide_layout.slide_master._element,
                         self.themes[slide.slide_layout.slide_master.part.part_related_by(RT.THEME)][1])
         had_timing = sld.find(qn("p:timing")) is not None
-        art = khoanh.next_art(opts.get("_art"), kind) if inv else None   # ảnh trang trí theo chủ đề (khoanh.py)
+        art = khoanh.next_art(opts.get("_art"), kind, idx + 1)   # ảnh trang trí (khoanh.py): tự đặt ở bìa, chương, kết hoặc theo số trang
         if art:
             _bo_anh_cu(sld, tree)
         recs = _walk(tree, slide.slide_layout._element, slide.slide_layout.slide_master._element)

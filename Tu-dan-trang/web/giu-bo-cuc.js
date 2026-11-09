@@ -430,11 +430,12 @@ class Restyler {
     const layout = this.root(s.layout), master = this.root(s.master);
     const styles = new Styles(this.root(this.src.pres), layout, master, this.themes[s.theme].fonts);
     const hadTiming = !!kid(sld, 'timing');
-    if (inv && opts._art) boAnhCu(sld, tree);
+    const art = opts._art;   // trang này sắp có ảnh trang trí (tự đặt: bìa, chương, kết; theo số trang: đúng các trang đã chọn)
+    if (art && (art.theoTrang ? art.theoTrang[idx + 1] : inv)) boAnhCu(sld, tree);
     const recs = walk(tree, layout, master);
 
     // 1. nền + trang trí của mẫu (vẽ xong thì dời xuống lớp dưới cùng)
-    const ctx = new T.Ctx([], th, idx, inv ? kind : 'content', inv, opts);
+    const ctx = new T.Ctx([], th, idx, inv ? kind : 'content', inv, opts, idx + 1);
     const bgEl = frag(doc, `<p:bg><p:bgPr>${T.pptxXml.fillXml(ctx.sl.bg.color ? { color: ctx.sl.bg.color } : { grad: ctx.sl.bg.grad, angle: ctx.sl.bg.angle, radial: ctx.sl.bg.radial })}<a:effectLst/></p:bgPr></p:bg>`)[0];
     const oldBg = kid(cSld, 'bg'); if (oldBg) oldBg.remove();
     cSld.insertBefore(bgEl, cSld.firstElementChild);

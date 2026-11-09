@@ -1138,10 +1138,12 @@ function autoTitles(deck) {
 const KIND = { rect: 'rect', round: 'roundRect', ellipse: 'ellipse', chevron: 'chevron', arrow: 'rightArrow', diamond: 'diamond', triangle: 'triangle' };
 
 class Ctx {
-  constructor(out, th, idx, kind, inv, opts) {
+  /** so = số trang hiện cho người dùng (1, 2, …); mặc định là vị trí trong out. */
+  constructor(out, th, idx, kind, inv, opts, so) {
     this.th = th; this.idx = idx; this.kind = kind; this.inv = inv; this.opts = opts;
     this.sl = { bg: null, els: [], steps: [], transition: null, notes: '' };
     out.push(this.sl);
+    this.so = so || out.length;
     this.info = paint(this, th, inv, idx, kind);
     const bg = this.info.bg;
     if (inv) {
@@ -1209,8 +1211,8 @@ function paint(ctx, th, inv, idx, kind) {
   // họa tiết theo chủ đề (hoa-van.js): vẽ chồng lên trang trí của mẫu, hoặc thay hẳn ở trang bìa/chương/kết
   const motif = th.motif && G.TuDanTrang && G.TuDanTrang.MOTIFS ? G.TuDanTrang.MOTIFS[th.motif] : null;
   // ảnh trang trí theo chủ đề (kho-anh.js): thay trang trí của mẫu ở trang bìa/chương/kết; họa tiết vẫn vẽ đè lên ảnh
-  const art = ctx.opts && ctx.opts._art && G.TuDanTrang.khoAnhNext ? G.TuDanTrang.khoAnhNext(ctx.opts._art, kind) : null;
-  if (art) { G.TuDanTrang.khoAnhVe(ctx, th, kind, art); info.art = true; info.artN = ctx.sl.els.length; }
+  const art = ctx.opts && ctx.opts._art && G.TuDanTrang.khoAnhNext ? G.TuDanTrang.khoAnhNext(ctx.opts._art, kind, ctx.so) : null;
+  if (art) { G.TuDanTrang.khoAnhVe(ctx, th, kind, art, info.bg); info.art = true; info.artN = ctx.sl.els.length; }
   else if (!(motif && inv && motif.ownInv)) (DECOR[th.decor] || DECOR.minimal)(ctx, th, inv, idx, kind, r, info);
   if (motif) motif.draw(ctx, th, inv, idx, kind, info);
   return info;

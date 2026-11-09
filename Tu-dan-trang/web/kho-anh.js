@@ -10,7 +10,7 @@ const THEME_GOI = { 'song-bien': 'thien-nhien', 'gradient': 'vu-tru', 'toi-gian'
   'co-dien': 'lich-su', 'de-thuong': 'truong-hoc', 'nghe-thuat': 'van-hoa', 'thien-nhien': 'thien-nhien', 'chuyen-nghiep': 'doi-ngoai',
   'truyen-tranh': 'anime', 'manga': 'anime' };
 // lớp phủ trái -> phải: [độ đục ở mép trái, giữa, mép phải]
-const PHU = { anh: { cover: [0.9, 0.7, 0.2], section: [0.92, 0.75, 0.15], closing: [0.8, 0.8, 0.8] },
+const PHU = { anh: { cover: [0.9, 0.7, 0.2], section: [0.92, 0.75, 0.15], closing: [0.8, 0.8, 0.8], content: [0.8, 0.8, 0.8] },
   tranh: { cover: [0.88, 0.6, 0], section: [0.9, 0.65, 0], closing: [0.72, 0.72, 0.72] } };
 // file .pptx giữ bố cục gốc: chữ có thể nằm bất kỳ đâu nên phủ đều cả trang
 const PHU_GIU = { anh: [0.8, 0.8, 0.8], tranh: [0.62, 0.62, 0.62] };
@@ -36,11 +36,12 @@ function goiTuDong(deck, th) {
 }
 
 /** Kế hoạch ảnh cho một bộ slide: opts.khoAnh = { loai: 'khong' | 'anh' | 'tranh' | 'tu-chon', goi: 'tu-dong' | mã gói, dau: mã ảnh bìa (tùy chọn),
-    anh: danh sách ảnh của người dùng (loai 'tu-chon', đọc bằng docRieng) }.
+    anh: danh sách ảnh của người dùng (loai 'tu-chon', đọc bằng docRieng), trang: { số trang: ảnh } (có thì chỉ những trang này có ảnh) }.
     giu = khung trang (rộng/cao) khi khoác lên file .pptx giữ bố cục gốc. */
 function plan(deck, th, opts, giu) {
   const D = data(), cfg = (opts && opts.khoAnh) || {};
   if (cfg.loai === 'tu-chon') {   // ảnh người dùng gửi: dùng như một gói ảnh chụp, đúng thứ tự đã chọn, không có dòng ghi nguồn
+    if (cfg.trang && Object.keys(cfg.trang).length) return { loai: 'tu-chon', goi: '', items: [], n: 0, giu: giu || null, theoTrang: cfg.trang };
     const mine = (cfg.anh || []).map(img => ({ id: img.id, loai: 'anh', ghi_cong: '', img }));
     return mine.length ? { loai: 'tu-chon', goi: '', items: mine, n: 0, giu: giu || null } : null;
   }
@@ -53,7 +54,11 @@ function plan(deck, th, opts, giu) {
 }
 
 /** Ảnh cho trang kế tiếp: bìa và trang kết dùng ảnh đầu, các trang chương lần lượt dùng những ảnh còn lại. */
-function next(p, kind) {
+function next(p, kind, so) {
+  if (p && p.theoTrang) {   // người dùng chỉ định từng trang, kể cả trang nội dung
+    const img = p.theoTrang[so];
+    return img ? { id: img.id, loai: 'anh', ghi_cong: '', img, giu: p.giu || undefined } : null;
+  }
   if (!p || !['cover', 'section', 'closing'].includes(kind)) return null;
   let it = p.items[0];
   if (kind === 'section' && p.items.length > 1) it = p.items[1 + (p.n++ % (p.items.length - 1))];
@@ -68,8 +73,9 @@ function color(th, role) {
 }
 
 /** Vẽ ảnh/tranh nền và lớp phủ; gọi từ paint() thay cho trang trí của mẫu. */
-function draw(ctx, th, kind, it) {
-  const c0 = th.inv[0], c1 = th.inv[th.inv.length - 1];
+function draw(ctx, th, kind, it, nen) {
+  // trang nội dung nền sáng, chữ tối: lớp phủ dùng màu nền của trang; bìa, chương, kết dùng màu nền đậm của mẫu
+  const c0 = kind === 'content' ? nen : th.inv[0], c1 = kind === 'content' ? nen : th.inv[th.inv.length - 1];
   if (it.loai === 'anh') {
     const img = it.img || cache[it.id], el = ctx.picture(img, 0, 0, SW, SH);
     if (it.giu) {   // trang gốc khác 16:9 (vd 4:3): khung ảnh sẽ kéo theo khổ trang, nên cắt ảnh theo khổ thật cho khỏi méo
@@ -84,7 +90,7 @@ function draw(ctx, th, kind, it) {
       else ctx.poly(rings.length > 1 ? rings : rings[0], { color: col, alpha: a });
     }
   }
-  const deu = it.giu || kind === 'closing';
+  const deu = it.giu || kind === 'closing' || kind === 'content';
   ctx.box(0, 0, SW, SH, { gradient: deu ? [c0, c0, c0] : [c0, c0, c1], angle: 0, galphas: it.giu ? PHU_GIU[it.loai] : PHU[it.loai][kind], name: '!!phu-anh' });
   if (it.loai === 'anh' && it.ghi_cong) ctx.text(SW - 6.4, SH - 0.36, 6.1, 0.28, it.ghi_cong, { font: th.body_font, size: 8, color: th.inv_body, align: 'r', anchor: 'b', name: '!!nguon-anh' });
 }
@@ -132,6 +138,16 @@ function exifXoay(b) {
   }
   return 1;
 }
+/** Đọc chuỗi số trang: "1, 3, 5", "2-4"; trả về { so: số trang tăng dần, sai: phần không đọc được } (giống khoanh.so_trang). */
+function soTrang(s) {
+  const so = new Set(), sai = [];
+  for (const t of String(s || '').replace(/\s*[-–]\s*/g, '-').split(/[\s,;]+/).filter(Boolean)) {
+    const m = t.match(/^([0-9]{1,4})(?:-([0-9]{1,4}))?$/);
+    if (!m || +m[1] < 1 || (m[2] && +m[2] < +m[1])) { sai.push(t); continue; }
+    for (let i = +m[1]; i <= +(m[2] || m[1]); i++) so.add(i);
+  }
+  return { so: [...so].sort((a, b) => a - b), sai };
+}
 let soRieng = 0;
 /** Đọc một ảnh người dùng gửi thành ảnh dùng được trong slide (giống khoanh.doc_rieng).
     JPEG, PNG giữ nguyên; ảnh xoay bằng EXIF được xoay thật; định dạng khác đổi sang PNG. Ảnh trình duyệt không đọc được thì báo lỗi. */
@@ -158,5 +174,5 @@ function need(deck, th, opts) {
 }
 
 Object.assign(T, { khoAnhPlan: plan, khoAnhNext: next, khoAnhVe: draw, khoAnhGoi: goiTuDong, khoAnhCan: need,
-  khoAnhTai: ids => Promise.all(ids.map(load1)), khoAnhNhan: nhan, khoAnhMau: color, khoAnhDocRieng: docRieng });
+  khoAnhTai: ids => Promise.all(ids.map(load1)), khoAnhNhan: nhan, khoAnhMau: color, khoAnhDocRieng: docRieng, khoAnhSoTrang: soTrang });
 })(window);
