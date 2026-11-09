@@ -207,6 +207,13 @@ Cách chọn:
 - **Mặc định cho mọi file** (cả hộp thư): `"anh_trang_tri": "anh"` và `"chu_de_anh": "tu-dong"` trong `cau-hinh.json`
   (`"khong"` = không dùng ảnh).
 
+Dùng ảnh của bạn thay cho kho ảnh: ảnh đầu làm nền trang bìa và trang kết, các ảnh sau lần lượt làm nền trang chương, có cùng lớp
+phủ như ảnh trong kho và không in dòng ghi nguồn. Ảnh khác khổ trang được cắt cho đầy trang, ảnh điện thoại chụp xoay được xoay lại đúng chiều.
+- **Trang web**: bước 4, chọn "Ảnh của tôi" rồi kéo thả hoặc bấm chọn ảnh (thả ảnh vào ô file ở bước 1 cũng được). Ảnh được giữ 1 giờ trong trình duyệt, bấm × trên ảnh để bỏ.
+- **Cửa sổ**: bấm "Chọn ảnh…" ở dòng "Ảnh của tôi".
+- **Dòng lệnh**: `python tu_dan_trang.py bai-giang.docx --anh-rieng bia.jpg --anh-rieng chuong-1.png`, hoặc ghi một thư mục (lấy mọi ảnh, xếp theo tên).
+- **Mặc định cho mọi file**: `"anh_trang_tri": "tu-chon"` và `"anh_tu_chon": ["D:\\Anh\\bia.jpg"]` trong `cau-hinh.json`.
+
 ## Công cụ tự làm gì
 
 - **Nhận diện nội dung** để chọn bố cục phù hợp:

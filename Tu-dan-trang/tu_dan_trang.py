@@ -16,6 +16,7 @@ Tùy chọn:
   -c, --chuyen <kiểu>     theo-mau | morph | fade | push | wipe | khong
   -o, --ra <thư mục>      nơi lưu kết quả (mặc định: Ket-qua)
   --dan-lai               file .pptx: dàn lại từ đầu theo nội dung thay vì giữ bố cục gốc
+  --anh-rieng <ảnh>       dùng ảnh của bạn làm nền trang bìa, chương, kết (ghi nhiều lần, hoặc ghi một thư mục)
 """
 from __future__ import annotations
 
@@ -56,6 +57,7 @@ DEFAULT_CFG = {
     "giu_bo_cuc_pptx": True,
     "anh_trang_tri": "khong",
     "chu_de_anh": "tu-dong",
+    "anh_tu_chon": [],
 }
 
 
@@ -73,10 +75,10 @@ def load_cfg() -> dict:
 
 
 def make_opts(anim: str, trans: str, motif: str = "", palette: bool = True, keep: bool = True,
-              anh: str = "khong", chu_de_anh: str = "tu-dong") -> dict:
+              anh: str = "khong", chu_de_anh: str = "tu-dong", anh_rieng: list | None = None) -> dict:
     return {"anim": ANIM.get(anim, anim), "transition": TRANS.get(trans, trans),
             "motif": hoavan.check(motif), "motif_palette": palette, "keep_layout": keep,
-            "kho_anh": khoanh.check({"loai": anh, "goi": chu_de_anh})}
+            "kho_anh": khoanh.check({"loai": anh, "goi": chu_de_anh, "tep": anh_rieng})}
 
 
 def resolve(name: str, default_theme: str) -> tuple[str, str | None]:
@@ -120,7 +122,7 @@ def watch(cfg: dict):
     print(f"  • Kết quả lưu ở: {out}      (Ctrl+C để dừng)\n")
     sizes: dict[Path, int] = {}
     opts = make_opts(cfg["animation"], cfg["chuyen_trang"], cfg["hoa_van"], cfg["dung_mau_hoa_van"],
-                     cfg["giu_bo_cuc_pptx"], cfg["anh_trang_tri"], cfg["chu_de_anh"])
+                     cfg["giu_bo_cuc_pptx"], cfg["anh_trang_tri"], cfg["chu_de_anh"], cfg["anh_tu_chon"])
     while True:
         for f in list(INBOX.glob("*")) + list(INBOX.glob("*/*")):
             if not f.is_file() or f.suffix.lower() not in EXTS or f.name.startswith(("~$", ".")):
@@ -162,7 +164,7 @@ def gui(cfg: dict, preset: str | None = None):
 
     root = tk.Tk()
     root.title("Tự dàn trang slide")
-    root.geometry("860x600")
+    root.geometry("860x640")
     root.minsize(760, 540)
     try:
         root.tk.call("tk", "scaling", 1.25)
@@ -299,25 +301,40 @@ def gui(cfg: dict, preset: str | None = None):
     gcb = ttk.Combobox(tf_, values=list(goi_names.values()), state="readonly", width=26)
     gcb.set(goi_names.get(cfg["chu_de_anh"], "Chủ đề: tự đoán"))
     gcb.pack(side="left")
+    # ảnh của người dùng: nền trang bìa, trang chương, trang kết thay cho kho ảnh
+    rf = ttk.Frame(top)
+    rf.grid(row=9, column=0, columnspan=3, sticky="w", pady=(6, 0))
+    anh_rieng = list(cfg["anh_tu_chon"])
+    rieng_txt = tk.StringVar(value=f"Đã chọn {len(anh_rieng)} ảnh" if anh_rieng else "Chưa chọn ảnh")
 
-    ttk.Label(top, text="4. Lưu vào", font=FB).grid(row=9, column=0, sticky="w", pady=(12, 2))
-    ttk.Entry(top, textvariable=out, font=F).grid(row=10, column=0, columnspan=2, sticky="ew")
+    def pick_rieng():
+        fs = filedialog.askopenfilenames(filetypes=[("Ảnh", "*.jpg *.jpeg *.png *.webp *.gif *.bmp"), ("Tất cả", "*.*")])
+        if fs:
+            anh_rieng[:] = fs
+            acb.set(khoanh.LOAI["tu-chon"])
+            rieng_txt.set(f"Đã chọn {len(fs)} ảnh")
+    ttk.Label(rf, text="Ảnh của tôi (ảnh đầu làm bìa và trang kết, các ảnh sau làm trang chương):").pack(side="left")
+    ttk.Button(rf, text="Chọn ảnh…", command=pick_rieng).pack(side="left", padx=8)
+    ttk.Label(rf, textvariable=rieng_txt).pack(side="left")
+
+    ttk.Label(top, text="4. Lưu vào", font=FB).grid(row=10, column=0, sticky="w", pady=(12, 2))
+    ttk.Entry(top, textvariable=out, font=F).grid(row=11, column=0, columnspan=2, sticky="ew")
 
     def pick_out():
         d = filedialog.askdirectory()
         if d:
             out.set(d)
-    ttk.Button(top, text="Đổi…", command=pick_out).grid(row=10, column=2, sticky="e", padx=(8, 0))
+    ttk.Button(top, text="Đổi…", command=pick_out).grid(row=11, column=2, sticky="e", padx=(8, 0))
 
     bar = ttk.Frame(top)
-    bar.grid(row=11, column=0, columnspan=3, sticky="ew", pady=(16, 0))
+    bar.grid(row=12, column=0, columnspan=3, sticky="ew", pady=(16, 0))
     go = ttk.Button(bar, text="Dàn trang", style="Accent.TButton")
     go.pack(side="left")
     open_btn = ttk.Button(bar, text="Mở kết quả", state="disabled")
     open_btn.pack(side="left", padx=8)
     ttk.Button(bar, text="Mở thư mục", command=lambda: os.startfile(out.get())).pack(side="left")
     ttk.Label(top, textvariable=status, font=F, foreground="#0B5", wraplength=800).grid(
-        row=12, column=0, columnspan=3, sticky="w", pady=(10, 0))
+        row=13, column=0, columnspan=3, sticky="w", pady=(10, 0))
 
     top.columnconfigure(0, weight=1)
     top.columnconfigure(1, weight=1)
@@ -333,7 +350,14 @@ def gui(cfg: dict, preset: str | None = None):
         tr = next((k for k, v in names.items() if v == cb.get()), "theo-mau")
         anh_ = next((k for k, v in khoanh.LOAI.items() if v == acb.get()), "khong")
         goi_ = next((k for k, v in goi_names.items() if v == gcb.get()), "tu-dong")
-        opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get(), keep.get(), anh_, goi_)
+        if anh_ == "tu-chon" and not anh_rieng:
+            messagebox.showwarning("Thiếu ảnh", "Hãy bấm “Chọn ảnh…” để chọn ảnh của bạn.")
+            return
+        try:
+            opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get(), keep.get(), anh_, goi_, anh_rieng)
+        except KeyError as e:
+            messagebox.showwarning("Không dùng được ảnh", e.args[0])
+            return
         go.config(state="disabled")
         status.set("Đang dàn trang… (mẫu “tất cả” mất khoảng 10–30 giây)")
 
@@ -372,6 +396,7 @@ def main():
     ap.add_argument("-v", "--hoa-van", default=None, choices=list(hoavan.MOTIFS) + ["khong"])
     ap.add_argument("--anh", default=None, choices=list(khoanh.LOAI), help="ảnh trang trí: khong, anh (ảnh chụp), tranh")
     ap.add_argument("--chu-de-anh", default=None, help="gói ảnh (xem --ds), mặc định tu-dong = đoán theo nội dung")
+    ap.add_argument("--anh-rieng", action="append", default=None, metavar="ẢNH", help="ảnh của bạn hoặc thư mục ảnh (ghi nhiều lần được), tự chọn --anh tu-chon")
     ap.add_argument("--giu-mau", action="store_true")
     ap.add_argument("--dan-lai", action="store_true")
     ap.add_argument("--theo-doi", action="store_true")
@@ -403,8 +428,8 @@ def main():
     out = Path(a.ra) if a.ra else ROOT / cfg["thu_muc_ket_qua"]
     opts = make_opts(a.animation or cfg["animation"], a.chuyen or cfg["chuyen_trang"],
                      a.hoa_van or cfg["hoa_van"], cfg["dung_mau_hoa_van"] and not a.giu_mau,
-                     cfg["giu_bo_cuc_pptx"] and not a.dan_lai, a.anh or cfg["anh_trang_tri"],
-                     a.chu_de_anh or cfg["chu_de_anh"])
+                     cfg["giu_bo_cuc_pptx"] and not a.dan_lai, a.anh or ("tu-chon" if a.anh_rieng else cfg["anh_trang_tri"]),
+                     a.chu_de_anh or cfg["chu_de_anh"], a.anh_rieng or cfg["anh_tu_chon"])
     for o in run(Path(a.file), theme, out, opts, cfg["mau_mac_dinh"]):
         print(o)
 

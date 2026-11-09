@@ -36,6 +36,16 @@
           <label><input type="radio" name="tdt-art" value="khong" checked> Không dùng</label>
           <label><input type="radio" name="tdt-art" value="anh"> Ảnh chụp theo chủ đề</label>
           <label><input type="radio" name="tdt-art" value="tranh"> Tranh vẽ theo màu mẫu</label>
+          <label><input type="radio" name="tdt-art" value="tu-chon"> Ảnh của tôi</label>
+          <div id="tdt-anh-rieng" hidden>
+            <div class="tdt-drop tdt-drop-anh" id="tdt-anh-drop" tabindex="0" role="button" aria-label="Chọn ảnh của bạn">
+              <b>Kéo thả ảnh vào đây</b>
+              <span>hoặc bấm để chọn · JPG, PNG, WEBP…</span>
+            </div>
+            <input type="file" id="tdt-anh-input" multiple accept="image/*" hidden>
+            <div class="tdt-ar" id="tdt-anh-list"></div>
+            <p class="tdt-luu">Ảnh đầu làm nền trang bìa và trang kết, các ảnh sau làm nền trang chương. Ảnh chỉ nằm trong trình duyệt, được giữ <b>1 giờ</b>.</p>
+          </div>
           <select id="tdt-art-goi" aria-label="Chủ đề ảnh"><option value="tu-dong">Chủ đề ảnh: tự đoán theo nội dung</option></select>
           <a class="tdt-hint" href="#kho-anh" id="tdt-art-link">Xem kho ảnh và nguồn ảnh ↗</a>
         </details>

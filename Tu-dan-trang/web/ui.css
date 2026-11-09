@@ -138,3 +138,15 @@ section.ka-sec.collapsed .tcaret{transform:rotate(-90deg)}
 .ka-dl{margin-top:auto;align-self:flex-start;font:inherit;font-size:13px;color:var(--accent);background:none;border:0;padding:4px 0 0;cursor:pointer;text-decoration:none}
 .ka-dl:hover{text-decoration:underline}
 @media (max-width:600px){.ka-grid{grid-template-columns:1fr 1fr;gap:10px}.ka-card figcaption{font-size:13px}}
+/* ảnh của người dùng (bước 4) */
+#tdt-anh-rieng{margin-top:6px}
+.tdt-drop-anh{padding:12px 10px}
+.tdt-drop-anh b{font-size:13.5px;margin-bottom:2px}
+.tdt-ar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.tdt-ar:empty{display:none}
+.tdt-ar-i{position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:var(--surface-2)}
+.tdt-ar-i img{display:block;width:100%;height:100%;object-fit:cover}
+.tdt-ar-i b{position:absolute;left:4px;bottom:4px;font-size:10.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.6);border-radius:4px;padding:0 5px}
+.tdt-ar-i button{position:absolute;top:3px;right:3px;width:22px;height:22px;padding:0;border:0;border-radius:50%;font-size:15px;line-height:1;color:#fff;background:rgba(0,0,0,.6);cursor:pointer}
+.tdt-ar-i button:hover{background:#c0392b}
+.tdt-ar-i button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}

@@ -346,6 +346,7 @@ class Restyler {
     this.docs = {};
     this.media = {};      // ảnh trang trí thêm vào gói: đường dẫn trong gói -> dữ liệu
     this.extraRels = {};  // trang -> { rId mới: đường dẫn ảnh }
+    this.artUrls = {};    // đường dẫn ảnh trang trí -> url xem trước (ảnh này không thuộc file gốc, không thu hồi cùng src.media)
     this.themes = {};
     for (const s of src.slides) if (!this.themes[s.theme]) { const root = this.doc(s.theme).documentElement; this.themes[s.theme] = { scheme: readScheme(root), fonts: readFonts(root) }; }
     this.mapper = new Mapper(th, this.bucketOrder());
@@ -364,7 +365,7 @@ class Restyler {
     root.appendChild(r);
     this.media[target] = img.data;
     (this.extraRels[s.path] = this.extraRels[s.path] || {})['rIdKA' + n] = target;
-    this.src.media[target] = img.url;   // cho bản xem trước
+    this.artUrls[target] = img.url;   // cho bản xem trước
     return 'rIdKA' + n;
   }
   root(p) { return this.doc(p).documentElement; }
@@ -429,6 +430,7 @@ class Restyler {
     const layout = this.root(s.layout), master = this.root(s.master);
     const styles = new Styles(this.root(this.src.pres), layout, master, this.themes[s.theme].fonts);
     const hadTiming = !!kid(sld, 'timing');
+    if (inv && opts._art) boAnhCu(sld, tree);
     const recs = walk(tree, layout, master);
 
     // 1. nền + trang trí của mẫu (vẽ xong thì dời xuống lớp dưới cùng)
@@ -806,7 +808,7 @@ class Restyler {
       if (r.tag === 'grpSp') continue;
       const xf = xfrmOf(el), rot = xf ? int(xf, 'rot') / 60000 : 0;
       if (r.tag === 'pic' || (r.tag === 'sp' && kid(kid(el, 'spPr'), 'blipFill'))) {
-        const blip = desc(el, 'blip')[0], rid = blip ? (blip.getAttributeNS(R, 'embed') || at(blip, 'r:embed')) : null, url = rid ? this.src.media[s.rels[rid] || (this.extraRels[s.path] || {})[rid]] : null;
+        const blip = desc(el, 'blip')[0], rid = blip ? (blip.getAttributeNS(R, 'embed') || at(blip, 'r:embed')) : null, url = rid ? (this.artUrls[(this.extraRels[s.path] || {})[rid]] || this.src.media[s.rels[rid]]) : null;
         const sr = desc(el, 'srcRect')[0];
         const crop = sr ? { l: int(sr, 'l') / 100000, t: int(sr, 't') / 100000, r: int(sr, 'r') / 100000, b: int(sr, 'b') / 100000 } : null;
         els.push({ t: 'pic', img: { url }, x, y, w, h, crop: crop && (crop.l || crop.t || crop.r || crop.b) ? crop : null, radius: 0 });
@@ -850,6 +852,17 @@ class Restyler {
   }
 }
 
+/** File do chính công cụ này tạo đã có ảnh trang trí: bỏ lớp cũ (ảnh + !!phu-anh + !!nguon-anh) để ảnh mới không bị che (giống _bo_anh_cu). */
+function boAnhCu(sld, tree) {
+  const used = new Set(desc(sld, 'spTgt').map(t => at(t, 'spid')));   // hình đang có animation thì giữ, xóa sẽ làm hỏng file
+  const nv = el => desc(el, 'cNvPr')[0], free = el => !used.has(at(nv(el), 'id'));
+  const list = [...tree.children].filter(c => c.localName !== 'nvGrpSpPr' && nv(c));
+  list.forEach((el, i) => {
+    if (at(nv(el), 'name') === '!!phu-anh' && i && list[i - 1].localName === 'pic' && free(el) && free(list[i - 1])) { list[i - 1].remove(); el.remove(); }
+    else if (at(nv(el), 'name') === '!!nguon-anh' && free(el)) el.remove();
+  });
+}
+
 // ============================================================ loại trang: bìa, chương, kết (nền đậm) hay nội dung
 function slideKinds(rs, deck) {
   const raw = [{ title: deck.title, items: [], images: [], table: null }].concat(deck.slides), n = rs.src.slides.length;
@@ -876,9 +889,12 @@ async function keepToPptx(src, result) {
   for (const [p, xml] of Object.entries(result.files)) zip.file(p, xml);
   const media = Object.entries(result.media || {});
   for (const [p, data] of media) zip.file(p, data);
-  if (media.length) {   // khai báo kiểu ảnh .jpg nếu file gốc chưa có
-    const ctp = '[Content_Types].xml', ct = await zip.file(ctp).async('string');
-    if (!/Extension="jpg"/i.test(ct)) zip.file(ctp, ct.replace(/(<Types[^>]*>)/, '$1<Default Extension="jpg" ContentType="image/jpeg"/>'));
+  if (media.length) {   // khai báo kiểu ảnh nếu file gốc chưa có (ảnh kho là .jpg, ảnh người dùng có thể là .png)
+    const ctp = '[Content_Types].xml';
+    let ct = await zip.file(ctp).async('string');
+    for (const [ext, mime] of [['jpg', 'image/jpeg'], ['png', 'image/png']])
+      if (media.some(([p]) => p.endsWith('.' + ext)) && !new RegExp('Extension="' + ext + '"', 'i').test(ct)) ct = ct.replace(/(<Types[^>]*>)/, `$1<Default Extension="${ext}" ContentType="${mime}"/>`);
+    zip.file(ctp, ct);
   }
   return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', compression: 'DEFLATE' });
 }

@@ -35,7 +35,7 @@ def main(paths):
            '      <button class="btn-main" id="tdt-open">✦ Tự dàn trang file của bạn</button>\n'
            '      <p><b>Up file lên:</b> File chấp nhận: .pptx, .docx, .pdf, .md hoặc .txt<br>'
            '<b>Các chức năng tự động:</b> dàn trang, chọn màu chữ, màu nền theo chủ đề; file .pptx giữ nguyên bố cục gốc<br>'
-           '<b>Các chức năng tùy chọn:</b> họa tiết, ảnh trang trí theo chủ đề (<a href="#kho-anh">xem kho ảnh</a>); tạo chuyển động</p>\n    </div>\n    ')
+           '<b>Các chức năng tùy chọn:</b> họa tiết, ảnh trang trí theo chủ đề (<a href="#kho-anh">xem kho ảnh</a>) hoặc ảnh của bạn; tạo chuyển động</p>\n    </div>\n    ')
     # dữ liệu kho ảnh (~450 KB) nạp từ file riêng, ảnh chụp nạp từng ảnh khi cần (xem web/kho-anh.js)
     script = f'\n<script src="Tu-dan-trang/kho-anh/kho-anh.js"></script>\n<script>\nwindow.TU_DAN_TRANG_KHUNG="{khung}";\n{js}\n</script>\n'
 

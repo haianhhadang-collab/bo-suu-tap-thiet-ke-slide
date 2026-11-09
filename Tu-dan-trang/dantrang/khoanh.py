@@ -2,13 +2,16 @@
 
 Dữ liệu: kho-anh/kho-anh.json (sinh bởi kho-anh/cong-cu/tao-kho.py), ảnh chụp trong kho-anh/anh/.
 Ảnh chụp hoặc tranh vector làm nền trang bìa, trang chương, trang kết; lớp phủ màu mẫu giữ chữ dễ đọc.
-opts["kho_anh"] = {"loai": "khong" | "anh" | "tranh", "goi": "tu-dong" | mã gói}.
+opts["kho_anh"] = {"loai": "khong" | "anh" | "tranh" | "tu-chon", "goi": "tu-dong" | mã gói, "tep": [ảnh của người dùng (loai tu-chon)]}.
 """
 from __future__ import annotations
 
+import io
 import json
 import unicodedata
 from pathlib import Path
+
+from PIL import Image, ImageOps
 
 from . import draw as D
 from . import hoavan
@@ -25,9 +28,11 @@ PHU = {"anh": {"cover": [0.9, 0.7, 0.2], "section": [0.92, 0.75, 0.15], "closing
        "tranh": {"cover": [0.88, 0.6, 0], "section": [0.9, 0.65, 0], "closing": [0.72, 0.72, 0.72]}}
 # file .pptx giữ bố cục gốc: chữ có thể nằm bất kỳ đâu nên phủ đều cả trang
 PHU_GIU = {"anh": [0.8, 0.8, 0.8], "tranh": [0.62, 0.62, 0.62]}
-LOAI = {"khong": "Không dùng", "anh": "Ảnh chụp", "tranh": "Tranh vẽ theo màu mẫu"}
+LOAI = {"khong": "Không dùng", "anh": "Ảnh chụp", "tranh": "Tranh vẽ theo màu mẫu", "tu-chon": "Ảnh của tôi"}
+DUOI_ANH = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff"}
 _data = None
 _imgs: dict[str, Img] = {}
+_rieng: dict[str, Img] = {}
 
 
 def data() -> dict | None:
@@ -70,12 +75,75 @@ def check(cfg) -> dict:
     goi = (cfg.get("goi") or "tu-dong").strip().lower()
     if goi != "tu-dong" and goi not in {g["id"] for g in goi_list()}:
         raise KeyError(f"Không có gói ảnh '{goi}'. Các gói: tu-dong, {', '.join(g['id'] for g in goi_list())}")
-    return {"loai": loai, "goi": goi, "dau": cfg.get("dau") or ""}
+    tep = tep_rieng(cfg.get("tep")) if loai == "tu-chon" else []
+    if loai == "tu-chon" and not tep:
+        raise KeyError("Chế độ 'tu-chon' cần ảnh của bạn: dùng --anh-rieng <ảnh hoặc thư mục>, hoặc \"anh_tu_chon\" trong cau-hinh.json")
+    return {"loai": loai, "goi": goi, "dau": cfg.get("dau") or "", "tep": tep}
+
+
+def tep_rieng(ds) -> list[str]:
+    """Danh sách file ảnh của người dùng; đường dẫn là thư mục thì lấy mọi ảnh trong đó, xếp theo tên."""
+    out = []
+    for x in ds or []:
+        p = Path(str(x).strip().strip('"'))
+        if p.is_dir():
+            out += sorted(str(f) for f in p.iterdir() if f.suffix.lower() in DUOI_ANH)
+        elif p.is_file():
+            out.append(str(p))
+        else:
+            raise KeyError(f"Không tìm thấy ảnh '{x}'")
+    return out
+
+
+def doc_rieng(f) -> Img:
+    """Đọc một ảnh người dùng gửi (giống docRieng trong web/kho-anh.js và makeImg trong web/engine.js):
+    JPEG, PNG giữ nguyên; ảnh xoay bằng EXIF được xoay thật; định dạng khác đổi sang PNG; ảnh quá nặng thì thu lại."""
+    f = str(f)
+    if f in _rieng:
+        return _rieng[f]
+    ten = Path(f).name
+    try:
+        data_ = Path(f).read_bytes()
+        im = Image.open(io.BytesIO(data_))
+        im.load()
+    except Exception:
+        raise KeyError(f"Không đọc được ảnh '{ten}'. Hãy dùng ảnh JPG hoặc PNG.") from None
+    if 2 <= im.getexif().get(0x112, 1) <= 8:
+        anh_jpg = im.format in ("JPEG", "MPO")
+        im = ImageOps.exif_transpose(im)
+        out = io.BytesIO()
+        if anh_jpg:
+            im.convert("RGB").save(out, "JPEG", quality=92)
+        else:
+            im.save(out, "PNG")
+        data_ = out.getvalue()
+    img = Img.from_bytes(data_, Path(f).suffix[1:])
+    if img is None:
+        raise KeyError(f"Không đọc được ảnh '{ten}'. Hãy dùng ảnh JPG hoặc PNG.")
+    if len(img.data) > (3e6 if img.diagram else 1.5e6):  # cùng ngưỡng với makeImg; tỉ lệ cắt vẫn tính theo kích thước gốc
+        im = Image.open(io.BytesIO(img.data))
+        k = min(1, 2400 / max(im.size))
+        if k < 1:
+            im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
+        out = io.BytesIO()
+        if img.diagram:
+            im.save(out, "PNG")
+        else:
+            nen = Image.new("RGB", im.size, "white")
+            nen.paste(im.convert("RGBA"), mask=im.convert("RGBA").getchannel("A"))
+            nen.save(out, "JPEG", quality=86)
+        if out.tell() < len(img.data):
+            img.data, img.ext = out.getvalue(), "png" if img.diagram else "jpg"
+    _rieng[f] = img
+    return img
 
 
 def plan(deck, th, opts, giu=None) -> dict | None:
     """giu = khung trang (rộng/cao) khi khoác lên file .pptx giữ bố cục gốc; cfg["dau"] = mã ảnh bìa (tùy chọn)."""
     cfg = (opts or {}).get("kho_anh") or {}
+    if cfg.get("loai") == "tu-chon":  # ảnh người dùng gửi: dùng như một gói ảnh chụp, đúng thứ tự đã chọn, không có dòng ghi nguồn
+        mine = [{"id": f"anh-rieng-{i}", "loai": "anh", "ghi_cong": "", "img": doc_rieng(f)} for i, f in enumerate(cfg.get("tep") or [], 1)]
+        return {"loai": "tu-chon", "goi": "", "items": mine, "n": 0, "giu": giu} if mine else None
     if not data() or cfg.get("loai") not in ("anh", "tranh"):
         return None
     goi = cfg["goi"] if cfg.get("goi") and cfg["goi"] != "tu-dong" else goi_tu_dong(deck, th)
@@ -101,7 +169,7 @@ def next_art(p, kind):
     if kind == "section" and len(p["items"]) > 1:
         it = p["items"][1 + p["n"] % (len(p["items"]) - 1)]
         p["n"] += 1
-    if it["loai"] == "anh" and _img(it["id"]) is None:  # thiếu file ảnh: dùng trang trí thường
+    if it["loai"] == "anh" and it.get("img") is None and _img(it["id"]) is None:  # thiếu file ảnh: dùng trang trí thường
         return None
     return dict(it, giu=p["giu"]) if p.get("giu") else it
 
@@ -117,7 +185,7 @@ def draw(slide, th, kind, it):
     """Vẽ ảnh/tranh nền và lớp phủ; gọi từ decor.paint() thay cho trang trí của mẫu."""
     c0, c1 = th["inv"][0], th["inv"][-1]
     if it["loai"] == "anh":
-        img = _img(it["id"])
+        img = it.get("img") or _img(it["id"])
         pic = D.picture(slide, img, 0, 0, W, H)
         if it.get("giu"):  # trang gốc khác 16:9 (vd 4:3): khung ảnh kéo theo khổ trang, nên cắt ảnh theo khổ thật cho khỏi méo
             r, g = img.ratio, it["giu"]
@@ -134,6 +202,6 @@ def draw(slide, th, kind, it):
     deu = it.get("giu") or kind == "closing"
     D.box(slide, 0, 0, W, H, gradient=[c0, c0, c0] if deu else [c0, c0, c1], angle=0,
           galphas=PHU_GIU[it["loai"]] if it.get("giu") else PHU[it["loai"]][kind], name="!!phu-anh")
-    if it["loai"] == "anh":
+    if it["loai"] == "anh" and it.get("ghi_cong"):
         D.text(slide, W - 6.4, H - 0.36, 6.1, 0.28, it["ghi_cong"], font=th["body_font"], size=8, color=th["inv_body"],
                align="r", anchor="b", name="!!nguon-anh")

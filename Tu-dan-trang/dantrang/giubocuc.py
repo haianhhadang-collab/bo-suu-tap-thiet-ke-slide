@@ -703,11 +703,13 @@ class Restyler:
         styles = Styles(self.prs._element, slide.slide_layout._element, slide.slide_layout.slide_master._element,
                         self.themes[slide.slide_layout.slide_master.part.part_related_by(RT.THEME)][1])
         had_timing = sld.find(qn("p:timing")) is not None
+        art = khoanh.next_art(opts.get("_art"), kind) if inv else None   # ảnh trang trí theo chủ đề (khoanh.py)
+        if art:
+            _bo_anh_cu(sld, tree)
         recs = _walk(tree, slide.slide_layout._element, slide.slide_layout.slide_master._element)
 
         # 1. nền + trang trí của mẫu (vẽ xong thì dời xuống lớp dưới cùng)
         before = list(tree)
-        art = khoanh.next_art(opts.get("_art"), kind) if inv else None   # ảnh trang trí theo chủ đề (khoanh.py)
         info = decor.paint(slide, th, inv, idx, kind if inv else "content", art)
         added = [c for c in tree if c not in before]
         self._place_decor(tree, added)
@@ -1169,10 +1171,24 @@ def slide_kinds(path, prs, restyler: Restyler) -> list[str]:
     return out
 
 
+def _bo_anh_cu(sld, tree):
+    """File do chính công cụ này tạo đã có ảnh trang trí: bỏ lớp cũ (ảnh + !!phu-anh + !!nguon-anh) để ảnh mới không bị che (giống boAnhCu)."""
+    used = {t.get("spid") for t in sld.iter(qn("p:spTgt"))}   # hình đang có animation thì giữ, xóa sẽ làm hỏng file
+    nv = lambda el: el.find(f".//{qn('p:cNvPr')}")
+    free = lambda el: nv(el).get("id") not in used
+    kids = [c for c in tree if nv(c) is not None and c.tag != qn("p:nvGrpSpPr")]
+    for i, el in enumerate(kids):
+        if nv(el).get("name") == "!!phu-anh" and i and kids[i - 1].tag == qn("p:pic") and free(el) and free(kids[i - 1]):
+            tree.remove(kids[i - 1])
+            tree.remove(el)
+        elif nv(el).get("name") == "!!nguon-anh" and free(el):
+            tree.remove(el)
+
+
 def build(src, th: dict, out_dir, opts: dict) -> Path:
     prs = Presentation(str(src))
     opts = dict(opts)
-    if (opts.get("kho_anh") or {}).get("loai") in ("anh", "tranh"):
+    if (opts.get("kho_anh") or {}).get("loai") in ("anh", "tranh", "tu-chon"):
         opts["_art"] = khoanh.plan(readers.read_pptx(Path(src)), th, opts, prs.slide_width / prs.slide_height)
     rs = Restyler(prs, th, opts)
     rs.run(slide_kinds(src, prs, rs))

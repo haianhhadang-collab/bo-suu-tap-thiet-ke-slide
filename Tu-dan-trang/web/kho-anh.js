@@ -35,10 +35,15 @@ function goiTuDong(deck, th) {
   return best || THEME_GOI[th.id] || THEME_GOI[th.base] || 'thien-nhien';
 }
 
-/** Kế hoạch ảnh cho một bộ slide: opts.khoAnh = { loai: 'khong' | 'anh' | 'tranh', goi: 'tu-dong' | mã gói, dau: mã ảnh bìa (tùy chọn) }.
+/** Kế hoạch ảnh cho một bộ slide: opts.khoAnh = { loai: 'khong' | 'anh' | 'tranh' | 'tu-chon', goi: 'tu-dong' | mã gói, dau: mã ảnh bìa (tùy chọn),
+    anh: danh sách ảnh của người dùng (loai 'tu-chon', đọc bằng docRieng) }.
     giu = khung trang (rộng/cao) khi khoác lên file .pptx giữ bố cục gốc. */
 function plan(deck, th, opts, giu) {
   const D = data(), cfg = (opts && opts.khoAnh) || {};
+  if (cfg.loai === 'tu-chon') {   // ảnh người dùng gửi: dùng như một gói ảnh chụp, đúng thứ tự đã chọn, không có dòng ghi nguồn
+    const mine = (cfg.anh || []).map(img => ({ id: img.id, loai: 'anh', ghi_cong: '', img }));
+    return mine.length ? { loai: 'tu-chon', goi: '', items: mine, n: 0, giu: giu || null } : null;
+  }
   if (!D || !['anh', 'tranh'].includes(cfg.loai)) return null;
   const goi = cfg.goi && cfg.goi !== 'tu-dong' ? cfg.goi : goiTuDong(deck, th);
   const items = D.muc.filter(m => m.goi === goi && m.loai === cfg.loai);
@@ -52,7 +57,7 @@ function next(p, kind) {
   if (!p || !['cover', 'section', 'closing'].includes(kind)) return null;
   let it = p.items[0];
   if (kind === 'section' && p.items.length > 1) it = p.items[1 + (p.n++ % (p.items.length - 1))];
-  if (it.loai === 'anh' && !cache[it.id]) return null;   // ảnh chưa nạp được: dùng trang trí thường
+  if (it.loai === 'anh' && !it.img && !cache[it.id]) return null;   // ảnh chưa nạp được: dùng trang trí thường
   return p.giu ? Object.assign({}, it, { giu: p.giu }) : it;
 }
 
@@ -66,7 +71,7 @@ function color(th, role) {
 function draw(ctx, th, kind, it) {
   const c0 = th.inv[0], c1 = th.inv[th.inv.length - 1];
   if (it.loai === 'anh') {
-    const img = cache[it.id], el = ctx.picture(img, 0, 0, SW, SH);
+    const img = it.img || cache[it.id], el = ctx.picture(img, 0, 0, SW, SH);
     if (it.giu) {   // trang gốc khác 16:9 (vd 4:3): khung ảnh sẽ kéo theo khổ trang, nên cắt ảnh theo khổ thật cho khỏi méo
       const r = img.ratio, c = r > it.giu ? (1 - it.giu / r) / 2 : (1 - r / it.giu) / 2;
       el.crop = r > it.giu ? { l: c, r: c, t: 0, b: 0 } : { l: 0, r: 0, t: c * 0.6, b: c * 1.4 };
@@ -81,7 +86,7 @@ function draw(ctx, th, kind, it) {
   }
   const deu = it.giu || kind === 'closing';
   ctx.box(0, 0, SW, SH, { gradient: deu ? [c0, c0, c0] : [c0, c0, c1], angle: 0, galphas: it.giu ? PHU_GIU[it.loai] : PHU[it.loai][kind], name: '!!phu-anh' });
-  if (it.loai === 'anh') ctx.text(SW - 6.4, SH - 0.36, 6.1, 0.28, it.ghi_cong, { font: th.body_font, size: 8, color: th.inv_body, align: 'r', anchor: 'b', name: '!!nguon-anh' });
+  if (it.loai === 'anh' && it.ghi_cong) ctx.text(SW - 6.4, SH - 0.36, 6.1, 0.28, it.ghi_cong, { font: th.body_font, size: 8, color: th.inv_body, align: 'r', anchor: 'b', name: '!!nguon-anh' });
 }
 
 // ---------- nạp ảnh chụp (anh-b64/<mã>.js) — chỉ khi cần dựng trang có ảnh
@@ -107,6 +112,45 @@ function load1(id) {
     document.head.appendChild(s);
   });
 }
+// ---------- ảnh người dùng gửi
+/** Hướng xoay EXIF của ảnh JPEG (1 = đúng chiều; ảnh chụp điện thoại thường khác 1). */
+function exifXoay(b) {
+  const u16 = (i, le) => le ? b[i] | b[i + 1] << 8 : b[i] << 8 | b[i + 1];
+  for (let i = 2; i + 10 < b.length && b[i] === 0xFF;) {
+    const m = b[i + 1];
+    if (m === 0xDA) break;
+    if (m === 0xE1 && String.fromCharCode(b[i + 4], b[i + 5], b[i + 6], b[i + 7]) === 'Exif') {
+      const t = i + 10, le = b[t] === 0x49;
+      const ifd = t + (le ? u16(t + 4, true) + u16(t + 6, true) * 65536 : u16(t + 4, false) * 65536 + u16(t + 6, false));
+      for (let k = 0, n = u16(ifd, le); k < n && ifd + 14 + k * 12 <= b.length; k++) {
+        const e = ifd + 2 + k * 12;
+        if (u16(e, le) === 0x112) { const o = u16(e + 8, le); return o >= 2 && o <= 8 ? o : 1; }
+      }
+      return 1;
+    }
+    i += 2 + u16(i + 2, false);
+  }
+  return 1;
+}
+let soRieng = 0;
+/** Đọc một ảnh người dùng gửi thành ảnh dùng được trong slide (giống khoanh.doc_rieng).
+    JPEG, PNG giữ nguyên; ảnh xoay bằng EXIF được xoay thật; định dạng khác đổi sang PNG. Ảnh trình duyệt không đọc được thì báo lỗi. */
+async function docRieng(file) {
+  let data = new Uint8Array(await file.arrayBuffer());
+  const kieu = data[0] === 0xFF && data[1] === 0xD8 ? 'jpg' : data[0] === 0x89 && data[1] === 0x50 ? 'png' : '';
+  if (!kieu || (kieu === 'jpg' && exifXoay(data) > 1)) {
+    const bmp = await createImageBitmap(new Blob([data], { type: file.type || '' }));   // tự xoay theo EXIF
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    c.getContext('2d').drawImage(bmp, 0, 0);
+    const blob = await new Promise(ok => c.toBlob(ok, kieu ? 'image/jpeg' : 'image/png', 0.92));
+    data = new Uint8Array(await blob.arrayBuffer());
+  }
+  const img = await T.makeImg(data, kieu || 'png', null, '');
+  if (!img.url || !img.w) throw new Error('không đọc được ảnh ' + file.name);
+  img.id = 'anh-rieng-' + (++soRieng); img.ten = file.name;
+  return img;
+}
+
 /** Mã các ảnh chụp mà bộ slide cần nhưng chưa nạp. */
 function need(deck, th, opts) {
   const p = plan(deck, th, opts, null);
@@ -114,5 +158,5 @@ function need(deck, th, opts) {
 }
 
 Object.assign(T, { khoAnhPlan: plan, khoAnhNext: next, khoAnhVe: draw, khoAnhGoi: goiTuDong, khoAnhCan: need,
-  khoAnhTai: ids => Promise.all(ids.map(load1)), khoAnhNhan: nhan, khoAnhMau: color });
+  khoAnhTai: ids => Promise.all(ids.map(load1)), khoAnhNhan: nhan, khoAnhMau: color, khoAnhDocRieng: docRieng });
 })(window);
