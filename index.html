@@ -243,6 +243,7 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
 .tdt-opts label{display:flex;align-items:center;gap:7px;font-size:13.5px;margin:4px 0;cursor:pointer}
 .tdt-opts select{font:inherit;font-size:13.5px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);width:100%;margin-top:6px}
 .tdt-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tdt-bo-chan{flex:0 0 100%;text-align:right}
 .tdt-status{font-size:13.5px;color:var(--muted);flex:1;min-width:200px}
 .tdt-status.err{color:#c0392b}
 .tdt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -264,6 +265,7 @@ footer{padding:36px 0 50px;color:var(--muted);font-size:13px}
   .tdt-bar{position:sticky;top:0;bottom:0;z-index:3;margin:0;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 2px 12px rgba(0,0,0,.08)}
   .tdt-status{min-width:0;font-size:13px}
   .tdt-bar .btn-main{padding:9px 14px;font-size:14px}
+  .tdt-bo-chan{display:none}
   #tdt-preview{padding:12px 16px 16px}
   .tdt-grid{grid-template-columns:1fr}
 }
@@ -1091,6 +1093,7 @@ window.addEventListener('hashchange', () => { if (wantEdit()) startUI(); });
         <div class="tdt-bar">
           <span class="tdt-status" id="tdt-status">Chọn file để xem trước.</span>
           <button class="btn-main" id="tdt-dl" disabled>⬇ Tải file PowerPoint</button>
+          <p class="tdt-note tdt-bo-chan">Không mở được file đã tải? Nhấp phải vào file, chọn Properties (Thuộc tính), tích Unblock (Bỏ chặn), rồi bấm OK.</p>
         </div>
         <div id="tdt-preview"><div class="tdt-empty">Đang mở file ví dụ…<br>Bản xem trước hiện ở đây; bấm sang mẫu khác để so sánh tức thì, bấm vào một trang để phóng to.</div></div>
       </div>
