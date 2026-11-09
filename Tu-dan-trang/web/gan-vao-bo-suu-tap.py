@@ -27,7 +27,7 @@ def main(paths):
                '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" '
                'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>')
     khung = (WEB / "khung.b64.txt").read_text(encoding="utf-8").strip()
-    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "hoa-van.js", "kho-anh.js", "pptx.js", "preview.js", "giu-bo-cuc.js", "ui.js", "kho-anh-trang.js", "len-dau.js"))
+    js = "\n".join((WEB / f).read_text(encoding="utf-8") for f in ("engine.js", "hoa-van.js", "kho-anh.js", "pptx.js", "preview.js", "giu-bo-cuc.js", "ui.js", "kho-anh-trang.js", "len-dau.js", "dem.js"))
     assert "</script" not in js.lower()
     head = ('\n<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>\n'
             '<script>window.JSZip||document.write(\'<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\\/script>\')</script>\n')

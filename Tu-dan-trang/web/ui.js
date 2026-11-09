@@ -201,6 +201,7 @@
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
       status(`Đã tạo “${name}” (${Math.round(blob.size / 1024)} KB).`);
+      if (TDT.demTai) TDT.demTai();
     } catch (e) { console.error(e); status('Lỗi khi tạo file: ' + e.message, true); }
     $('tdt-dl').disabled = false;
   }
