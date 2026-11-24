@@ -52,6 +52,8 @@ Công cụ nhận một file **.pptx, .docx, .pdf, .md hoặc .txt**, tự dàn 
 
 Sáu mẫu `gradient-…` dùng kiểu trang trí `aurora`: nền trang nội dung chuyển màu nhẹ, trang bìa, chương, kết chuyển ba màu và có quầng sáng loang. Muốn dùng kiểu này cho mẫu riêng, đặt `"decor": "aurora"`.
 
+Tiêu đề của sáu mẫu này cũng **chuyển màu** (tên bài, tên chương, trang kết, tiêu đề từng trang); chữ nội dung giữ một màu cho dễ đọc. Mẫu riêng muốn có tiêu đề chuyển màu thì thêm `"title_grad": ["màu 1", "màu 2"]` (trên nền sáng) và `"inv_title_grad"` (trên nền bìa, chương, kết). Tiêu đề quay về một màu khi trang dùng ảnh trang trí, khi chọn họa tiết có bảng màu riêng, hoặc khi một màu trong dải không đủ tương phản với nền. Google Slides và các phần mềm khác PowerPoint có thể chỉ hiện một màu.
+
 Mọi mẫu chỉ dùng phông có sẵn trên Windows và **đủ dấu tiếng Việt**: Segoe UI, Candara, Constantia, Corbel, Palatino Linotype, Cambria. Trebuchet MS, Georgia và Impact không được dùng vì thiếu chữ ơ, ư, ạ…
 
 **Thêm mẫu riêng:** xem `mau\vi-du-mau-rieng.json.txt`. Chỉ cần đổi màu, phông, kiểu trang trí rồi lưu thành `.json` trong thư mục `mau`. Muốn mẫu riêng luôn có họa tiết, thêm khóa `"motif": "dong-son"` (họa tiết đi kèm nhưng giữ màu của mẫu).

@@ -20,7 +20,7 @@ function textHtml(spec) {
     const al = { l: 'left', c: 'center', r: 'right', j: 'justify' }[p.align] || 'left';
     const ind = p.bullet ? p.bullet.indent * PX : 0;
     const bullet = p.bullet ? `<span style="position:absolute;left:0;color:#${p.bullet.color}">${esc(p.bullet.char)}</span>` : '';
-    const runs = p.runs.map(r => `<span style="font-family:'${r.font}',sans-serif;font-size:${r.size * PX / 72}px;font-weight:${r.bold ? 700 : 400};font-style:${r.italic ? 'italic' : 'normal'};color:#${r.color}">${esc(r.t)}</span>`).join('');
+    const runs = p.runs.map(r => `<span style="font-family:'${r.font}',sans-serif;font-size:${r.size * PX / 72}px;font-weight:${r.bold ? 700 : 400};font-style:${r.italic ? 'italic' : 'normal'};color:#${r.color}${r.grad ? `;background:linear-gradient(90deg,${r.grad.map(c => '#' + c).join(',')});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent` : ''}">${esc(r.t)}</span>`).join('');
     // cỡ chữ của khối = cỡ lớn nhất trong đoạn, để dòng không bị giãn bởi cỡ chữ mặc định của trang
     const fs = Math.max(...p.runs.map(r => r.size)) * PX / 72, ff = p.runs.length ? p.runs[0].font : 'Segoe UI';
     return `<div style="position:relative;text-align:${al};font-family:'${ff}',sans-serif;font-size:${fs}px;line-height:${p.ln * PX / 72}px;padding-left:${ind}px;white-space:pre-wrap;word-wrap:break-word">${bullet}${runs}</div>`;

@@ -36,6 +36,9 @@ class Ctx:
         self.bg = bg
         self.head, self.font = th["head"], th["body_font"]
         self.hb = th["head_bold"]
+        # tiêu đề chữ chuyển màu (mẫu gradient): bỏ khi trang dùng ảnh trang trí hoặc khi một màu trong dải không đủ tương phản
+        tg = th.get("inv_title_grad" if inv else "title_grad")
+        self.tgrad = tg if (tg and len(tg) > 1 and not self.info.get("art") and all(D.contrast(bg, c) >= 3 for c in tg)) else None
         self.steps: list[list] = []
         self.eff = opts.get("effect") or th["effect"]
 
@@ -83,7 +86,7 @@ def _title(ctx: Ctx, title: str, subtitle: str = "") -> float:
     else:
         b = None
     tb = D.text(ctx.slide, ctx.x0, y, width, h, t, font=ctx.head, size=size, color=ctx.ink, bold=ctx.hb,
-                spacing=1.12, name="Tiêu đề")
+                spacing=1.12, name="Tiêu đề", grad=ctx.tgrad)
     y += h
     marks = []
     if mark == "bar":
@@ -709,7 +712,7 @@ def cover(prs, th, deck, opts):
         top = max(ctx.y0 + 0.4, (ctx.y1 - mh - 0.6 - (th_ + 0.35 + sh)) / 2 + 0.2)
     bar = D.box(ctx.slide, x, top - 0.38, 1.1, 0.09, color=ctx.accent, kind="round", radius=0.5, name="!!tmark")
     tt = D.text(ctx.slide, x, top, min(w, 10.8), th_ + 0.1, t, font=ctx.head, size=size, color=ctx.ink, bold=ctx.hb,
-                spacing=1.1, name="Tiêu đề")
+                spacing=1.1, name="Tiêu đề", grad=ctx.tgrad)
     ctx.step([bar, tt], "float")
     y = top + th_ + 0.3
     if sub:
@@ -739,7 +742,7 @@ def section(prs, th, s: Slide, idx, num, opts):
     size = TF.fit_size(t, ctx.head, w, 2.2, [48, 44, 40, 36, 32, 28], ctx.hb, 1.08, 3) or 28
     hh = TF.height_in(t, ctx.head, size, w, ctx.hb, 1.08)
     tt = D.text(ctx.slide, x, ctx.y0 + 2.3, w, hh + 0.1, t, font=ctx.head, size=size, color=ctx.ink, bold=ctx.hb,
-                spacing=1.08, name="Tiêu đề")
+                spacing=1.08, name="Tiêu đề", grad=ctx.tgrad)
     ctx.step([n], "zoom")
     ctx.step([tt], "float")
     y = ctx.y0 + 2.45 + hh
@@ -761,7 +764,7 @@ def closing(prs, th, s: Slide, idx, opts):
     lh = sum(TF.height_in(l, ctx.font, 20, w) + 0.1 for l in lines)
     top = (ctx.y0 + ctx.y1 - hh - 0.4 - lh) / 2
     tt = D.text(ctx.slide, x, top, w, hh + 0.1, t, font=ctx.head, size=size, color=ctx.ink, bold=ctx.hb, align="c",
-                spacing=1.05, name="Tiêu đề")
+                spacing=1.05, name="Tiêu đề", grad=ctx.tgrad)
     bar = D.box(ctx.slide, W / 2 - 0.6, top + hh + 0.15, 1.2, 0.08, color=ctx.accent, kind="round", radius=0.5,
                 name="!!tmark")
     ctx.step([tt, bar], "zoom")

@@ -119,32 +119,38 @@ const THEMES = {
     bg: 'FFF7F4', bg2: 'FDF4FA', ink: '2E1338', body: '553A5C', muted: '79617E', accent: 'B8325F', accent2: 'F07B4F', accent3: '8E44AD', card: 'FFFFFF', card_line: 'F3DDE3',
     inv: ['2E1338', '8A2C6E', 'D9534F'], inv_ink: 'FFF8F5', inv_body: 'F6D9E2', inv_accent: 'FFC48C',
     head: 'Segoe UI Semibold', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'bar', bullet: '●',
-    card_style: 'header', radius: 0.14, transition: 'morph', effect: 'float' },
+    card_style: 'header', radius: 0.14, transition: 'morph', effect: 'float',
+    title_grad: ['A4286A', 'C2471F'], inv_title_grad: ['FFFFFF', 'FFC48C'] },
   'gradient-dai-duong': { name: 'Gradient đại dương', desc: 'Xanh đêm → lam → ngọc, quầng sáng loang — công nghệ, khoa học, báo cáo hiện đại.',
     bg: 'F3F8FC', bg2: 'F7FBFD', ink: '0B1F3A', body: '3A5068', muted: '5C7086', accent: '1565C0', accent2: '00ACC1', accent3: '5C6BC0', card: 'FFFFFF', card_line: 'D8E6F2',
     inv: ['0B1F4D', '1458A8', '0A8FA6'], inv_ink: 'F5FAFF', inv_body: 'CFE3F5', inv_accent: '7FE3F0',
     head: 'Segoe UI Semibold', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'bar', bullet: '●',
-    card_style: 'header', radius: 0.12, transition: 'morph', effect: 'float' },
+    card_style: 'header', radius: 0.12, transition: 'morph', effect: 'float',
+    title_grad: ['0D47A1', '00737D'], inv_title_grad: ['FFFFFF', '8FE9F5'] },
   'gradient-cuc-quang': { name: 'Gradient cực quang', desc: 'Nền đêm, dải sáng xanh ngọc và tím như cực quang — công nghệ, vũ trụ, sự kiện buổi tối.',
     bg: '0D1224', bg2: '101830', ink: 'F1F5FF', body: 'C5CCE4', muted: '8C95B5', accent: '2EE6A8', accent2: '7C5CFF', accent3: '22B8F0', card: '171F3A', card_line: '2A3558',
     inv: ['070B18', '10224A', '0E4A4A'], inv_ink: 'F5F8FF', inv_body: 'C5CCE4', inv_accent: '5CF2C0',
     head: 'Segoe UI Black', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'bar', bullet: '▸',
-    card_style: 'outline', radius: 0.1, transition: 'morph', effect: 'zoom' },
+    card_style: 'outline', radius: 0.1, transition: 'morph', effect: 'zoom',
+    title_grad: ['5CF2C0', 'A08CFF'], inv_title_grad: ['7DF5CF', 'B8A6FF'] },
   'gradient-keo-ngot': { name: 'Gradient kẹo ngọt', desc: 'Tím → hồng tươi, nền hồng lila nhạt, góc bo lớn — giới trẻ, câu lạc bộ, ngoại khóa.',
     bg: 'FCF6FF', bg2: 'FFF5FA', ink: '34164F', body: '5A4170', muted: '7C6890', accent: '9B27C9', accent2: 'FF6FA8', accent3: '6C8CFF', card: 'FFFFFF', card_line: 'EEDDF6',
     inv: ['5B21B6', 'A62FD6', 'D63384'], inv_ink: 'FFFFFF', inv_body: 'F3E3FF', inv_accent: 'FFD1E6',
     head: 'Candara', head_bold: true, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'dots', bullet: '●',
-    card_style: 'solid', radius: 0.24, transition: 'morph', effect: 'zoom' },
+    card_style: 'solid', radius: 0.24, transition: 'morph', effect: 'zoom',
+    title_grad: ['7B1FA2', 'C2185B'], inv_title_grad: ['FFFFFF', 'FFC2DD'] },
   'gradient-do-son': { name: 'Gradient đỏ son – vàng', desc: 'Đỏ thẫm → đỏ son → cam, điểm vàng kim, quầng sáng ấm — ngày lễ, Tết, kỷ niệm.',
     bg: 'FFF8F1', bg2: 'FFF3EA', ink: '3D0C0C', body: '5E3A30', muted: '7F5F55', accent: 'B3191E', accent2: 'F2A33A', accent3: 'E0603A', card: 'FFFFFF', card_line: 'F2DCCB',
     inv: ['4A0A0A', 'A3161A', 'C8441B'], inv_ink: 'FFF8EC', inv_body: 'F6DCC8', inv_accent: 'FFD166',
     head: 'Cambria', head_bold: true, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'rule', bullet: '◆',
-    card_style: 'header', radius: 0.08, transition: 'fade', effect: 'wipe' },
+    card_style: 'header', radius: 0.08, transition: 'fade', effect: 'wipe',
+    title_grad: ['8E0E12', 'C2410C'], inv_title_grad: ['FFF1C2', 'FFC46B'] },
   'gradient-la-non': { name: 'Gradient lá non', desc: 'Xanh rừng → xanh lá → lục tươi, quầng sáng vàng chanh — môi trường, nông nghiệp, phát triển bền vững.',
     bg: 'F4FAF2', bg2: 'FAFCF3', ink: '12331F', body: '3B5A44', muted: '5D7B65', accent: '1E7A46', accent2: '8CC63F', accent3: '2BAE9A', card: 'FFFFFF', card_line: 'D8EBD3',
     inv: ['0F3B24', '1E7A46', '2F8A35'], inv_ink: 'F6FBF2', inv_body: 'D6EBD0', inv_accent: 'D4F18A',
     head: 'Cambria', head_bold: true, body_font: 'Corbel', caps: false, decor: 'aurora', title_mark: 'bar', bullet: '●',
-    card_style: 'strip-top', radius: 0.14, transition: 'morph', effect: 'float' },
+    card_style: 'strip-top', radius: 0.14, transition: 'morph', effect: 'float',
+    title_grad: ['1B5E20', '00796B'], inv_title_grad: ['FFFFFF', 'D4F18A'] },
 };
 for (const k in THEMES) THEMES[k].id = k;
 
@@ -1220,6 +1226,9 @@ class Ctx {
       this.accent = contrast(bg, th.accent) >= 3 ? th.accent : th.ink; this.muted = readable(bg, th.muted, th.body);
     }
     this.bg = bg; this.head = th.head; this.font = th.body_font; this.hb = th.head_bold;
+    // tiêu đề chữ chuyển màu (mẫu gradient): bỏ khi trang dùng ảnh trang trí hoặc khi một màu trong dải không đủ tương phản
+    const tg = inv ? th.inv_title_grad : th.title_grad;
+    this.tgrad = tg && tg.length > 1 && !this.info.art && tg.every(c => contrast(bg, c) >= 3) ? tg : null;
     this.eff = opts.effect || th.effect;
   }
   get x0() { return this.info.x0; } get x1() { return this.info.x1; } get y0() { return this.info.y0; } get y1() { return this.info.y1; }
@@ -1243,7 +1252,7 @@ class Ctx {
     const size = o.size || 18, spacing = o.spacing || 1.15;
     const paras = (typeof content === 'string' ? content.split('\n') : content).map(para => {
       const runs = (typeof para === 'string' ? [[para, {}]] : para).map(([t, st]) => ({
-        t: (st.caps != null ? st.caps : o.caps) ? t.toUpperCase() : t, font: st.font || o.font || 'Segoe UI', size: st.size || size,
+        t: (st.caps != null ? st.caps : o.caps) ? t.toUpperCase() : t, font: st.font || o.font || 'Segoe UI', size: st.size || size, grad: st.grad || o.grad || null,
         bold: st.bold != null ? st.bold : !!o.bold, italic: st.italic != null ? st.italic : !!o.italic, color: st.color || o.color || '222222' }));
       return { runs, align: o.align || 'l', ln: Math.round(Math.max(...runs.map(r => r.size)) * spacing * 10) / 10, after: o.after || 0,
         bullet: o.bullet ? { char: o.bullet, color: o.bulletColor || o.color || '222222', indent: o.indent || 0 } : null };
@@ -1469,7 +1478,7 @@ function drawTitle(ctx, title, subtitle) {
   let y = ctx.y0, b = null; const mark = th.title_mark;
   if (mark === 'block') { b = ctx.box(ctx.x0, y, 1.1, 0.16, { color: th.accent, name: '!!tmark' }); y += 0.32; }
   else if (mark === 'dot') { b = ctx.box(ctx.x0, y + 0.02, 0.42, 0.05, { color: th.accent, name: '!!tmark' }); y += 0.22; }
-  const tb = ctx.text(ctx.x0, y, width, h, t, { font: ctx.head, size, color: ctx.ink, bold: ctx.hb, spacing: 1.12, name: 'Tiêu đề' });
+  const tb = ctx.text(ctx.x0, y, width, h, t, { font: ctx.head, size, color: ctx.ink, grad: ctx.tgrad, bold: ctx.hb, spacing: 1.12, name: 'Tiêu đề' });
   y += h; const marks = [];
   if (mark === 'bar') { marks.push(ctx.box(ctx.x0, y + 0.1, 0.75, 0.07, { gradient: [th.accent, th.accent2], angle: 0, kind: 'round', radius: 0.5, name: '!!tmark' })); y += 0.17; }
   else if (mark === 'squiggle') { const pts = []; for (let i = 0; i < 29; i++) pts.push([ctx.x0 + i * 0.05, y + 0.14 + 0.05 * Math.sin(i * 0.55)]); marks.push(ctx.poly(pts, { closed: false, lineColor: th.accent3, lineW: 3, name: '!!tmark' })); y += 0.22; }
@@ -1829,7 +1838,7 @@ function cover(out, th, deck, opts) {
     top = Math.max(ctx.y0 + 0.4, (ctx.y1 - mh - 0.6 - (thh + 0.35 + sh)) / 2 + 0.2);
   }
   const bar = ctx.box(x, top - 0.38, 1.1, 0.09, { color: ctx.accent, kind: 'round', radius: 0.5, name: '!!tmark' });
-  const tt = ctx.text(x, top, tw, thh + 0.1, t, { font: ctx.head, size, color: ctx.ink, bold: ctx.hb, spacing: 1.1, name: 'Tiêu đề' });
+  const tt = ctx.text(x, top, tw, thh + 0.1, t, { font: ctx.head, size, color: ctx.ink, grad: ctx.tgrad, bold: ctx.hb, spacing: 1.1, name: 'Tiêu đề' });
   ctx.step([bar, tt], 'float');
   if (sub) ctx.step(ctx.text(x, top + thh + 0.3, sw_, sh + 0.1, sub, { font: ctx.font, size: ss, color: ctx.accent, spacing: 1.15 }), 'float');
   if (meta.length) {
@@ -1850,7 +1859,7 @@ function section(out, th, s, idx, num, opts) {
   const t = th.caps ? s.title.toUpperCase() : s.title;
   const size = fitSize(t, ctx.head, w, 2.2, [48, 44, 40, 36, 32, 28], ctx.hb, 1.08, 3) || 28;
   const hh = heightIn(t, ctx.head, size, w, ctx.hb, 1.08);
-  const tt = ctx.text(x, ctx.y0 + 2.3, w, hh + 0.1, t, { font: ctx.head, size, color: ctx.ink, bold: ctx.hb, spacing: 1.12, name: 'Tiêu đề' });
+  const tt = ctx.text(x, ctx.y0 + 2.3, w, hh + 0.1, t, { font: ctx.head, size, color: ctx.ink, grad: ctx.tgrad, bold: ctx.hb, spacing: 1.12, name: 'Tiêu đề' });
   ctx.step([n], 'zoom'); ctx.step([tt], 'float');
   const extra = s.subtitle || s.items.slice(0, 3).map(i => i.text).join(' · ');
   if (extra) { const es = fitSize(extra, ctx.font, w, 1.2, [22, 20, 18, 16]) || 16; ctx.step(ctx.text(x, ctx.y0 + 2.45 + hh, w, 1.3, extra, { font: ctx.font, size: es, color: ctx.body }), 'fade'); }
@@ -1864,7 +1873,7 @@ function closing(out, th, s, idx, opts) {
   const lines = (s.subtitle ? [s.subtitle] : []).concat(s.items.slice(0, 4).map(i => i.text));
   const lh = lines.reduce((a, l) => a + heightIn(l, ctx.font, 20, w) + 0.1, 0);
   const top = (ctx.y0 + ctx.y1 - hh - 0.4 - lh) / 2;
-  const tt = ctx.text(x, top, w, hh + 0.1, t, { font: ctx.head, size, color: ctx.ink, bold: ctx.hb, align: 'c', spacing: 1.1, name: 'Tiêu đề' });
+  const tt = ctx.text(x, top, w, hh + 0.1, t, { font: ctx.head, size, color: ctx.ink, grad: ctx.tgrad, bold: ctx.hb, align: 'c', spacing: 1.1, name: 'Tiêu đề' });
   const bar = ctx.box(x + w / 2 - 0.6, top + hh + 0.15, 1.2, 0.08, { color: ctx.accent, kind: 'round', radius: 0.5, name: '!!tmark' });
   ctx.step([tt, bar], 'zoom');
   let y = top + hh + 0.45;

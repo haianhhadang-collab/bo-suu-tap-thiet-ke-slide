@@ -18,6 +18,7 @@ from pathlib import Path
 #   decor        kiểu trang trí;  title_mark  dấu dưới tiêu đề;  bullet  ký tự đầu dòng
 #   card_style   strip-top | border-left | outline | solid | header | comic
 #   radius       độ bo góc thẻ (0–0.5);  transition  morph | fade | push | wipe;  effect  float | fade | wipe | zoom | fly
+#   title_grad, inv_title_grad   (không bắt buộc) dải màu chữ tiêu đề trên nền sáng / trên nền bìa, chương, kết
 
 THEMES: dict[str, dict] = {
     "song-bien": dict(
@@ -166,37 +167,43 @@ THEMES: dict[str, dict] = {
         bg="FFF7F4", bg2="FDF4FA", ink="2E1338", body="553A5C", muted="79617E", accent="B8325F", accent2="F07B4F", accent3="8E44AD", card="FFFFFF", card_line="F3DDE3",
         inv=["2E1338", "8A2C6E", "D9534F"], inv_ink="FFF8F5", inv_body="F6D9E2", inv_accent="FFC48C",
         head="Segoe UI Semibold", head_bold=False, body_font="Segoe UI", caps=False, decor="aurora", title_mark="bar", bullet="●",
-        card_style="header", radius=0.14, transition="morph", effect="float"),
+        card_style="header", radius=0.14, transition="morph", effect="float",
+        title_grad=["A4286A", "C2471F"], inv_title_grad=["FFFFFF", "FFC48C"]),
     "gradient-dai-duong": dict(
         name="Gradient đại dương", desc="Xanh đêm → lam → ngọc, quầng sáng loang — công nghệ, khoa học, báo cáo hiện đại.",
         bg="F3F8FC", bg2="F7FBFD", ink="0B1F3A", body="3A5068", muted="5C7086", accent="1565C0", accent2="00ACC1", accent3="5C6BC0", card="FFFFFF", card_line="D8E6F2",
         inv=["0B1F4D", "1458A8", "0A8FA6"], inv_ink="F5FAFF", inv_body="CFE3F5", inv_accent="7FE3F0",
         head="Segoe UI Semibold", head_bold=False, body_font="Segoe UI", caps=False, decor="aurora", title_mark="bar", bullet="●",
-        card_style="header", radius=0.12, transition="morph", effect="float"),
+        card_style="header", radius=0.12, transition="morph", effect="float",
+        title_grad=["0D47A1", "00737D"], inv_title_grad=["FFFFFF", "8FE9F5"]),
     "gradient-cuc-quang": dict(
         name="Gradient cực quang", desc="Nền đêm, dải sáng xanh ngọc và tím như cực quang — công nghệ, vũ trụ, sự kiện buổi tối.",
         bg="0D1224", bg2="101830", ink="F1F5FF", body="C5CCE4", muted="8C95B5", accent="2EE6A8", accent2="7C5CFF", accent3="22B8F0", card="171F3A", card_line="2A3558",
         inv=["070B18", "10224A", "0E4A4A"], inv_ink="F5F8FF", inv_body="C5CCE4", inv_accent="5CF2C0",
         head="Segoe UI Black", head_bold=False, body_font="Segoe UI", caps=False, decor="aurora", title_mark="bar", bullet="▸",
-        card_style="outline", radius=0.1, transition="morph", effect="zoom"),
+        card_style="outline", radius=0.1, transition="morph", effect="zoom",
+        title_grad=["5CF2C0", "A08CFF"], inv_title_grad=["7DF5CF", "B8A6FF"]),
     "gradient-keo-ngot": dict(
         name="Gradient kẹo ngọt", desc="Tím → hồng tươi, nền hồng lila nhạt, góc bo lớn — giới trẻ, câu lạc bộ, ngoại khóa.",
         bg="FCF6FF", bg2="FFF5FA", ink="34164F", body="5A4170", muted="7C6890", accent="9B27C9", accent2="FF6FA8", accent3="6C8CFF", card="FFFFFF", card_line="EEDDF6",
         inv=["5B21B6", "A62FD6", "D63384"], inv_ink="FFFFFF", inv_body="F3E3FF", inv_accent="FFD1E6",
         head="Candara", head_bold=True, body_font="Segoe UI", caps=False, decor="aurora", title_mark="dots", bullet="●",
-        card_style="solid", radius=0.24, transition="morph", effect="zoom"),
+        card_style="solid", radius=0.24, transition="morph", effect="zoom",
+        title_grad=["7B1FA2", "C2185B"], inv_title_grad=["FFFFFF", "FFC2DD"]),
     "gradient-do-son": dict(
         name="Gradient đỏ son – vàng", desc="Đỏ thẫm → đỏ son → cam, điểm vàng kim, quầng sáng ấm — ngày lễ, Tết, kỷ niệm.",
         bg="FFF8F1", bg2="FFF3EA", ink="3D0C0C", body="5E3A30", muted="7F5F55", accent="B3191E", accent2="F2A33A", accent3="E0603A", card="FFFFFF", card_line="F2DCCB",
         inv=["4A0A0A", "A3161A", "C8441B"], inv_ink="FFF8EC", inv_body="F6DCC8", inv_accent="FFD166",
         head="Cambria", head_bold=True, body_font="Segoe UI", caps=False, decor="aurora", title_mark="rule", bullet="◆",
-        card_style="header", radius=0.08, transition="fade", effect="wipe"),
+        card_style="header", radius=0.08, transition="fade", effect="wipe",
+        title_grad=["8E0E12", "C2410C"], inv_title_grad=["FFF1C2", "FFC46B"]),
     "gradient-la-non": dict(
         name="Gradient lá non", desc="Xanh rừng → xanh lá → lục tươi, quầng sáng vàng chanh — môi trường, nông nghiệp, phát triển bền vững.",
         bg="F4FAF2", bg2="FAFCF3", ink="12331F", body="3B5A44", muted="5D7B65", accent="1E7A46", accent2="8CC63F", accent3="2BAE9A", card="FFFFFF", card_line="D8EBD3",
         inv=["0F3B24", "1E7A46", "2F8A35"], inv_ink="F6FBF2", inv_body="D6EBD0", inv_accent="D4F18A",
         head="Cambria", head_bold=True, body_font="Corbel", caps=False, decor="aurora", title_mark="bar", bullet="●",
-        card_style="strip-top", radius=0.14, transition="morph", effect="float"),
+        card_style="strip-top", radius=0.14, transition="morph", effect="float",
+        title_grad=["1B5E20", "00796B"], inv_title_grad=["FFFFFF", "D4F18A"]),
 }
 
 DEFAULTS = dict(THEMES["song-bien"])

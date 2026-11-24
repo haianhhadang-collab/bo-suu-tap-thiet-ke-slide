@@ -1747,7 +1747,9 @@ for (const k in MOTIFS) MOTIFS[k].id = k;
 /** Trả về mẫu mới = mẫu gốc + họa tiết (và bảng màu của họa tiết nếu usePalette). */
 function withMotif(th, id, usePalette = true) {
   const m = MOTIFS[id]; if (!m) return th;
-  return Object.assign({}, th, usePalette && m.palette ? m.palette : {}, m.bullet ? { bullet: m.bullet } : {}, { motif: id, name: th.name + ' + ' + m.short });
+  // bảng màu của họa tiết thay màu của mẫu => bỏ dải màu tiêu đề của mẫu (không còn hợp tông)
+  const pal = usePalette && m.palette ? Object.assign({ title_grad: null, inv_title_grad: null }, m.palette) : {};
+  return Object.assign({}, th, pal, m.bullet ? { bullet: m.bullet } : {}, { motif: id, name: th.name + ' + ' + m.short });
 }
 
 T.MOTIFS = MOTIFS;

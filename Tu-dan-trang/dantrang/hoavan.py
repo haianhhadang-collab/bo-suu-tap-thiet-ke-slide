@@ -2908,6 +2908,8 @@ def apply(th: dict, motif_id: str, use_palette: bool = True) -> dict:
     m = MOTIFS[mid]
     out = dict(th)
     if use_palette and m["palette"]:
+        # bảng màu của họa tiết thay màu của mẫu => bỏ dải màu tiêu đề của mẫu (không còn hợp tông)
+        out.update(title_grad=None, inv_title_grad=None)
         out.update({k: (list(v) if isinstance(v, list) else v) for k, v in m["palette"].items()})
     if m.get("bullet"):
         out["bullet"] = m["bullet"]

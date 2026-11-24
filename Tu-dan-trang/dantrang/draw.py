@@ -217,7 +217,7 @@ _ANCH = {"t": MSO_ANCHOR.TOP, "m": MSO_ANCHOR.MIDDLE, "b": MSO_ANCHOR.BOTTOM}
 
 def text(slide, x, y, w, h, content, font="Segoe UI", size=18, color="222222", bold=False, italic=False,
          align="l", anchor="t", spacing=1.15, after=0, caps=False, name=None, bullet=None, bullet_color=None,
-         indent=0.0, margin=0.0, letter=0.0, autofit=False, shape=None):
+         indent=0.0, margin=0.0, letter=0.0, autofit=False, shape=None, grad=None):
     """content: chuỗi (\\n = đoạn mới) hoặc list đoạn; mỗi đoạn là chuỗi hoặc list (chuỗi, {kiểu run})."""
     shp = shape or slide.shapes.add_textbox(E(x), E(y), E(w), E(h))
     tf = shp.text_frame
@@ -244,6 +244,10 @@ def text(slide, x, y, w, h, content, font="Segoe UI", size=18, color="222222", b
             f.bold = st.get("bold", bold)
             f.italic = st.get("italic", italic)
             f.color.rgb = rgb(st.get("color", color))
+            g = st.get("grad", grad)
+            if g:   # chữ chuyển màu ngang (gradFill thay solidFill, cùng vị trí trong rPr)
+                rpr = r._r.get_or_add_rPr()
+                rpr.replace(rpr.find(qn("a:solidFill")), etree.fromstring(grad_xml(g, angle=0)))
             if letter:
                 r._r.get_or_add_rPr().set("spc", str(int(letter * 100)))
         if bullet:
