@@ -1,6 +1,6 @@
 # Tự dàn trang slide
 
-Công cụ nhận một file **.pptx, .docx, .pdf, .md hoặc .txt**, tự dàn lại thành bộ slide PowerPoint theo một trong **12 mẫu thiết kế**. Bộ slide được thêm sẵn **animation** và **hiệu ứng chuyển trang** của PowerPoint. Nội dung, ảnh và ghi chú thuyết trình được giữ nguyên.
+Công cụ nhận một file **.pptx, .docx, .pdf, .md hoặc .txt**, tự dàn lại thành bộ slide PowerPoint theo một trong **25 mẫu thiết kế** (6 mẫu gradient). Bộ slide được thêm sẵn **animation** và **hiệu ứng chuyển trang** của PowerPoint. Nội dung, ảnh và ghi chú thuyết trình được giữ nguyên.
 
 **File PowerPoint (.pptx) được giữ nguyên bố cục gốc**: bảng, ảnh, hộp chữ, hình khối vẫn đúng vị trí và kích thước, công cụ chỉ đổi màu, phông, nền và trang trí theo mẫu (xem [Giữ bố cục file PowerPoint](#giữ-bố-cục-file-powerpoint)). Muốn dàn lại từ đầu như file Word thì bỏ chọn ô "giữ nguyên bố cục gốc" trong cửa sổ, thêm `--dan-lai` ở dòng lệnh, hoặc đặt `"giu_bo_cuc_pptx": false` trong `cau-hinh.json`.
 
@@ -15,12 +15,12 @@ Công cụ nhận một file **.pptx, .docx, .pdf, .md hoặc .txt**, tự dàn 
 ### Hộp thư tự động chọn mẫu theo thư mục
 - Thả vào `Hop-thu-vao\`: dùng mẫu mặc định (`mau_mac_dinh` trong `cau-hinh.json`).
 - Thả vào `Hop-thu-vao\gradient\`, `Hop-thu-vao\co-dien\`…: dùng đúng mẫu đó.
-- Thả vào `Hop-thu-vao\tat-ca\`: xuất cùng lúc cả 12 mẫu để so sánh.
+- Thả vào `Hop-thu-vao\tat-ca\`: xuất cùng lúc cả 25 mẫu để so sánh.
 - Thả vào `Hop-thu-vao\dong-son\`, `Hop-thu-vao\tet\`… (thư mục mang tên họa tiết): dùng mẫu mặc định kèm họa tiết đó.
 - Muốn chọn cả mẫu lẫn họa tiết: tự tạo thư mục tên `mẫu+họa-tiết`, ví dụ `Hop-thu-vao\co-dien+dong-son\` hoặc `Hop-thu-vao\tat-ca+cach-mang\`.
 - File đã xử lý được chuyển sang `Hop-thu-vao\Da-xu-ly`. File lỗi được chuyển sang `Hop-thu-vao\Loi`.
 
-## 12 mẫu có sẵn
+## 25 mẫu có sẵn
 
 | Mã | Tên | Hợp với |
 |---|---|---|
@@ -36,6 +36,21 @@ Công cụ nhận một file **.pptx, .docx, .pdf, .md hoặc .txt**, tự dàn 
 | `chuyen-nghiep` | Chuyên nghiệp xanh navy | Doanh nghiệp, cơ quan nhà nước |
 | `truyen-tranh` | Truyện tranh · Comic | Thiếu nhi, ngoại khóa; viền mực đen dày, chấm tram, tia nắng, thẻ có bóng đổ khối |
 | `manga` | Manga đen trắng | Câu lạc bộ anime, manga; trắng đen như trang truyện, đường tốc độ, một điểm đỏ |
+| `do-son` | Đỏ son vàng kim | Lễ kỷ niệm, chính trị, truyền thống; khung viền mảnh |
+| `bac-ha` | Bạc hà tươi mát | Y tế, đời sống, kỹ năng; sóng mềm ở chân trang |
+| `hong-dao` | Hồng đào dịu nhẹ | Mầm non, tiểu học, sự kiện nhẹ nhàng |
+| `oai-huong` | Oải hương | Văn học, nghệ thuật, tâm lý; chữ mảnh, nhiều khoảng trắng |
+| `ca-phe` | Cà phê sữa | Ẩm thực, khởi nghiệp, chia sẻ kinh nghiệm |
+| `luc-bao` | Ngọc lục bảo | Tài chính, quản trị, báo cáo trang trọng; dải màu bên trái |
+| `than-cam` | Than chì & cam | Kỹ thuật, thể thao, khởi động dự án; tiêu đề in hoa đậm |
+| `gradient-hoang-hon` | Gradient hoàng hôn | Truyền cảm hứng, sự kiện, giới thiệu |
+| `gradient-dai-duong` | Gradient đại dương | Công nghệ, khoa học, báo cáo hiện đại |
+| `gradient-cuc-quang` | Gradient cực quang | Công nghệ, vũ trụ, sự kiện buổi tối (nền tối) |
+| `gradient-keo-ngot` | Gradient kẹo ngọt | Giới trẻ, câu lạc bộ, ngoại khóa |
+| `gradient-do-son` | Gradient đỏ son – vàng | Ngày lễ, Tết, kỷ niệm |
+| `gradient-la-non` | Gradient lá non | Môi trường, nông nghiệp, phát triển bền vững |
+
+Sáu mẫu `gradient-…` dùng kiểu trang trí `aurora`: nền trang nội dung chuyển màu nhẹ, trang bìa, chương, kết chuyển ba màu và có quầng sáng loang. Muốn dùng kiểu này cho mẫu riêng, đặt `"decor": "aurora"`.
 
 Mọi mẫu chỉ dùng phông có sẵn trên Windows và **đủ dấu tiếng Việt**: Segoe UI, Candara, Constantia, Corbel, Palatino Linotype, Cambria. Trebuchet MS, Georgia và Impact không được dùng vì thiếu chữ ơ, ư, ạ…
 

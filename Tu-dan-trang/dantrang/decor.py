@@ -242,6 +242,28 @@ def _sidebar(slide, th, inv, idx, kind, rnd, info):
         info["x0"] = 1.0
 
 
+# ---------- gradient: nền chuyển màu + quầng sáng loang (mesh gradient) ----------
+
+def _aurora(slide, th, inv, idx, kind, rnd, info):
+    if inv:
+        D.box(slide, W - 5.6 + rnd.uniform(-0.5, 0.5), -2.8 + rnd.uniform(-0.3, 0.3), 8.0, 8.0, kind="ellipse", radial=True,
+              gradient=[th["accent2"], th["accent2"]], galphas=[0.5, 0.0], name="!!au1")
+        D.box(slide, -2.6 + rnd.uniform(-0.4, 0.4), H - 4.2 + rnd.uniform(-0.3, 0.3), 7.0, 7.0, kind="ellipse", radial=True,
+              gradient=[th["accent3"], th["accent3"]], galphas=[0.4, 0.0], name="!!au2")
+        D.box(slide, W * 0.45 + rnd.uniform(-0.6, 0.6), H - 2.4, 5.5, 5.5, kind="ellipse", radial=True,
+              gradient=[th["inv_accent"], th["inv_accent"]], galphas=[0.22, 0.0], name="!!au3")
+        D.box(slide, 0, H - 0.08, W, 0.08, gradient=[th["accent2"], th["accent3"], th["inv_accent"]], angle=0, name="!!bar")
+        info["y1"] = H - 0.8
+    else:
+        bg = th["bg"] if idx % 2 else th["bg2"]
+        D.background(slide, [bg, D.mix(bg, th["accent2"], 0.1), D.mix(bg, th["accent3"], 0.12)], angle=135)
+        D.box(slide, 0, 0, W, 0.1, gradient=[th["accent"], th["accent2"], th["accent3"]], angle=0, name="!!bar")
+        D.box(slide, W - 3.8 + rnd.uniform(-0.4, 0.3), -2.6 + rnd.uniform(-0.3, 0.3), 5.6, 5.6, kind="ellipse", radial=True,
+              gradient=[th["accent2"], th["accent2"]], galphas=[0.18, 0.0], name="!!au1")
+        D.box(slide, -2.0 + rnd.uniform(-0.3, 0.3), H - 2.2, 4.4, 4.4, kind="ellipse", radial=True,
+              gradient=[th["accent3"], th["accent3"]], galphas=[0.14, 0.0], name="!!au2")
+
+
 # ---------- truyện tranh (comic) ----------
 
 def _comic(slide, th, inv, idx, kind, rnd, info):

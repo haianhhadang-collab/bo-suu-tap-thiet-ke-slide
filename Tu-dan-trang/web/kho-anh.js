@@ -8,7 +8,7 @@ const SW = T.SW, SH = T.SH;
 // mẫu dựng sẵn -> gói ảnh khi nội dung không gợi ý chủ đề nào
 const THEME_GOI = { 'song-bien': 'thien-nhien', 'gradient': 'vu-tru', 'toi-gian': 'giao-duc', 'nen-toi': 'vu-tru', 'thanh-lich': 'di-san',
   'co-dien': 'lich-su', 'de-thuong': 'truong-hoc', 'nghe-thuat': 'van-hoa', 'thien-nhien': 'thien-nhien', 'chuyen-nghiep': 'doi-ngoai',
-  'truyen-tranh': 'anime', 'manga': 'anime' };
+  'truyen-tranh': 'anime', 'manga': 'anime', 'do-son': 'lich-su', 'bac-ha': 'y-te', 'hong-dao': 'truong-hoc', 'oai-huong': 'van-hoa', 'ca-phe': 'van-hoa', 'luc-bao': 'giao-duc', 'than-cam': 'the-thao', 'gradient-hoang-hon': 'le-hoi', 'gradient-dai-duong': 'giao-duc', 'gradient-cuc-quang': 'vu-tru', 'gradient-keo-ngot': 'truong-hoc', 'gradient-do-son': 'le-hoi', 'gradient-la-non': 'thien-nhien' };
 // lớp phủ trái -> phải: [độ đục ở mép trái, giữa, mép phải]
 const PHU = { anh: { cover: [0.9, 0.7, 0.2], section: [0.92, 0.75, 0.15], closing: [0.8, 0.8, 0.8], content: [0.8, 0.8, 0.8] },
   tranh: { cover: [0.88, 0.6, 0], section: [0.9, 0.65, 0], closing: [0.72, 0.72, 0.72] } };

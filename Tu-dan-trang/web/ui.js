@@ -32,7 +32,10 @@
   const opts = () => ({ anim: document.querySelector('input[name="tdt-anim"]:checked').value, transition: $('tdt-trans').value || null, khoAnh: artCfg() });
   const status = (msg, err) => { const s = $('tdt-status'); s.textContent = msg; s.classList.toggle('err', !!err); };
 
-  function swatches(th) { return [th.inv[0], th.inv[th.inv.length - 1], th.bg, th.accent, th.accent2, th.accent3].map(c => `<i style="background:#${c}"></i>`).join(''); }
+  function swatches(th) {
+    if (th.decor === 'aurora') return `<i style="background:linear-gradient(90deg,${th.inv.concat(th.accent2).map(c => '#' + c).join(',')})"></i>`;   // mẫu gradient: hiện dải chuyển màu
+    return [th.inv[0], th.inv[th.inv.length - 1], th.bg, th.accent, th.accent2, th.accent3].map(c => `<i style="background:#${c}"></i>`).join('');
+  }
   function renderThemes() {
     $('tdt-themes').innerHTML = Object.values(TDT.THEMES).map(th =>
       `<button class="tdt-th${state.theme === th ? ' on' : ''}" data-id="${th.id}" title="${th.desc}"><span class="bar">${swatches(th)}</span><span class="nm">${th.name}</span></button>`).join('');

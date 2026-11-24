@@ -17,7 +17,7 @@ function readable(bg, ...c) {
   return [...c, 'FFFFFF', '111111'].reduce((m, x) => contrast(bg, x) > contrast(bg, m) ? x : m);
 }
 
-// ============================================================ 10 mẫu (giống bản Python)
+// ============================================================ 25 mẫu (giống bản Python)
 const THEMES = {
   'song-bien': { name: 'Sóng biển', desc: 'Xanh đại dương, sóng ở chân trang, bo tròn thân thiện — bài giảng sáng tạo.',
     bg: 'EEF7F9', bg2: 'FBF6EC', ink: '0B2E4F', body: '3A5068', muted: '5A6E82', accent: '1F6FB2', accent2: '5EC8D8', accent3: 'F2895B',
@@ -79,6 +79,72 @@ const THEMES = {
     card: 'FFFFFF', card_line: '1A1A1A', inv: ['0D0D0D', '262626'], inv_ink: 'FFFFFF', inv_body: 'D9D9D9', inv_accent: 'FF4D4D',
     head: 'Segoe UI Black', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'manga', title_mark: 'bar', bullet: '▶',
     card_style: 'comic', radius: 0.0, transition: 'fade', effect: 'zoom' },
+  // ---- bổ sung 23/11/2026: 7 bộ màu, 6 bộ gradient (kiểu trang trí aurora) — giống bản Python
+  'do-son': { name: 'Đỏ son vàng kim', desc: 'Đỏ son, vàng kim, chữ có chân, khung viền mảnh — lễ kỷ niệm, chính trị, truyền thống.',
+    bg: 'FFFAF2', bg2: 'FBF1E2', ink: '4A0D0D', body: '5B3A32', muted: '7D6157', accent: 'B3191E', accent2: 'D4A017', accent3: '7A1F1F', card: 'FFFDF8', card_line: 'EBD9BC',
+    inv: ['7A0C0C', 'B3191E'], inv_ink: 'FFF6E0', inv_body: 'F3DCC0', inv_accent: 'FFD166',
+    head: 'Cambria', head_bold: true, body_font: 'Segoe UI', caps: false, decor: 'frame', title_mark: 'rule', bullet: '◆',
+    card_style: 'border-left', radius: 0.0, transition: 'fade', effect: 'wipe' },
+  'bac-ha': { name: 'Bạc hà tươi mát', desc: 'Xanh bạc hà và san hô nhạt, sóng mềm ở chân trang — y tế, đời sống, kỹ năng.',
+    bg: 'F1FAF7', bg2: 'FBFDF9', ink: '0F3D3A', body: '35595A', muted: '5B7A79', accent: '0F7F72', accent2: '7DD3C0', accent3: 'F28C7A', card: 'FFFFFF', card_line: 'CFEBE3',
+    inv: ['0F3D3A', '127369', '0F7F72'], inv_ink: 'F2FBF8', inv_body: 'CDEDE6', inv_accent: 'A8EBDD',
+    head: 'Candara', head_bold: true, body_font: 'Segoe UI', caps: false, decor: 'waves', title_mark: 'squiggle', bullet: '●',
+    card_style: 'strip-top', radius: 0.16, transition: 'morph', effect: 'float' },
+  'hong-dao': { name: 'Hồng đào dịu nhẹ', desc: 'Hồng đào, kem và xanh xám, mảng màu tròn mềm — mầm non, tiểu học, sự kiện nhẹ nhàng.',
+    bg: 'FFF6F3', bg2: 'FFF9EF', ink: '4A2C3A', body: '6A4A58', muted: '856874', accent: 'B83A62', accent2: 'F4A7B9', accent3: '8FB8C9', card: 'FFFDFC', card_line: 'F4D9DF',
+    inv: ['FADADD', 'FDE7D6'], inv_ink: '4A2C3A', inv_body: '6A4A58', inv_accent: 'B83A62',
+    head: 'Candara', head_bold: true, body_font: 'Candara', caps: false, decor: 'blobs', title_mark: 'dots', bullet: '●',
+    card_style: 'solid', radius: 0.28, transition: 'morph', effect: 'zoom' },
+  'oai-huong': { name: 'Oải hương', desc: 'Tím oải hương nhạt, xám bạc, chữ mảnh, nhiều khoảng trắng — văn học, nghệ thuật, tâm lý.',
+    bg: 'FAF8FD', bg2: 'F3F0FA', ink: '2E2546', body: '4F4766', muted: '726B8B', accent: '7650B8', accent2: 'B9A6E3', accent3: '9AA5B1', card: 'FFFFFF', card_line: 'E4DDF2',
+    inv: ['3B2E5E', '5B4A8B'], inv_ink: 'FAF8FD', inv_body: 'DCD5EE', inv_accent: 'CDBDF2',
+    head: 'Segoe UI Light', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'minimal', title_mark: 'dot', bullet: '—',
+    card_style: 'outline', radius: 0.06, transition: 'fade', effect: 'fade' },
+  'ca-phe': { name: 'Cà phê sữa', desc: 'Nâu cà phê, kem sữa, chữ có chân ấm — ẩm thực, khởi nghiệp, chia sẻ kinh nghiệm.',
+    bg: 'F8F2EA', bg2: 'FDF9F3', ink: '3B2618', body: '5A4232', muted: '7A6352', accent: '945329', accent2: 'C89B6D', accent3: '6B8F71', card: 'FFFCF7', card_line: 'E6D6C1',
+    inv: ['3B2618', '5C3D29'], inv_ink: 'F8EFE2', inv_body: 'E5D4BF', inv_accent: 'E3B784',
+    head: 'Constantia', head_bold: true, body_font: 'Corbel', caps: false, decor: 'minimal', title_mark: 'rule', bullet: '◆',
+    card_style: 'strip-top', radius: 0.08, transition: 'fade', effect: 'fade' },
+  'luc-bao': { name: 'Ngọc lục bảo', desc: 'Xanh ngọc lục bảo và vàng đồng, dải màu bên trái — tài chính, quản trị, báo cáo trang trọng.',
+    bg: 'F5F9F7', bg2: 'EDF4F0', ink: '0B2B22', body: '3A5249', muted: '5F756C', accent: '0B7A5A', accent2: 'C59B45', accent3: '2E5E8C', card: 'FFFFFF', card_line: 'D5E5DD',
+    inv: ['0B2B22', '0F4A3A'], inv_ink: 'F3F8F5', inv_body: 'C9DDD3', inv_accent: 'E2C27A',
+    head: 'Segoe UI Semibold', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'sidebar', title_mark: 'bar', bullet: '■',
+    card_style: 'border-left', radius: 0.04, transition: 'push', effect: 'wipe' },
+  'than-cam': { name: 'Than chì & cam', desc: 'Xám than, trắng và một màu cam mạnh, tiêu đề in hoa đậm — kỹ thuật, thể thao, khởi động dự án.',
+    bg: 'F7F7F5', bg2: 'EFEFEC', ink: '1C1C1E', body: '3D3D42', muted: '66666C', accent: 'C2410C', accent2: '2B2D33', accent3: 'F59F00', card: 'FFFFFF', card_line: 'DDDDD8',
+    inv: ['1C1C1E', '2B2D33'], inv_ink: 'FFFFFF', inv_body: 'D0D0D4', inv_accent: 'FF8A3D',
+    head: 'Segoe UI Black', head_bold: false, body_font: 'Segoe UI', caps: true, decor: 'matisse', title_mark: 'block', bullet: '■',
+    card_style: 'solid', radius: 0.0, transition: 'morph', effect: 'fly' },
+  'gradient-hoang-hon': { name: 'Gradient hoàng hôn', desc: 'Tím đêm → hồng → cam, quầng sáng loang như mesh gradient — truyền cảm hứng, sự kiện, giới thiệu.',
+    bg: 'FFF7F4', bg2: 'FDF4FA', ink: '2E1338', body: '553A5C', muted: '79617E', accent: 'B8325F', accent2: 'F07B4F', accent3: '8E44AD', card: 'FFFFFF', card_line: 'F3DDE3',
+    inv: ['2E1338', '8A2C6E', 'D9534F'], inv_ink: 'FFF8F5', inv_body: 'F6D9E2', inv_accent: 'FFC48C',
+    head: 'Segoe UI Semibold', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'bar', bullet: '●',
+    card_style: 'header', radius: 0.14, transition: 'morph', effect: 'float' },
+  'gradient-dai-duong': { name: 'Gradient đại dương', desc: 'Xanh đêm → lam → ngọc, quầng sáng loang — công nghệ, khoa học, báo cáo hiện đại.',
+    bg: 'F3F8FC', bg2: 'F7FBFD', ink: '0B1F3A', body: '3A5068', muted: '5C7086', accent: '1565C0', accent2: '00ACC1', accent3: '5C6BC0', card: 'FFFFFF', card_line: 'D8E6F2',
+    inv: ['0B1F4D', '1458A8', '0A8FA6'], inv_ink: 'F5FAFF', inv_body: 'CFE3F5', inv_accent: '7FE3F0',
+    head: 'Segoe UI Semibold', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'bar', bullet: '●',
+    card_style: 'header', radius: 0.12, transition: 'morph', effect: 'float' },
+  'gradient-cuc-quang': { name: 'Gradient cực quang', desc: 'Nền đêm, dải sáng xanh ngọc và tím như cực quang — công nghệ, vũ trụ, sự kiện buổi tối.',
+    bg: '0D1224', bg2: '101830', ink: 'F1F5FF', body: 'C5CCE4', muted: '8C95B5', accent: '2EE6A8', accent2: '7C5CFF', accent3: '22B8F0', card: '171F3A', card_line: '2A3558',
+    inv: ['070B18', '10224A', '0E4A4A'], inv_ink: 'F5F8FF', inv_body: 'C5CCE4', inv_accent: '5CF2C0',
+    head: 'Segoe UI Black', head_bold: false, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'bar', bullet: '▸',
+    card_style: 'outline', radius: 0.1, transition: 'morph', effect: 'zoom' },
+  'gradient-keo-ngot': { name: 'Gradient kẹo ngọt', desc: 'Tím → hồng tươi, nền hồng lila nhạt, góc bo lớn — giới trẻ, câu lạc bộ, ngoại khóa.',
+    bg: 'FCF6FF', bg2: 'FFF5FA', ink: '34164F', body: '5A4170', muted: '7C6890', accent: '9B27C9', accent2: 'FF6FA8', accent3: '6C8CFF', card: 'FFFFFF', card_line: 'EEDDF6',
+    inv: ['5B21B6', 'A62FD6', 'D63384'], inv_ink: 'FFFFFF', inv_body: 'F3E3FF', inv_accent: 'FFD1E6',
+    head: 'Candara', head_bold: true, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'dots', bullet: '●',
+    card_style: 'solid', radius: 0.24, transition: 'morph', effect: 'zoom' },
+  'gradient-do-son': { name: 'Gradient đỏ son – vàng', desc: 'Đỏ thẫm → đỏ son → cam, điểm vàng kim, quầng sáng ấm — ngày lễ, Tết, kỷ niệm.',
+    bg: 'FFF8F1', bg2: 'FFF3EA', ink: '3D0C0C', body: '5E3A30', muted: '7F5F55', accent: 'B3191E', accent2: 'F2A33A', accent3: 'E0603A', card: 'FFFFFF', card_line: 'F2DCCB',
+    inv: ['4A0A0A', 'A3161A', 'C8441B'], inv_ink: 'FFF8EC', inv_body: 'F6DCC8', inv_accent: 'FFD166',
+    head: 'Cambria', head_bold: true, body_font: 'Segoe UI', caps: false, decor: 'aurora', title_mark: 'rule', bullet: '◆',
+    card_style: 'header', radius: 0.08, transition: 'fade', effect: 'wipe' },
+  'gradient-la-non': { name: 'Gradient lá non', desc: 'Xanh rừng → xanh lá → lục tươi, quầng sáng vàng chanh — môi trường, nông nghiệp, phát triển bền vững.',
+    bg: 'F4FAF2', bg2: 'FAFCF3', ink: '12331F', body: '3B5A44', muted: '5D7B65', accent: '1E7A46', accent2: '8CC63F', accent3: '2BAE9A', card: 'FFFFFF', card_line: 'D8EBD3',
+    inv: ['0F3B24', '1E7A46', '2F8A35'], inv_ink: 'F6FBF2', inv_body: 'D6EBD0', inv_accent: 'D4F18A',
+    head: 'Cambria', head_bold: true, body_font: 'Corbel', caps: false, decor: 'aurora', title_mark: 'bar', bullet: '●',
+    card_style: 'strip-top', radius: 0.14, transition: 'morph', effect: 'float' },
 };
 for (const k in THEMES) THEMES[k].id = k;
 
@@ -1373,6 +1439,22 @@ const DECOR = {
       info.x0 = 1.0;
     }
   },
+  // mẫu gradient: nền chuyển màu nhiều điểm + quầng sáng loang (kiểu mesh gradient), dải màu mảnh ở mép
+  aurora(ctx, th, inv, idx, kind, r, info) {
+    if (inv) {
+      ctx.box(SW - 5.6 + uni(r, -0.5, 0.5), -2.8 + uni(r, -0.3, 0.3), 8, 8, { kind: 'ellipse', radial: true, gradient: [th.accent2, th.accent2], galphas: [0.5, 0], name: '!!au1' });
+      ctx.box(-2.6 + uni(r, -0.4, 0.4), SH - 4.2 + uni(r, -0.3, 0.3), 7, 7, { kind: 'ellipse', radial: true, gradient: [th.accent3, th.accent3], galphas: [0.4, 0], name: '!!au2' });
+      ctx.box(SW * 0.45 + uni(r, -0.6, 0.6), SH - 2.4, 5.5, 5.5, { kind: 'ellipse', radial: true, gradient: [th.inv_accent, th.inv_accent], galphas: [0.22, 0], name: '!!au3' });
+      ctx.box(0, SH - 0.08, SW, 0.08, { gradient: [th.accent2, th.accent3, th.inv_accent], angle: 0, name: '!!bar' });
+      info.y1 = SH - 0.8;
+    } else {
+      const bg = idx % 2 ? th.bg : th.bg2;
+      ctx.background([bg, mix(bg, th.accent2, 0.1), mix(bg, th.accent3, 0.12)], 135);
+      ctx.box(0, 0, SW, 0.1, { gradient: [th.accent, th.accent2, th.accent3], angle: 0, name: '!!bar' });
+      ctx.box(SW - 3.8 + uni(r, -0.4, 0.3), -2.6 + uni(r, -0.3, 0.3), 5.6, 5.6, { kind: 'ellipse', radial: true, gradient: [th.accent2, th.accent2], galphas: [0.18, 0], name: '!!au1' });
+      ctx.box(-2.0 + uni(r, -0.3, 0.3), SH - 2.2, 4.4, 4.4, { kind: 'ellipse', radial: true, gradient: [th.accent3, th.accent3], galphas: [0.14, 0], name: '!!au2' });
+    }
+  },
 };
 
 // ============================================================ bố cục (giống bản Python)
@@ -1875,5 +1957,5 @@ function build(deckIn, th, opts = {}) {
 }
 
 G.TuDanTrang = Object.assign(G.TuDanTrang || {}, { makeImg, THEMES, themeFromCard, readFiles, build, mix, contrast, readable, dotField, SW, SH,
-  Ctx, textWidthPt, CLOSING_RE });
+  Ctx, textWidthPt, CLOSING_RE, paint });
 })(window);
