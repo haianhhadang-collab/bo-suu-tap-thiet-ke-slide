@@ -53,6 +53,28 @@ def readable_on(bg: str, *cands: str) -> str:
     return max(cands + ("FFFFFF", "111111"), key=lambda c: contrast(bg, c))
 
 
+def title_grad(th: dict, inv: bool, bg: str):
+    """Dải màu chữ tiêu đề (giống titleGrad bản web): dải riêng của mẫu (title_grad / inv_title_grad) hoặc tự suy
+    từ màu nhấn; mỗi màu được đẩy dần về màu chữ chính tới khi đạt tương phản 4,5 với nền. None: không dùng được."""
+    own = th.get("inv_title_grad" if inv else "title_grad")
+    ink = th["inv_ink"] if inv else th["ink"]
+    src = own if own and len(own) > 1 else ([th["inv_ink"], th["inv_accent"]] if inv else [th["accent"], th["accent2"]])
+    g = []
+    for c in src:
+        for _ in range(6):
+            if contrast(bg, c) >= 4.5:
+                break
+            c = mix(c, ink, 0.3)
+        g.append(c)
+    return g if all(contrast(bg, c) >= 3 for c in g) and any(c != g[0] for c in g) else None
+
+
+def want_grad(th: dict, inv: bool, opts: dict | None) -> bool:
+    """Có dùng chữ chuyển màu không: opts["title_grad"] True/False; chưa chọn (None) thì theo mẫu."""
+    v = (opts or {}).get("title_grad")
+    return bool(v) if v is not None else bool(th.get("inv_title_grad" if inv else "title_grad"))
+
+
 # ---------- tô màu (đặc, gradient, trong suốt) ----------
 
 def _clr(hexv: str, alpha: float | None = None) -> str:

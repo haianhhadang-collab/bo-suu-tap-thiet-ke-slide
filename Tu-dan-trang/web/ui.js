@@ -29,7 +29,7 @@
   }
   async function xoaFile(key = LUU.key) { try { await req((await idb()).transaction(LUU.store, 'readwrite').objectStore(LUU.store).delete(key)); } catch (e) { /* trình duyệt chặn lưu trữ */ } }
   const hhmm = t => new Date(t).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-  const opts = () => ({ anim: document.querySelector('input[name="tdt-anim"]:checked').value, transition: $('tdt-trans').value || null, khoAnh: artCfg() });
+  const opts = () => ({ anim: document.querySelector('input[name="tdt-anim"]:checked').value, transition: $('tdt-trans').value || null, khoAnh: artCfg(), titleGrad: $('tdt-chu-grad').checked });
   const status = (msg, err) => { const s = $('tdt-status'); s.textContent = msg; s.classList.toggle('err', !!err); };
 
   function swatches(th) {
@@ -37,6 +37,8 @@
     return [th.inv[0], th.inv[th.inv.length - 1], th.bg, th.accent, th.accent2, th.accent3].map(c => `<i style="background:#${c}"></i>`).join('');
   }
   function renderThemes() {
+    // ô "chữ chuyển màu": chưa tự tích/bỏ thì theo mẫu (bật sẵn với mẫu có dải màu tiêu đề riêng, vd các mẫu gradient)
+    if (!state.gradTouched) $('tdt-chu-grad').checked = !!(state.theme.title_grad || state.theme.inv_title_grad);
     $('tdt-themes').innerHTML = Object.values(TDT.THEMES).map(th =>
       `<button class="tdt-th${state.theme === th ? ' on' : ''}" data-id="${th.id}" title="${th.desc}"><span class="bar">${swatches(th)}</span><span class="nm">${th.name}</span></button>`).join('');
     const f = $('tdt-from');
@@ -53,7 +55,7 @@
   function syncCur() {
     const D = TDT.KHO_ANH, a = artCfg(), anim = document.querySelector('input[name="tdt-anim"]:checked');
     $('tdt-cur-file').textContent = !state.deck ? 'Chưa chọn' : state.demo ? 'File ví dụ' : state.fileName;
-    $('tdt-cur-mau').textContent = state.theme.name;
+    $('tdt-cur-mau').textContent = state.theme.name + ($('tdt-chu-grad').checked ? ' · chữ chuyển màu' : '');
     $('tdt-cur-hoa').textContent = state.motif ? TDT.MOTIFS[state.motif].name : 'Không dùng';
     // bước 4: ô gửi ảnh chỉ hiện khi chọn "Ảnh của tôi", khi đó không cần chọn chủ đề
     $('tdt-anh-rieng').hidden = a.loai !== 'tu-chon'; $('tdt-art-goi').hidden = a.loai === 'tu-chon';
@@ -285,6 +287,7 @@
     const z = $('tdt-preview').querySelector(`.cell[data-i="${c.dataset.i}"]`); if (z) z.scrollIntoView({ block: 'nearest' });
   });
   $('tdt-motif-pal').addEventListener('change', () => refresh());
+  $('tdt-chu-grad').addEventListener('change', () => { state.gradTouched = true; if (state.deck) refresh(); else syncCur(); });
   $('tdt-sec-hoa').addEventListener('toggle', () => { if ($('tdt-sec-hoa').open) renderMotifs(); });
   dlg.querySelector('.tdt-side').addEventListener('change', syncCur);
   $('tdt-from').addEventListener('click', e => { if (e.target.closest('#tdt-card')) { state.theme = state.cardTheme; refresh(); } });

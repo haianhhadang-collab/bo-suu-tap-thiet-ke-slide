@@ -12,6 +12,7 @@ Tùy chọn:
                           ghép họa tiết bằng dấu +, vd: co-dien+dong-son
   -v, --hoa-van <mã>      họa tiết theo chủ đề: cach-mang | ho-chi-minh | dong-son | hoi-van | tet | khong
   --giu-mau               giữ màu của mẫu (không dùng bảng màu của họa tiết)
+  --chu-chuyen-mau <c>    tiêu đề chữ chuyển màu: co | khong | theo-mau (mặc định, chỉ các mẫu gradient)
   -a, --animation <kiểu>  tu-chay | nhap-chuot | khong
   -c, --chuyen <kiểu>     theo-mau | morph | fade | push | wipe | khong
   -o, --ra <thư mục>      nơi lưu kết quả (mặc định: Ket-qua)
@@ -46,6 +47,8 @@ EXTS = {".pptx", ".docx", ".pdf", ".md", ".markdown", ".txt"}
 
 ANIM = {"tu-chay": "auto", "nhap-chuot": "click", "khong": "none"}
 TRANS = {"theo-mau": None, "morph": "morph", "fade": "fade", "push": "push", "wipe": "wipe", "khong": "none"}
+CHU_GRAD = {"theo-mau": None, "co": True, "khong": False}   # tiêu đề chữ chuyển màu
+GRAD_NAMES = {"theo-mau": "Theo mẫu (mẫu gradient)", "co": "Bật cho mọi mẫu", "khong": "Tắt"}
 
 DEFAULT_CFG = {
     "mau_mac_dinh": "song-bien",
@@ -60,6 +63,7 @@ DEFAULT_CFG = {
     "chu_de_anh": "tu-dong",
     "anh_tu_chon": [],
     "anh_theo_trang": [],
+    "chu_chuyen_mau": "theo-mau",
 }
 
 
@@ -77,10 +81,12 @@ def load_cfg() -> dict:
 
 
 def make_opts(anim: str, trans: str, motif: str = "", palette: bool = True, keep: bool = True,
-              anh: str = "khong", chu_de_anh: str = "tu-dong", anh_rieng: list | None = None, anh_trang: list | None = None) -> dict:
+              anh: str = "khong", chu_de_anh: str = "tu-dong", anh_rieng: list | None = None, anh_trang: list | None = None,
+              chu_grad: str = "theo-mau") -> dict:
     return {"anim": ANIM.get(anim, anim), "transition": TRANS.get(trans, trans),
             "motif": hoavan.check(motif), "motif_palette": palette, "keep_layout": keep,
-            "kho_anh": khoanh.check({"loai": anh, "goi": chu_de_anh, "tep": anh_rieng, "gan": anh_trang})}
+            "kho_anh": khoanh.check({"loai": anh, "goi": chu_de_anh, "tep": anh_rieng, "gan": anh_trang}),
+            "title_grad": CHU_GRAD.get(chu_grad)}
 
 
 def resolve(name: str, default_theme: str) -> tuple[str, str | None]:
@@ -124,7 +130,8 @@ def watch(cfg: dict):
     print(f"  • Kết quả lưu ở: {out}      (Ctrl+C để dừng)\n")
     sizes: dict[Path, int] = {}
     opts = make_opts(cfg["animation"], cfg["chuyen_trang"], cfg["hoa_van"], cfg["dung_mau_hoa_van"],
-                     cfg["giu_bo_cuc_pptx"], cfg["anh_trang_tri"], cfg["chu_de_anh"], cfg["anh_tu_chon"], cfg["anh_theo_trang"])
+                     cfg["giu_bo_cuc_pptx"], cfg["anh_trang_tri"], cfg["chu_de_anh"], cfg["anh_tu_chon"], cfg["anh_theo_trang"],
+                     cfg["chu_chuyen_mau"])
     while True:
         for f in list(INBOX.glob("*")) + list(INBOX.glob("*/*")):
             if not f.is_file() or f.suffix.lower() not in EXTS or f.name.startswith(("~$", ".")):
@@ -228,6 +235,12 @@ def gui(cfg: dict, preset: str | None = None):
     mcb = ttk.Combobox(mf, state="readonly", width=34)
     mcb.grid(row=2, column=0, sticky="w", pady=(2, 0))
     ttk.Checkbutton(mf, text="Dùng bảng màu của họa tiết", variable=motif_pal).grid(row=3, column=0, sticky="w")
+    gf = ttk.Frame(mf)
+    gf.grid(row=4, column=0, sticky="w", pady=(4, 0))
+    ttk.Label(gf, text="Tiêu đề chữ chuyển màu:").pack(side="left")
+    gradcb = ttk.Combobox(gf, values=list(GRAD_NAMES.values()), state="readonly", width=24)
+    gradcb.set(GRAD_NAMES.get(cfg["chu_chuyen_mau"], GRAD_NAMES["theo-mau"]))
+    gradcb.pack(side="left", padx=(6, 0))
     cur_motif = lambda: next((k for k, v in motif_names.items() if v == mcb.get()), "")
 
     def fill_motifs():
@@ -359,7 +372,8 @@ def gui(cfg: dict, preset: str | None = None):
             messagebox.showwarning("Thiếu ảnh", "Hãy bấm “Chọn ảnh…” để chọn ảnh của bạn.")
             return
         try:
-            opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get(), keep.get(), anh_, goi_, anh_rieng, [x for x in gan_txt.get().split(";") if x.strip()])
+            opts = make_opts(anim.get(), tr, cur_motif(), motif_pal.get(), keep.get(), anh_, goi_, anh_rieng, [x for x in gan_txt.get().split(";") if x.strip()],
+                             next((k for k, v in GRAD_NAMES.items() if v == gradcb.get()), "theo-mau"))
         except KeyError as e:
             messagebox.showwarning("Không dùng được ảnh", e.args[0])
             return
@@ -403,6 +417,8 @@ def main():
     ap.add_argument("--chu-de-anh", default=None, help="gói ảnh (xem --ds), mặc định tu-dong = đoán theo nội dung")
     ap.add_argument("--anh-rieng", action="append", default=None, metavar="ẢNH", help="ảnh của bạn hoặc thư mục ảnh (ghi nhiều lần được), tự chọn --anh tu-chon")
     ap.add_argument("--anh-trang", action="append", default=None, metavar="TRANG=ẢNH", help='đặt ảnh theo số trang, vd "1,3,5=bia.jpg" hoặc "2-4=2" (ảnh thứ 2)')
+    ap.add_argument("--chu-chuyen-mau", default=None, choices=list(CHU_GRAD),
+                    help="tiêu đề chữ chuyển màu: co, khong, theo-mau (mặc định: chỉ mẫu gradient)")
     ap.add_argument("--giu-mau", action="store_true")
     ap.add_argument("--dan-lai", action="store_true")
     ap.add_argument("--theo-doi", action="store_true")
@@ -435,7 +451,8 @@ def main():
     opts = make_opts(a.animation or cfg["animation"], a.chuyen or cfg["chuyen_trang"],
                      a.hoa_van or cfg["hoa_van"], cfg["dung_mau_hoa_van"] and not a.giu_mau,
                      cfg["giu_bo_cuc_pptx"] and not a.dan_lai, a.anh or ("tu-chon" if a.anh_rieng or a.anh_trang else cfg["anh_trang_tri"]),
-                     a.chu_de_anh or cfg["chu_de_anh"], a.anh_rieng or cfg["anh_tu_chon"], a.anh_trang or cfg["anh_theo_trang"])
+                     a.chu_de_anh or cfg["chu_de_anh"], a.anh_rieng or cfg["anh_tu_chon"], a.anh_trang or cfg["anh_theo_trang"],
+                     a.chu_chuyen_mau or cfg["chu_chuyen_mau"])
     for o in run(Path(a.file), theme, out, opts, cfg["mau_mac_dinh"]):
         print(o)
 

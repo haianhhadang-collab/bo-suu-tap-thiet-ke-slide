@@ -16,6 +16,18 @@ function readable(bg, ...c) {
   for (const x of c) if (contrast(bg, x) >= 4.5) return x;
   return [...c, 'FFFFFF', '111111'].reduce((m, x) => contrast(bg, x) > contrast(bg, m) ? x : m);
 }
+/** Dải màu chữ tiêu đề (giống draw.title_grad bản Python): dải riêng của mẫu (title_grad / inv_title_grad) hoặc tự suy
+    từ màu nhấn; mỗi màu được đẩy dần về màu chữ chính tới khi đạt tương phản 4,5 với nền. null: không dùng được. */
+function titleGrad(th, inv, bg) {
+  const own = inv ? th.inv_title_grad : th.title_grad, ink = inv ? th.inv_ink : th.ink;
+  const g = (own && own.length > 1 ? own : inv ? [th.inv_ink, th.inv_accent] : [th.accent, th.accent2]).map(c => {
+    for (let i = 0; i < 6 && contrast(bg, c) < 4.5; i++) c = mix(c, ink, 0.3);
+    return c;
+  });
+  return g.every(c => contrast(bg, c) >= 3) && g.some(c => c !== g[0]) ? g : null;
+}
+/** Có dùng chữ chuyển màu không: opts.titleGrad true/false; chưa chọn (null) thì theo mẫu (mẫu có dải riêng mới dùng). */
+const wantGrad = (th, inv, opts) => opts && opts.titleGrad != null ? !!opts.titleGrad : !!(inv ? th.inv_title_grad : th.title_grad);
 
 // ============================================================ 25 mẫu (giống bản Python)
 const THEMES = {
@@ -1226,9 +1238,8 @@ class Ctx {
       this.accent = contrast(bg, th.accent) >= 3 ? th.accent : th.ink; this.muted = readable(bg, th.muted, th.body);
     }
     this.bg = bg; this.head = th.head; this.font = th.body_font; this.hb = th.head_bold;
-    // tiêu đề chữ chuyển màu (mẫu gradient): bỏ khi trang dùng ảnh trang trí hoặc khi một màu trong dải không đủ tương phản
-    const tg = inv ? th.inv_title_grad : th.title_grad;
-    this.tgrad = tg && tg.length > 1 && !this.info.art && tg.every(c => contrast(bg, c) >= 3) ? tg : null;
+    // tiêu đề chữ chuyển màu (tùy chọn ở bước 2): bỏ khi trang dùng ảnh trang trí
+    this.tgrad = wantGrad(th, inv, opts) && !this.info.art ? titleGrad(th, inv, bg) : null;
     this.eff = opts.effect || th.effect;
   }
   get x0() { return this.info.x0; } get x1() { return this.info.x1; } get y0() { return this.info.y0; } get y1() { return this.info.y1; }
@@ -1966,5 +1977,5 @@ function build(deckIn, th, opts = {}) {
 }
 
 G.TuDanTrang = Object.assign(G.TuDanTrang || {}, { makeImg, THEMES, themeFromCard, readFiles, build, mix, contrast, readable, dotField, SW, SH,
-  Ctx, textWidthPt, CLOSING_RE, paint });
+  Ctx, textWidthPt, CLOSING_RE, paint, titleGrad, wantGrad });
 })(window);

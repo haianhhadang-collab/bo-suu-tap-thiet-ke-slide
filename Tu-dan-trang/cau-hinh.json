@@ -8,5 +8,6 @@
   "dung_mau_hoa_van": true,
   "giu_bo_cuc_pptx": true,
   "anh_trang_tri": "khong",
-  "chu_de_anh": "tu-dong"
+  "chu_de_anh": "tu-dong",
+  "chu_chuyen_mau": "theo-mau"
 }

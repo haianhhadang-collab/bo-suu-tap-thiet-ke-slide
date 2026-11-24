@@ -36,9 +36,8 @@ class Ctx:
         self.bg = bg
         self.head, self.font = th["head"], th["body_font"]
         self.hb = th["head_bold"]
-        # tiêu đề chữ chuyển màu (mẫu gradient): bỏ khi trang dùng ảnh trang trí hoặc khi một màu trong dải không đủ tương phản
-        tg = th.get("inv_title_grad" if inv else "title_grad")
-        self.tgrad = tg if (tg and len(tg) > 1 and not self.info.get("art") and all(D.contrast(bg, c) >= 3 for c in tg)) else None
+        # tiêu đề chữ chuyển màu (tùy chọn): bỏ khi trang dùng ảnh trang trí
+        self.tgrad = D.title_grad(th, inv, bg) if D.want_grad(th, inv, opts) and not self.info.get("art") else None
         self.steps: list[list] = []
         self.eff = opts.get("effect") or th["effect"]
 

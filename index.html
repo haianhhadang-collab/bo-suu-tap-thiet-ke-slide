@@ -1047,6 +1047,7 @@ window.addEventListener('hashchange', () => { if (wantEdit()) startUI(); });
           <summary><span class="tdt-step">2 · Chọn màu thiết kế</span><span class="tdt-cur" id="tdt-cur-mau"></span></summary>
           <div id="tdt-from"></div>
           <div class="tdt-themes" id="tdt-themes"></div>
+          <label class="tdt-check"><input type="checkbox" id="tdt-chu-grad"> Tiêu đề chữ chuyển màu (áp được cho mọi bộ màu)</label>
         </details>
         <details class="tdt-sec" id="tdt-sec-hoa">
           <summary><span class="tdt-step">3 · Họa tiết theo chủ đề</span><span class="tdt-cur" id="tdt-cur-hoa"></span></summary>
@@ -1805,6 +1806,18 @@ function readable(bg, ...c) {
   for (const x of c) if (contrast(bg, x) >= 4.5) return x;
   return [...c, 'FFFFFF', '111111'].reduce((m, x) => contrast(bg, x) > contrast(bg, m) ? x : m);
 }
+/** Dải màu chữ tiêu đề (giống draw.title_grad bản Python): dải riêng của mẫu (title_grad / inv_title_grad) hoặc tự suy
+    từ màu nhấn; mỗi màu được đẩy dần về màu chữ chính tới khi đạt tương phản 4,5 với nền. null: không dùng được. */
+function titleGrad(th, inv, bg) {
+  const own = inv ? th.inv_title_grad : th.title_grad, ink = inv ? th.inv_ink : th.ink;
+  const g = (own && own.length > 1 ? own : inv ? [th.inv_ink, th.inv_accent] : [th.accent, th.accent2]).map(c => {
+    for (let i = 0; i < 6 && contrast(bg, c) < 4.5; i++) c = mix(c, ink, 0.3);
+    return c;
+  });
+  return g.every(c => contrast(bg, c) >= 3) && g.some(c => c !== g[0]) ? g : null;
+}
+/** Có dùng chữ chuyển màu không: opts.titleGrad true/false; chưa chọn (null) thì theo mẫu (mẫu có dải riêng mới dùng). */
+const wantGrad = (th, inv, opts) => opts && opts.titleGrad != null ? !!opts.titleGrad : !!(inv ? th.inv_title_grad : th.title_grad);
 
 // ============================================================ 25 mẫu (giống bản Python)
 const THEMES = {
@@ -3015,9 +3028,8 @@ class Ctx {
       this.accent = contrast(bg, th.accent) >= 3 ? th.accent : th.ink; this.muted = readable(bg, th.muted, th.body);
     }
     this.bg = bg; this.head = th.head; this.font = th.body_font; this.hb = th.head_bold;
-    // tiêu đề chữ chuyển màu (mẫu gradient): bỏ khi trang dùng ảnh trang trí hoặc khi một màu trong dải không đủ tương phản
-    const tg = inv ? th.inv_title_grad : th.title_grad;
-    this.tgrad = tg && tg.length > 1 && !this.info.art && tg.every(c => contrast(bg, c) >= 3) ? tg : null;
+    // tiêu đề chữ chuyển màu (tùy chọn ở bước 2): bỏ khi trang dùng ảnh trang trí
+    this.tgrad = wantGrad(th, inv, opts) && !this.info.art ? titleGrad(th, inv, bg) : null;
     this.eff = opts.effect || th.effect;
   }
   get x0() { return this.info.x0; } get x1() { return this.info.x1; } get y0() { return this.info.y0; } get y1() { return this.info.y1; }
@@ -3755,7 +3767,7 @@ function build(deckIn, th, opts = {}) {
 }
 
 G.TuDanTrang = Object.assign(G.TuDanTrang || {}, { makeImg, THEMES, themeFromCard, readFiles, build, mix, contrast, readable, dotField, SW, SH,
-  Ctx, textWidthPt, CLOSING_RE, paint });
+  Ctx, textWidthPt, CLOSING_RE, paint, titleGrad, wantGrad });
 })(window);
 
 /* Tự dàn trang — họa tiết theo chủ đề: 61 họa tiết chia 12 gói (lịch sử, văn hóa, lễ hội, thiên nhiên, giáo dục, anime,
@@ -6103,6 +6115,13 @@ function setColor(parent, hex, alpha) {
   parent.insertBefore(srgb(parent.ownerDocument, hex, alpha), parent.firstChild);
 }
 const solid = (doc, hex, alpha) => { const el = mk(doc, 'solidFill'); el.appendChild(srgb(doc, hex, alpha)); return el; };
+/** Tô chuyển màu ngang (chữ tiêu đề chuyển màu). */
+function gradEl(doc, cols) {
+  const g = mk(doc, 'gradFill', { rotWithShape: '1' }), lst = g.appendChild(mk(doc, 'gsLst'));
+  cols.forEach((c, i) => lst.appendChild(mk(doc, 'gs', { pos: String(Math.round(i * 100000 / Math.max(cols.length - 1, 1))) })).appendChild(srgb(doc, c)));
+  g.appendChild(mk(doc, 'lin', { ang: '0', scaled: '0' }));
+  return g;
+}
 /** Chèn el vào parent đúng thứ tự theo lược đồ OOXML (thay phần tử cùng loại nếu có). */
 function put(parent, el, order) {
   const name = el.localName, group = FILLS.includes(name) ? FILLS : [name];
@@ -6612,6 +6631,11 @@ class Restyler {
     }
     this.keepLines(plan, widthEmu / EMU, scale);
   }
+  /** Dải màu chữ tiêu đề trên nền bg (nền tối hay sáng xét như mapper.text), null nếu không dùng. */
+  titleGrad(bg) {
+    const th = this.th, dark = T.contrast(bg, th.inv_ink) > T.contrast(bg, th.ink);
+    return T.wantGrad(th, dark, this.opts) ? T.titleGrad(th, dark, bg) : null;
+  }
   /** Tô màu một run theo mẫu; font = null: giữ phông gốc. */
   styleRun(rPr, sc, role, eff, keep, size, bold, font, chain, base) {
     const doc = rPr.ownerDocument, f = fillEl(rPr);
@@ -6623,7 +6647,10 @@ class Restyler {
       } else if (f.localName === 'solidFill' && sc.of(f)) { const c = sc.of(f); setColor(f, c[0], c[1]); }
     } else {
       const c = f && (f.localName === 'solidFill' || f.localName === 'gradFill') ? sc.fill(f) : null;
-      if (!(f && f.localName === 'noFill')) put(rPr, solid(doc, this.mapper.text(c ? c[0] : null, role, eff[1], eff[0], size, bold), c ? c[1] : null), RPR_ORDER);
+      if (!(f && f.localName === 'noFill')) {
+        const g = role === 'title' ? this.titleGrad(eff[1]) : null;   // tiêu đề chữ chuyển màu (tùy chọn ở bước 2)
+        put(rPr, g ? gradEl(doc, g) : solid(doc, this.mapper.text(c ? c[0] : null, role, eff[1], eff[0], size, bold), c ? c[1] : null), RPR_ORDER);
+      }
     }
     if (font) {
       let lat = kid(rPr, 'latin'); if (!lat) lat = put(rPr, mk(doc, 'latin'), RPR_ORDER);
@@ -6908,7 +6935,7 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   }
   async function xoaFile(key = LUU.key) { try { await req((await idb()).transaction(LUU.store, 'readwrite').objectStore(LUU.store).delete(key)); } catch (e) { /* trình duyệt chặn lưu trữ */ } }
   const hhmm = t => new Date(t).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-  const opts = () => ({ anim: document.querySelector('input[name="tdt-anim"]:checked').value, transition: $('tdt-trans').value || null, khoAnh: artCfg() });
+  const opts = () => ({ anim: document.querySelector('input[name="tdt-anim"]:checked').value, transition: $('tdt-trans').value || null, khoAnh: artCfg(), titleGrad: $('tdt-chu-grad').checked });
   const status = (msg, err) => { const s = $('tdt-status'); s.textContent = msg; s.classList.toggle('err', !!err); };
 
   function swatches(th) {
@@ -6916,6 +6943,8 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
     return [th.inv[0], th.inv[th.inv.length - 1], th.bg, th.accent, th.accent2, th.accent3].map(c => `<i style="background:#${c}"></i>`).join('');
   }
   function renderThemes() {
+    // ô "chữ chuyển màu": chưa tự tích/bỏ thì theo mẫu (bật sẵn với mẫu có dải màu tiêu đề riêng, vd các mẫu gradient)
+    if (!state.gradTouched) $('tdt-chu-grad').checked = !!(state.theme.title_grad || state.theme.inv_title_grad);
     $('tdt-themes').innerHTML = Object.values(TDT.THEMES).map(th =>
       `<button class="tdt-th${state.theme === th ? ' on' : ''}" data-id="${th.id}" title="${th.desc}"><span class="bar">${swatches(th)}</span><span class="nm">${th.name}</span></button>`).join('');
     const f = $('tdt-from');
@@ -6932,7 +6961,7 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
   function syncCur() {
     const D = TDT.KHO_ANH, a = artCfg(), anim = document.querySelector('input[name="tdt-anim"]:checked');
     $('tdt-cur-file').textContent = !state.deck ? 'Chưa chọn' : state.demo ? 'File ví dụ' : state.fileName;
-    $('tdt-cur-mau').textContent = state.theme.name;
+    $('tdt-cur-mau').textContent = state.theme.name + ($('tdt-chu-grad').checked ? ' · chữ chuyển màu' : '');
     $('tdt-cur-hoa').textContent = state.motif ? TDT.MOTIFS[state.motif].name : 'Không dùng';
     // bước 4: ô gửi ảnh chỉ hiện khi chọn "Ảnh của tôi", khi đó không cần chọn chủ đề
     $('tdt-anh-rieng').hidden = a.loai !== 'tu-chon'; $('tdt-art-goi').hidden = a.loai === 'tu-chon';
@@ -7164,6 +7193,7 @@ Object.assign(T, { loadSource, keepBuild, keepToPptx });
     const z = $('tdt-preview').querySelector(`.cell[data-i="${c.dataset.i}"]`); if (z) z.scrollIntoView({ block: 'nearest' });
   });
   $('tdt-motif-pal').addEventListener('change', () => refresh());
+  $('tdt-chu-grad').addEventListener('change', () => { state.gradTouched = true; if (state.deck) refresh(); else syncCur(); });
   $('tdt-sec-hoa').addEventListener('toggle', () => { if ($('tdt-sec-hoa').open) renderMotifs(); });
   dlg.querySelector('.tdt-side').addEventListener('change', syncCur);
   $('tdt-from').addEventListener('click', e => { if (e.target.closest('#tdt-card')) { state.theme = state.cardTheme; refresh(); } });

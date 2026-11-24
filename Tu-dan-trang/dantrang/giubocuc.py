@@ -252,6 +252,17 @@ def _solid(hexv: str, alpha=None):
     return el
 
 
+def _grad(cols):
+    """Tô chuyển màu ngang (chữ tiêu đề chuyển màu)."""
+    g = etree.Element(_a("gradFill"), rotWithShape="1")
+    lst = etree.SubElement(g, _a("gsLst"))
+    for i, c in enumerate(cols):
+        gs = etree.SubElement(lst, _a("gs"), pos=str(round(i * 100000 / max(len(cols) - 1, 1))))
+        gs.append(_srgb(c))
+    etree.SubElement(g, _a("lin"), ang="0", scaled="0")
+    return g
+
+
 # ======================================================================
 # đổi màu theo mẫu
 # ======================================================================
@@ -995,6 +1006,12 @@ class Restyler:
                              sizes, spc))
         self._keep_lines(plan, width_emu / EMU, scale)
 
+    def _title_grad(self, bg):
+        """Dải màu chữ tiêu đề trên nền bg (nền tối hay sáng xét như mapper.text), None nếu không dùng."""
+        th = self.th
+        dark = D.contrast(bg, th["inv_ink"]) > D.contrast(bg, th["ink"])
+        return D.title_grad(th, dark, bg) if D.want_grad(th, dark, self.opts) else None
+
     def _run(self, rPr, sc, role, eff, keep_color, size, bold, font, chain, base):
         """Tô màu một run theo mẫu; font=None: giữ phông gốc."""
         if keep_color:
@@ -1012,8 +1029,12 @@ class Restyler:
             f = _fill_el(rPr)
             c = sc.fill(f) if f is not None and _ln(f) in ("solidFill", "gradFill") else None
             if not (f is not None and _ln(f) == "noFill"):
-                new = self.mapper.text(c[0] if c else None, role, eff[1], eff[0], size, bold)
-                _put(rPr, _solid(new, c[1] if c else None), RPR_ORDER)
+                g = self._title_grad(eff[1]) if role == "title" else None   # tiêu đề chữ chuyển màu (tùy chọn)
+                if g:
+                    _put(rPr, _grad(g), RPR_ORDER)
+                else:
+                    new = self.mapper.text(c[0] if c else None, role, eff[1], eff[0], size, bold)
+                    _put(rPr, _solid(new, c[1] if c else None), RPR_ORDER)
         if font:
             lat = rPr.find(_a("latin"))
             if lat is None:

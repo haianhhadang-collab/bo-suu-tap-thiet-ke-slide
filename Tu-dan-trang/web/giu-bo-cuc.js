@@ -129,6 +129,13 @@ function setColor(parent, hex, alpha) {
   parent.insertBefore(srgb(parent.ownerDocument, hex, alpha), parent.firstChild);
 }
 const solid = (doc, hex, alpha) => { const el = mk(doc, 'solidFill'); el.appendChild(srgb(doc, hex, alpha)); return el; };
+/** Tô chuyển màu ngang (chữ tiêu đề chuyển màu). */
+function gradEl(doc, cols) {
+  const g = mk(doc, 'gradFill', { rotWithShape: '1' }), lst = g.appendChild(mk(doc, 'gsLst'));
+  cols.forEach((c, i) => lst.appendChild(mk(doc, 'gs', { pos: String(Math.round(i * 100000 / Math.max(cols.length - 1, 1))) })).appendChild(srgb(doc, c)));
+  g.appendChild(mk(doc, 'lin', { ang: '0', scaled: '0' }));
+  return g;
+}
 /** Chèn el vào parent đúng thứ tự theo lược đồ OOXML (thay phần tử cùng loại nếu có). */
 function put(parent, el, order) {
   const name = el.localName, group = FILLS.includes(name) ? FILLS : [name];
@@ -638,6 +645,11 @@ class Restyler {
     }
     this.keepLines(plan, widthEmu / EMU, scale);
   }
+  /** Dải màu chữ tiêu đề trên nền bg (nền tối hay sáng xét như mapper.text), null nếu không dùng. */
+  titleGrad(bg) {
+    const th = this.th, dark = T.contrast(bg, th.inv_ink) > T.contrast(bg, th.ink);
+    return T.wantGrad(th, dark, this.opts) ? T.titleGrad(th, dark, bg) : null;
+  }
   /** Tô màu một run theo mẫu; font = null: giữ phông gốc. */
   styleRun(rPr, sc, role, eff, keep, size, bold, font, chain, base) {
     const doc = rPr.ownerDocument, f = fillEl(rPr);
@@ -649,7 +661,10 @@ class Restyler {
       } else if (f.localName === 'solidFill' && sc.of(f)) { const c = sc.of(f); setColor(f, c[0], c[1]); }
     } else {
       const c = f && (f.localName === 'solidFill' || f.localName === 'gradFill') ? sc.fill(f) : null;
-      if (!(f && f.localName === 'noFill')) put(rPr, solid(doc, this.mapper.text(c ? c[0] : null, role, eff[1], eff[0], size, bold), c ? c[1] : null), RPR_ORDER);
+      if (!(f && f.localName === 'noFill')) {
+        const g = role === 'title' ? this.titleGrad(eff[1]) : null;   // tiêu đề chữ chuyển màu (tùy chọn ở bước 2)
+        put(rPr, g ? gradEl(doc, g) : solid(doc, this.mapper.text(c ? c[0] : null, role, eff[1], eff[0], size, bold), c ? c[1] : null), RPR_ORDER);
+      }
     }
     if (font) {
       let lat = kid(rPr, 'latin'); if (!lat) lat = put(rPr, mk(doc, 'latin'), RPR_ORDER);

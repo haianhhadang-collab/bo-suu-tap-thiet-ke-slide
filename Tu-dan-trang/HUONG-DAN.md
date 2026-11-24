@@ -52,7 +52,9 @@ Công cụ nhận một file **.pptx, .docx, .pdf, .md hoặc .txt**, tự dàn 
 
 Sáu mẫu `gradient-…` dùng kiểu trang trí `aurora`: nền trang nội dung chuyển màu nhẹ, trang bìa, chương, kết chuyển ba màu và có quầng sáng loang. Muốn dùng kiểu này cho mẫu riêng, đặt `"decor": "aurora"`.
 
-Tiêu đề của sáu mẫu này cũng **chuyển màu** (tên bài, tên chương, trang kết, tiêu đề từng trang); chữ nội dung giữ một màu cho dễ đọc. Mẫu riêng muốn có tiêu đề chuyển màu thì thêm `"title_grad": ["màu 1", "màu 2"]` (trên nền sáng) và `"inv_title_grad"` (trên nền bìa, chương, kết). Tiêu đề quay về một màu khi trang dùng ảnh trang trí, khi chọn họa tiết có bảng màu riêng, hoặc khi một màu trong dải không đủ tương phản với nền. Google Slides và các phần mềm khác PowerPoint có thể chỉ hiện một màu.
+Tiêu đề của sáu mẫu này cũng **chuyển màu** (tên bài, tên chương, trang kết, tiêu đề từng trang); chữ nội dung giữ một màu cho dễ đọc.
+
+**Tiêu đề chữ chuyển màu là tùy chọn riêng, dùng được cho mọi mẫu** (kể cả file .pptx giữ bố cục): trong cửa sổ chọn "Tiêu đề chữ chuyển màu" = Theo mẫu (mặc định, chỉ mẫu gradient) / Bật cho mọi mẫu / Tắt; ở dòng lệnh `--chu-chuyen-mau co|khong|theo-mau`; trong `cau-hinh.json` là `"chu_chuyen_mau"`. Mẫu chưa có dải màu riêng thì dải màu tự suy từ màu nhấn của mẫu (trên nền đậm: màu chữ sang màu nhấn), mỗi màu được đẩy dần về màu chữ chính tới khi đủ tương phản. Mẫu riêng muốn có tiêu đề chuyển màu thì thêm `"title_grad": ["màu 1", "màu 2"]` (trên nền sáng) và `"inv_title_grad"` (trên nền bìa, chương, kết). Tiêu đề quay về một màu khi trang dùng ảnh trang trí, khi chọn họa tiết có bảng màu riêng, hoặc khi một màu trong dải không đủ tương phản với nền. Google Slides và các phần mềm khác PowerPoint có thể chỉ hiện một màu.
 
 Mọi mẫu chỉ dùng phông có sẵn trên Windows và **đủ dấu tiếng Việt**: Segoe UI, Candara, Constantia, Corbel, Palatino Linotype, Cambria. Trebuchet MS, Georgia và Impact không được dùng vì thiếu chữ ơ, ư, ạ…
 
@@ -327,6 +329,7 @@ Cấu hình trong `cau-hinh.json` (file tự tạo ở lần chạy đầu):
 - `hoa_van`: họa tiết mặc định, `khong` hoặc một mã trong bảng họa tiết ở trên (vd `dong-son`, `trung-thu`, `sach-but`)
 - `dung_mau_hoa_van`: `true` dùng bảng màu của họa tiết, `false` giữ màu của mẫu
 - `giu_bo_cuc_pptx`: `true` (mặc định) file .pptx giữ nguyên bố cục gốc, `false` dàn lại từ đầu
+- `chu_chuyen_mau`: tiêu đề chữ chuyển màu, `theo-mau` (mặc định, chỉ mẫu gradient) | `co` (mọi mẫu) | `khong`
 
 ## Kiểm tra kết quả
 
